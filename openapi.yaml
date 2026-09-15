@@ -1,0 +1,1164 @@
+openapi: 3.0.3
+
+# =============================================================================
+# 夜间代客洗车平台 API 契约（SSOT · 唯一事实来源）
+#
+# 本文件是前后端接口的唯一定义处。
+#   - 前端：npx openapi-typescript openapi.yaml -o carwash-mp/src/api/schema.d.ts
+#   - 后端：openapi-generator generate -i openapi.yaml -g spring -o build/generated
+#          （V1.0 先用 springdoc 生成实际文档与本文件做 diff 校验）
+# 任何接口变更必须先改本文件，再改代码。字段不一致 = 漂移，必须修到一致。
+#
+# 上游：《洗车项目PRD V2.0》第六章；《洗车项目技术方案.md》第六章；《订单状态机规则表.md》
+# =============================================================================
+
+info:
+  title: 夜间代客洗车平台 API
+  version: 1.0.0
+  description: |
+    V1.0 MVP 接口契约。
+
+    **全局约定**
+    - 金额：整数，单位【分】。前端展示时除以 100。
+    - 时间：毫秒时间戳（number）。时区 Asia/Shanghai。
+    - 统一响应体 `{ code, msg, data }`，code = 0 表示成功，非 0 为错误码。
+    - 分页响应：data = `{ list, total, pageNum, pageSize }`。
+    - 幂等：下单、支付、开箱、分配格口四类接口必须传 `Idempotency-Key` 请求头。
+
+    **路径前缀**
+    - `/api/v1/**` C 端与 B 端小程序（wx-token 鉴权）
+    - `/admin-api/**` 运营后台（若依 JWT 鉴权，本文件 V1.0 不展开）
+    - `/device-callback/v1/**` 钥匙柜回调（签名 + IP 白名单，见 x-roadmap）
+  contact:
+    name: CarGlow
+
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: api.carglow.local
+        description: 部署域名，上线后替换
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: auth
+    description: 登录授权
+  - name: site
+    description: 站点 / 小区 / Banner
+  - name: goods
+    description: 服务分类与服务项
+  - name: cabinet
+    description: 钥匙柜与格口
+  - name: vehicle
+    description: 车辆管理
+  - name: order
+    description: 下单 / 订单 / 进度
+  - name: pay
+    description: 支付
+  - name: aftersale
+    description: 评价 / 售后 / 理赔
+  - name: misc
+    description: 客服 / 条款等配置
+
+# -----------------------------------------------------------------------------
+# 错误码（分段：A0 通用 / B1 订单 / B2 柜机格口 / B3 支付 / B4 任务 / C0 第三方）
+# -----------------------------------------------------------------------------
+x-error-codes:
+  A0001: 参数错误
+  A0002: 未登录或登录已过期
+  A0003: 无权限
+  A0004: 请求过于频繁
+  A0005: 系统繁忙，请稍后重试
+  B1001: 订单不存在
+  B1002: 订单状态不允许该操作
+  B1003: 未到存钥匙时间 / 已过截止时间
+  B1004: 取消原因必填
+  B2001: 柜机离线
+  B2002: 格口已被占用
+  B2003: 无空闲格口
+  B2004: 开箱码无效或已失效
+  B2005: 开箱失败，请重试或联系客服
+  B3001: 支付超时
+  B3002: 支付失败
+  B3003: 退款失败
+  B4001: 任务已被他人接单
+  B4002: 照片数量不足
+  C0001: 第三方服务异常
+
+# -----------------------------------------------------------------------------
+# 后续模块开工前必须先补契约（防止边写边定，导致漂移）
+# -----------------------------------------------------------------------------
+x-roadmap:
+  - 取送端 /api/v1/pick/** ：任务池、接单、取车/还车打卡、异常上报、工作量
+  - 作业端 /api/v1/station/** ：工位队列看板、15 步 SOP 打卡、质检、产能预警
+  - 设备回调 /device-callback/v1/** ：注册心跳、格口状态同步、开箱回调、开关门上报、故障告警
+  - 后台 /admin-api/** ：模块 1-7 的 CRUD 与订单干预
+
+paths:
+  # ============================ 登录授权 ============================
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: 微信小程序登录
+      description: code2session 换 openid/unionid，返回访问令牌。首次登录返回是否需弹协议。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  description: wx.login 获取的临时凭证
+                phoneCode:
+                  type: string
+                  description: 手机号快速验证组件 code，未授权手机号时不传
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginVO'
+
+  /api/v1/auth/agreements:
+    get:
+      tags: [auth]
+      summary: 获取协议富文本
+      security: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [SERVICE, PRIVACY, RECHARGE, INSURANCE]
+            description: 服务条款 / 隐私政策 / 充值协议 / 保险与理赔说明
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          title: { type: string }
+                          content: { type: string, description: 富文本 HTML }
+
+  # ============================ 站点 / 小区 ============================
+  /api/v1/site/current:
+    get:
+      tags: [site]
+      summary: 当前站点与小区信息
+      description: 对应 PRD P1 顶部站点栏「泷景花园 · 泷景中央站」
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SiteVO'
+
+  /api/v1/communities:
+    get:
+      tags: [site]
+      summary: 已开通小区列表
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CommunityVO'
+
+  /api/v1/community-applies:
+    post:
+      tags: [site]
+      summary: 申请开通我的小区
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [communityName]
+              properties:
+                communityName: { type: string }
+                contactPhone: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/banners:
+    get:
+      tags: [site]
+      summary: 首页 Banner 与公告
+      parameters:
+        - $ref: '#/components/parameters/SiteId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BannerVO'
+
+  /api/v1/capacity:
+    get:
+      tags: [site]
+      summary: 今晚剩余产能
+      description: 对应 PRD P1 产能条「今晚剩余 8 个名额 · 最晚 23:00 存钥匙」
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+            description: 默认今天
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CapacityVO'
+
+  # ============================ 服务商品 ============================
+  /api/v1/service-categories:
+    get:
+      tags: [goods]
+      summary: 服务分类（洗车服务 / 美容服务）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ServiceCategoryVO'
+
+  /api/v1/services:
+    get:
+      tags: [goods]
+      summary: 服务项列表
+      parameters:
+        - name: categoryId
+          in: query
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ServiceVO'
+
+  /api/v1/services/{serviceId}:
+    get:
+      tags: [goods]
+      summary: 服务项详情
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ServiceDetailVO'
+
+  # ============================ 钥匙柜 ============================
+  /api/v1/cabinets:
+    get:
+      tags: [cabinet]
+      summary: 机柜列表（含空闲格口数与距离）
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+        - name: keyword
+          in: query
+          description: 楼栋/单元模糊搜索
+          schema: { type: string }
+        - name: lng
+          in: query
+          schema: { type: number }
+        - name: lat
+          in: query
+          schema: { type: number }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CabinetVO'
+
+  # ============================ 车辆 ============================
+  /api/v1/vehicles:
+    get:
+      tags: [vehicle]
+      summary: 我的车辆列表
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VehicleVO'
+    post:
+      tags: [vehicle]
+      summary: 新增车辆
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/vehicles/{vehicleId}:
+    put:
+      tags: [vehicle]
+      summary: 修改车辆
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+    delete:
+      tags: [vehicle]
+      summary: 删除车辆（前端需二次确认）
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  # ============================ 订单 ============================
+  /api/v1/orders:
+    post:
+      tags: [order]
+      summary: 提交订单
+      description: |
+        后端按顺序校验：格口可用 → 产能未超 → 车辆/地址/机柜/协议齐全。
+        成功后生成 WAIT_PAY 订单并预占格口（TTL 15 分钟，与支付倒计时一致）。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CreateOrderVO'
+    get:
+      tags: [order]
+      summary: 我的订单列表（三 Tab）
+      parameters:
+        - name: tab
+          in: query
+          schema:
+            type: string
+            enum: [ONGOING, WAIT_REVIEW, ALL]
+            default: ONGOING
+            description: 进行中 / 待评价 / 全部
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/OrderListItemVO'
+                          total: { type: integer, format: int64 }
+                          pageNum: { type: integer }
+                          pageSize: { type: integer }
+
+  /api/v1/orders/{orderNo}:
+    get:
+      tags: [order]
+      summary: 订单详情（含 8 节点时间轴与证据）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetailVO'
+
+  /api/v1/orders/{orderNo}/cancel:
+    post:
+      tags: [order]
+      summary: 取消订单
+      description: |
+        走状态机 CANCEL 事件。客户自助仅限 WAIT_PAY / WAIT_KEY / KEY_IN / PICKING，
+        其余状态返回 B1002。取消后释放格口、回补产能、返还权益并自动触发退款。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/orders/{orderNo}/open-code:
+    get:
+      tags: [order]
+      summary: 获取开箱码（存/取钥匙）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [DEPOSIT, TAKE_BACK, EMERGENCY]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OpenCodeVO'
+
+  /api/v1/orders/{orderNo}/emergency-take-key:
+    post:
+      tags: [order]
+      summary: 紧急取钥匙
+      description: |
+        未取车 → 立即告警 + 取消 + 全额退款；
+        已在清洗 → 返回预计完成时间并拒绝取回（错误码 B1002）。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  # ============================ 支付 ============================
+  /api/v1/payments/{orderNo}/prepay:
+    post:
+      tags: [pay]
+      summary: 获取微信支付参数
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          timeStamp: { type: string }
+                          nonceStr: { type: string }
+                          package: { type: string }
+                          signType: { type: string }
+                          paySign: { type: string }
+                          expireAt:
+                            type: integer
+                            format: int64
+                            description: 支付截止时间（毫秒时间戳），前端倒计时以此为准
+
+  # ============================ 评价 / 售后 ============================
+  /api/v1/orders/{orderNo}/reviews:
+    post:
+      tags: [aftersale]
+      summary: 提交评价
+      description: 走状态机 REVIEW_SUBMIT 事件（WAIT_REVIEW → FINISHED）。≤4 星强制填原因并生成复盘工单。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                tags:
+                  type: array
+                  items: { type: string }
+                  description: 洗得干净 / 时效快 / 服务态度好 / 取送准时
+                content: { type: string }
+                images:
+                  type: array
+                  items: { type: string }
+                  description: 已上传图片的 fileId
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/after-sales:
+    post:
+      tags: [aftersale]
+      summary: 提交售后（重洗 / 退款 / 理赔）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderNo, type]
+              properties:
+                orderNo: { type: string }
+                type:
+                  type: string
+                  enum: [REWASH, REFUND, CLAIM]
+                reason: { type: string }
+                images:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          ticketNo: { type: string }
+
+  # ============================ 客服 / 配置 ============================
+  /api/v1/faqs:
+    get:
+      tags: [misc]
+      summary: 常见问题标签与解答
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FaqVO'
+
+  /api/v1/config/customer-service:
+    get:
+      tags: [misc]
+      summary: 客服配置（企微二维码、双电话、夜间提示）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          wecomQrcodeUrl: { type: string }
+                          platformPhone: { type: string }
+                          stationPhone: { type: string }
+                          nightTip: { type: string }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 小程序侧 wx-token；后台侧若依 token
+    deviceSign:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: 柜机回调签名，配合 X-Device-No、X-Timestamp 与 IP 白名单
+
+  parameters:
+    PageNum:
+      name: pageNum
+      in: query
+      schema: { type: integer, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, default: 10 }
+    SiteId:
+      name: siteId
+      in: query
+      required: false
+      schema: { type: integer, format: int64 }
+    CommunityId:
+      name: communityId
+      in: query
+      required: false
+      schema: { type: integer, format: int64 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 幂等键，客户端生成 UUID，同一键重复提交返回首次结果
+      schema: { type: string }
+
+  schemas:
+
+    Result:
+      type: object
+      required: [code, msg]
+      properties:
+        code:
+          type: integer
+          description: 0 = 成功，非 0 见 x-error-codes
+          example: 0
+        msg:
+          type: string
+          example: 操作成功
+        data:
+          description: 业务数据，各接口不同
+        traceId:
+          type: string
+          description: 链路追踪 ID，排查问题时提供
+
+    # ---------------- 订单状态（与 OrderStatus.java 必须逐条一致） ----------------
+    OrderStatus:
+      type: string
+      description: |
+        订单状态，取值必须与《订单状态机规则表.md》及 OrderStatus 枚举完全一致（15 个）。
+      enum:
+        - WAIT_PAY        # 待支付
+        - WAIT_KEY        # 待存钥匙
+        - KEY_IN          # 钥匙已入柜
+        - PICKING         # 取车中
+        - TO_STATION      # 运输中（去程）
+        - WASHING         # 清洗中
+        - QC              # 待质检
+        - WAIT_RETURN     # 待还车
+        - RETURNING       # 运输中（回程）
+        - RETURNED        # 已还车（待取钥匙）
+        - WAIT_REVIEW     # 待评价
+        - FINISHED        # 已完成（终态）
+        - CANCELED        # 已取消
+        - REFUNDING       # 退款中
+        - REFUNDED        # 已退款（终态）
+
+    # ---------------- C 端时间轴 8 节点 ----------------
+    TimelineNode:
+      type: object
+      properties:
+        node:
+          type: string
+          enum: [ORDERED, KEY_IN, PICKED, ARRIVED, WASHING, QC_DONE, RETURNED, WAIT_TAKE_KEY]
+          description: 已下单 / 钥匙已入柜 / 已取车 / 到达中央站 / 清洗中 / 质检完成 / 已还车 / 待取钥匙
+        title: { type: string }
+        time:
+          type: integer
+          format: int64
+          description: 毫秒时间戳，未到达时为空
+        reached: { type: boolean }
+        current: { type: boolean }
+        evidences:
+          type: array
+          description: 该节点的照片等证据
+          items:
+            $ref: '#/components/schemas/MediaVO'
+
+    # ---------------- 登录 ----------------
+    LoginVO:
+      type: object
+      properties:
+        token: { type: string }
+        expireAt: { type: integer, format: int64 }
+        isNewUser: { type: boolean }
+        needAgreement: { type: boolean, description: true 时前端弹《用户服务协议》《隐私政策》 }
+        phoneBound: { type: boolean }
+
+    # ---------------- 站点 / 小区 ----------------
+    SiteVO:
+      type: object
+      properties:
+        siteId: { type: integer, format: int64 }
+        siteName: { type: string }
+        communityId: { type: integer, format: int64 }
+        communityName: { type: string }
+        displayName:
+          type: string
+          description: 站点栏展示文案，如「泷景花园 · 泷景中央站」
+        serviceStatus:
+          type: string
+          enum: [OPEN, CLOSED, RAINY]
+          description: 正常 / 停业 / 雨天模式
+        closedNotice: { type: string }
+
+    CommunityVO:
+      type: object
+      properties:
+        communityId: { type: integer, format: int64 }
+        name: { type: string }
+        accessAuth:
+          type: boolean
+          description: 地库通行授权，false 时禁止该小区下单
+        enabled: { type: boolean }
+
+    BannerVO:
+      type: object
+      properties:
+        bannerId: { type: integer, format: int64 }
+        imageUrl: { type: string }
+        title: { type: string }
+        linkType:
+          type: string
+          enum: [NONE, ACTIVITY, RECHARGE, SERVICE]
+        linkValue: { type: string }
+        sort: { type: integer }
+
+    CapacityVO:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        total: { type: integer }
+        used: { type: integer }
+        remaining: { type: integer }
+        depositDeadline:
+          type: string
+          description: 最晚存钥匙时间，如 23:00
+        promiseReturnTime:
+          type: string
+          description: 承诺还车时间，如 次日 07:00
+        soldOut: { type: boolean }
+
+    # ---------------- 商品 ----------------
+    ServiceCategoryVO:
+      type: object
+      properties:
+        categoryId: { type: integer, format: int64 }
+        name:
+          type: string
+          example: 洗车服务
+        sort: { type: integer }
+
+    ServiceVO:
+      type: object
+      properties:
+        serviceId: { type: integer, format: int64 }
+        categoryId: { type: integer, format: int64 }
+        name: { type: string }
+        subtitle: { type: string }
+        originPrice: { type: integer, description: 原价，单位分 }
+        salePrice: { type: integer, description: 活动价，单位分 }
+        memberPrice:
+          type: integer
+          description: 会员价，单位分；非会员为空
+        displayPrice:
+          type: integer
+          description: 实际展示价，优先级 会员价 > 活动价 > 原价，由后端算好
+        workMinutes: { type: integer }
+        pickupFee:
+          type: integer
+          description: 取送车费，固定展示 0（卖点）
+        dailyLimit: { type: integer }
+        soldOut: { type: boolean, description: 今日已约满 }
+        coverUrl: { type: string }
+
+    ServiceDetailVO:
+      allOf:
+        - $ref: '#/components/schemas/ServiceVO'
+        - type: object
+          properties:
+            items:
+              type: array
+              description: 服务内容清单
+              items: { type: string }
+            applicableModels: { type: string }
+            notIncluded:
+              type: array
+              items: { type: string }
+            notices:
+              type: array
+              items: { type: string }
+            sampleImages:
+              type: array
+              items: { type: string }
+
+    # ---------------- 钥匙柜 ----------------
+    CabinetVO:
+      type: object
+      properties:
+        cabinetId: { type: integer, format: int64 }
+        name:
+          type: string
+          description: 命名规范 小区名+楼栋+单元+楼层，如「泷景花园 三号楼二单元负一」
+        slotTotal: { type: integer }
+        slotFree: { type: integer }
+        online: { type: boolean }
+        distance:
+          type: integer
+          description: 距您约多少米；未授权定位时为空
+        full: { type: boolean }
+
+    # ---------------- 车辆 ----------------
+    VehicleVO:
+      type: object
+      properties:
+        vehicleId: { type: integer, format: int64 }
+        plateNo: { type: string }
+        brand: { type: string }
+        color: { type: string }
+        photoUrl: { type: string }
+        isNewEnergy: { type: boolean }
+        isDefault: { type: boolean }
+        address:
+          $ref: '#/components/schemas/AddressVO'
+
+    AddressVO:
+      type: object
+      properties:
+        communityId: { type: integer, format: int64 }
+        building: { type: string }
+        unit: { type: string }
+        floor:
+          type: string
+          example: 负一层
+        parkingNo:
+          type: string
+          example: A 区 23 号车位
+
+    VehicleRequest:
+      type: object
+      required: [plateNo]
+      properties:
+        plateNo: { type: string, description: 支持新能源 8 位 }
+        brand: { type: string }
+        color: { type: string }
+        photoFileId: { type: string }
+        isNewEnergy: { type: boolean }
+        isDefault: { type: boolean }
+        address:
+          $ref: '#/components/schemas/AddressVO'
+
+    # ---------------- 订单 ----------------
+    CreateOrderRequest:
+      type: object
+      required: [serviceId, vehicleId, cabinetId, appointDate, appointTime, agreed]
+      properties:
+        serviceId: { type: integer, format: int64 }
+        vehicleId: { type: integer, format: int64 }
+        cabinetId: { type: integer, format: int64 }
+        appointDate: { type: string, format: date }
+        appointTime:
+          type: string
+          example: '19:00'
+        pickupRequired:
+          type: boolean
+          default: true
+          description: 是否需要取送车，V1.0 固定 true
+        remark: { type: string, maxLength: 100 }
+        parkPhotoFileIds:
+          type: array
+          maxItems: 3
+          items: { type: string }
+        agreed:
+          type: boolean
+          description: 已同意《服务条款与钥匙寄存协议》
+
+    CreateOrderVO:
+      type: object
+      properties:
+        orderNo:
+          type: string
+          example: SE202609151601276839838676768265
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        payAmount: { type: integer, description: 应付金额，单位分 }
+        payExpireAt:
+          type: integer
+          format: int64
+          description: 支付截止时间，毫秒时间戳
+
+    OrderListItemVO:
+      type: object
+      properties:
+        orderNo: { type: string }
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        statusLabel: { type: string }
+        serviceName: { type: string }
+        workMinutes: { type: integer }
+        appointTime: { type: integer, format: int64 }
+        communityName: { type: string }
+        plateNo: { type: string }
+        payAmount: { type: integer }
+        mainAction:
+          $ref: '#/components/schemas/OrderAction'
+        subActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderAction'
+
+    OrderDetailVO:
+      type: object
+      properties:
+        orderNo: { type: string }
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        statusLabel: { type: string }
+        statusDesc:
+          type: string
+          example: 清洗中 · 预计次日 6:30 送回原位
+        promiseReturnTime: { type: integer, format: int64 }
+        overdue: { type: boolean }
+        siteName: { type: string }
+        cabinetName: { type: string }
+        slotNo: { type: string, description: 仅本人可见 }
+        plateNo: { type: string }
+        address:
+          $ref: '#/components/schemas/AddressVO'
+        serviceName: { type: string }
+        remark: { type: string }
+        originAmount: { type: integer }
+        discountAmount: { type: integer }
+        payAmount: { type: integer }
+        payType: { type: string }
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineNode'
+        medias:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaVO'
+        mainAction:
+          $ref: '#/components/schemas/OrderAction'
+        subActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderAction'
+
+    OrderAction:
+      type: object
+      description: 按钮随状态机变化，前端不得自行推断，一律用后端返回值
+      properties:
+        action:
+          type: string
+          enum: [PAY, DEPOSIT_KEY, VIEW_PROGRESS, TAKE_KEY, REVIEW, REORDER, CANCEL, CONTACT_SERVICE]
+        label: { type: string }
+        enabled: { type: boolean }
+
+    OpenCodeVO:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 6 位取件码
+        qrcodeUrl: { type: string }
+        cabinetName: { type: string }
+        slotNo: { type: string }
+        expireAt: { type: integer, format: int64 }
+
+    MediaVO:
+      type: object
+      properties:
+        fileId: { type: string }
+        bizType:
+          type: string
+          enum: [PARK, PICK, WASHED, RETURN, COMPARE, VIDEO]
+        url:
+          type: string
+          description: 临时访问地址，带有效期
+        uploadTime: { type: integer, format: int64 }
+
+    FaqVO:
+      type: object
+      properties:
+        faqId: { type: integer, format: int64 }
+        label:
+          type: string
+          example: 无法打开柜门
+        answer: { type: string }
+        ticketType:
+          type: string
+          description: 绑定的工单类型，一键建单时带入
