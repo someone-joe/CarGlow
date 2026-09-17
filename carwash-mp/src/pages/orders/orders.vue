@@ -19,7 +19,7 @@
       <text class="empty-sub">洗车订单会出现在这里</text>
     </view>
 
-    <view v-for="item in list" :key="item.orderNo" class="card">
+    <view v-for="item in list" :key="item.orderNo" class="card" @click="goDetail(item)">
       <view class="card-row">
         <text class="service">{{ item.serviceName }}</text>
         <text class="status">{{ item.statusLabel }}</text>
@@ -73,6 +73,10 @@ async function loadOrders(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+function goDetail(item: OrderListItemVO): void {
+  uni.navigateTo({ url: `/pages/order-detail/order-detail?orderNo=${item.orderNo}` })
 }
 
 /** 订单按钮点击：目前只实现 PAY，其余 action 随功能开工在此扩展 */

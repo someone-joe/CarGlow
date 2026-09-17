@@ -77,7 +77,7 @@ public class WashOrderQueryService {
      * 其余状态（存钥匙、看进度、评价、再来一单等）随对应功能开工逐个补，
      * 补的时候改这里，前端不用动。
      */
-    private OrderActionVO resolveMainAction(String status) {
+    public OrderActionVO resolveMainAction(String status) {
         if (OrderStatus.WAIT_PAY.name().equals(status)) {
             return new OrderActionVO("PAY", "去支付", true);
         }

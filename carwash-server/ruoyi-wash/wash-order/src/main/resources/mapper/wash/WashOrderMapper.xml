@@ -45,7 +45,7 @@
     <select id="selectByOrderNo" resultMap="WashOrderResult">
         select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id,
                status, service_name, appoint_time, pay_amount, pay_expire_at, plate_no, cancel_reason,
-               del_flag, create_time, update_time
+               remark, del_flag, create_time, update_time
         from wash_order
         where order_no = #{orderNo} and del_flag = '0'
         limit 1

@@ -2,6 +2,8 @@ import type { components } from '@/api/schema'
 import { request } from '@/utils/request'
 
 export type OrderListItemVO = components['schemas']['OrderListItemVO']
+export type OrderDetailVO = components['schemas']['OrderDetailVO']
+export type TimelineNodeVO = components['schemas']['TimelineNode']
 
 /** 契约：openapi.yaml /api/v1/orders 响应 data */
 export interface OrderPageVO {
@@ -45,6 +47,14 @@ export function createOrder(data: CreateOrderRequest): Promise<CreateOrderVO> {
     method: 'POST',
     data,
     idempotent: true,
+  })
+}
+
+/** 契约：openapi.yaml GET /api/v1/orders/{orderNo}（含 8 节点时间轴） */
+export function fetchOrderDetail(orderNo: string): Promise<components['schemas']['OrderDetailVO']> {
+  return request<components['schemas']['OrderDetailVO']>({
+    url: `/api/v1/orders/${orderNo}`,
+    method: 'GET',
   })
 }
 

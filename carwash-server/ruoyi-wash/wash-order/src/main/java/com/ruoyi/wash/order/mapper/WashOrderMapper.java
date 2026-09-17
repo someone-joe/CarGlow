@@ -38,6 +38,11 @@ public interface WashOrderMapper {
             "where order_no = #{orderNo} and status = #{from} and del_flag = '0'")
     int updateStatus(@Param("orderNo") String orderNo, @Param("from") String from, @Param("to") String to);
 
+    /** 流转日志按时间正序：时间轴与后台追溯都读它，只增不删 */
+    @Select("select id, order_id, from_status, to_status, event, operator_type, operator_id, source, reason, create_time " +
+            "from wash_order_status_log where order_id = #{orderId} order by create_time asc, id asc")
+    List<OrderStatusLog> selectLogsByOrderId(@Param("orderId") Long orderId);
+
     @Insert("insert into wash_order_status_log " +
             "(order_id, from_status, to_status, event, operator_type, operator_id, source, reason, create_time) " +
             "values (#{orderId}, #{fromStatus}, #{toStatus}, #{event}, #{operatorType}, #{operatorId}, #{source}, #{reason}, sysdate())")
