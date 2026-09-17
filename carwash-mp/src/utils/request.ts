@@ -6,8 +6,12 @@
  */
 import type { components } from '@/api/schema'
 
-/** 后端基址。真机调试需改成本机局域网 IP（手机连同一 WiFi），并关闭微信开发者工具的域名校验 */
-export const BASE_URL = 'http://localhost:8080'
+/**
+ * 后端基址：从 carwash-mp/.env 的 VITE_API_BASE 读取。
+ * - 开发者工具模拟器：localhost 即本机
+ * - 真机：必须写电脑局域网 IP（.env 里有说明），换 WiFi 后要改
+ */
+export const BASE_URL = (import.meta.env.VITE_API_BASE as string) || 'http://localhost:8080'
 
 export const TOKEN_KEY = 'carglow_token'
 
