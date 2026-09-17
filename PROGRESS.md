@@ -147,10 +147,15 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
 7. **取消订单已完成**（2026-09-18）：`POST /api/v1/orders/{orderNo}/cancel`，走 `CANCEL` 事件 + 产能回补 + 已支付自动退款。
    实测四场景：未支付取消→`CANCELED`、未填原因→`21004`、已支付取消→`REFUNDING`（自动全额退款）、
    **已开洗客户取消→`21002` 拒绝**（PRD 红线在真实接口上生效）
-8. **下一步建议**（三选一，按价值排序）：
-   - **运营后台**：把订单/会员放进若依后台，运营能看能干预（后台脚手架已就绪，成本低）
-   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件，需要柜机/格口模块开工（PRD 核心链路，但依赖硬件协议）
-   - **真实微信支付**：替换 mock-pay（需要商户号与备案域名）
+8. **运营后台已打通**（2026-09-18）：
+   - 后端：`GET /admin-api/wash/order/list`（权限 `wash:order:list`）+ `/status-options`（选项取自 OrderStatus 枚举，前端不写死状态名单）
+   - 菜单：`sql/wash_menu.sql`（洗车业务 → 订单管理，perms = `wash:order:list`）
+   - 前端：`carwash-admin`（RuoYi-Vue3），新增 `src/views/wash/order/index.vue` 与 `src/api/wash/order.js`；
+     dev 端口改为 1024（80 端口非管理员起不来），浏览器打开 `http://localhost:1024`，admin / admin123
+9. **下一步建议**（按价值排序）：
+   - **后台订单详情 + 干预**：详情抽屉（含时间轴），异常订单可人工推进/取消（客服最常用）
+   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
+   - **真实微信支付**：替换 mock-pay（需商户号与备案域名）
 
 ---
 

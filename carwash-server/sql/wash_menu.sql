@@ -1,0 +1,14 @@
+-- =============================================================
+-- 若依后台菜单：洗车业务（订单管理）
+-- 权限标识遵循 PRD 6.7.3 的 wash:*:* 命名
+-- 导入后需给角色授权（系统管理 → 角色管理 → 菜单权限），超级管理员自动拥有全部
+-- =============================================================
+
+-- 一级目录：洗车业务
+delete from sys_menu where menu_id in (2000, 2001);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2000, '洗车业务', 0, 5, 'wash', null, 1, 0, 'M', '0', '0', '', 'build', 'admin', sysdate(), '洗车业务目录');
+
+-- 二级菜单：订单管理
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2001, '订单管理', 2000, 1, 'order', 'wash/order/index', 1, 0, 'C', '0', '0', 'wash:order:list', 'shopping', 'admin', sysdate(), '订单管理菜单');

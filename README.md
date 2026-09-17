@@ -7,7 +7,7 @@
 | 目录 | 是什么 | 技术栈 | 端口 |
 | --- | --- | --- | --- |
 | `carwash-mp` | C 端 / 取送端 / 作业端小程序 | uni-app + Vue3 + TS | — |
-| `carwash-admin` | 运营后台前端（**尚未建**） | RuoYi-Vue3 + Element Plus | 1024 |
+| `carwash-admin` | 运营后台前端 | RuoYi-Vue3 + Element Plus | 1024 |
 | `carwash-server` | 后端（若依 3.9.2 + 业务模块 `ruoyi-wash`） | Spring Boot 4.1 + JDK 17 | 8080 |
 | `docker` | 本地 MySQL 8 / Redis 7 | Docker Compose | 3306 / 6379 |
 | `openapi.yaml` | **前后端接口契约（唯一真源）** | OpenAPI | — |
@@ -23,6 +23,9 @@ java -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar
 
 # 3. 起小程序（微信开发者工具导入 dist/build/mp-weixin）
 cd carwash-mp && npm run dev:mp-weixin
+
+# 4. 起运营后台（浏览器打开 http://localhost:1024，默认 admin / admin123）
+cd carwash-admin && npm run dev
 ```
 
 ## 常用命令
