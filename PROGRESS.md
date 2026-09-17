@@ -138,7 +138,8 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
      + `App.vue` 启动静默登录；`npm run build:mp-weixin` 与 `vue-tsc --noEmit` 均通过
    - **联调前提**：微信开发者工具「详情 → 本地设置 → 不校验合法域名」必须勾选
      （后端是 http://localhost，非备案域名）；后端进程需在运行中
-6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截
+6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截（状态机单测已有 15 个，接入层测试待补）
+7. **下一步建议**：订单详情 + 时间轴（直接读 `wash_order_status_log`），或取消订单（`CANCEL` 事件走状态机 + 退款占位）
 
 ---
 
@@ -155,8 +156,13 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
 - **正式下单页未做**：小程序首页的"立即下单"是**临时入口**（用种子数据 ID 101/201/301），
   服务项/车辆/机柜三个选择页与接口（`/api/v1/services`、`/api/v1/vehicles`、`/api/v1/cabinets`）都还没实现
 - **格口预占未实现**：PRD 要求下单即预占格口，格口表与柜机模块未开工，代码里有 TODO 标注，不要当作已完成
-- **支付未接**：订单停在 `WAIT_PAY`，支付成功后触发 `PAY_SUCCESS` 走状态机的部分还没做
-- **订单按钮（mainAction / subActions）恒为空**：契约要求由后端返回，待按钮规则实现；前端不得自行推断按钮
+- **状态机已接入业务**（2026-09-17）：模拟支付 → `PAY_SUCCESS` → `WAIT_PAY → WAIT_KEY`，
+  走真正的闸机：Redis 锁（`lock:order:{orderNo}`）→ 读状态 → 校验 → CAS 乐观更新 → 写流转日志。
+  实测：首次支付成功、重复支付 `21002`、订单不存在 `21001`、日志落库 `WAIT_PAY→WAIT_KEY/PAY_SUCCESS/CUSTOMER`
+- **真实微信支付未接**：`mock-pay` 是 x-dev-only 接口，由 `wash.pay.mock-enabled` 控制（生产必须 false）。
+  真支付接入只需在回调里调 `WashOrderStateService.paySuccess()`，状态机与日志零改动
+- **订单按钮只实现了 PAY**：其余 action（存钥匙/看进度/评价/再来一单）随功能开工补在
+  `WashOrderQueryService.resolveMainAction()`，前端不用动
 - **后端错误码数字映射**已写进 `openapi.yaml`（A/B/C 段 → 1/2/3 前缀 + 4 位编号），改动需同步契约与 `ErrorCode.numeric()`
 - **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
 - 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
