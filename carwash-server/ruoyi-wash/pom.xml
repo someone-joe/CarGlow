@@ -20,4 +20,18 @@
         <module>wash-common</module>
     </modules>
 
+    <build>
+        <plugins>
+            <!-- 根 pom 未声明 surefire，Maven 默认的 2.12.4 跑不了 JUnit 5，这里统一指定 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <argLine>-Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

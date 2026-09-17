@@ -85,9 +85,8 @@ public final class OrderStatusTransitions {
         if (from == null || event == null || operatorType == null) {
             return false;
         }
-        if (from.isTerminal()) {
-            return false;
-        }
+        // 能否流转只看规则表：没有出边规则的状态（如已退款）自然返回 false。
+        // 不使用 isTerminal() 一刀切，否则「已完成仍可退款」这条已确认的业务决策会被误拦。
         if (!next(from, event).isPresent()) {
             return false;
         }

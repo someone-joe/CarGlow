@@ -43,9 +43,9 @@ public class OrderStateMachine {
             if (current == null) {
                 throw new OrderStatusException("订单不存在：" + orderNo);
             }
-            if (current.isTerminal()) {
-                throw new OrderStatusException("订单已处于终态，不可再流转：" + current);
-            }
+            // 注意：这里不再用 isTerminal() 一刀切拦截。
+            // 「已完成」虽是展示上的终态，但业务上仍需支持退款（已确认决策），
+            // 因此能否流转一律以《订单状态机规则表》为准：没有出边规则的状态（如已退款）自然被拒。
             // 调用方若声明了期望的起始状态，不一致说明订单已被别处改过，直接失败而不是覆盖
             if (ctx.getExpectFrom() != null && ctx.getExpectFrom() != current) {
                 throw new OrderStatusException("订单状态已变更，期望 " + ctx.getExpectFrom() + "，实际 " + current);
