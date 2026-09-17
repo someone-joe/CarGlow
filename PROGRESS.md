@@ -80,8 +80,13 @@ Java 文件路径：
 | 技术 | 已开启 MyBatis 驼峰映射（若依默认注释掉了）：业务模块用注解式 Mapper，不开会全字段为 null |
 | 技术 | 产能抢占用 **Lua 脚本**保证原子；直接 `DECR` 不存在的 key 会被 Redis 建成 -1，"未设置产能"会被误判成"已满" |
 | 技术 | 新增错误码 A0006（当晚产能已满），契约 `openapi.yaml` 与 `ErrorCode` 已同步 |
-| 技术 | **导入 SQL 必须带 `--default-character-set=utf8mb4`**：容器内 mysql 客户端默认 latin1，
+| 技术 | **导入 SQL 必须带 `--default-character-set=utf8mb4`**：容器内 mysql 客户端默认 latin1（**实为 cp1252 超集**），
   中文会被双重编码——症状很阴险：`mysql` 命令行看着"正常"（字节原样吐出），API 返回却全是乱码 |
+| 技术 | **已根治（2026-09-18）**：`carwash-server/sql/` 下所有 SQL 文件头部写入 `set names utf8mb4;`，
+  防复发不再依赖"人记得加命令行参数"。`set names` 由服务器解释，能覆盖客户端默认字符集，Navicat 导入同样生效 |
+| 技术 | 乱码排查先 `SELECT HEX(col)` 看字节再动手：只发生一次双重编码时 HEX 呈 `C3A5C28F…` 形态，
+  可用 `CONVERT(BINARY(CONVERT(col USING latin1)) USING utf8mb4)` 逆推还原。**不要凭 Navicat 显示判断**，
+  显示层与存储层可能不一致 |
 | 技术 | 状态机不引入 Spring StateMachine，自研轻量流转表 |
 | 技术 | 后端单体模块化（RuoYi 多模块），不上微服务 |
 | 技术 | C 端用 uni-app（Vue3 + TS），三端复用 |
@@ -97,7 +102,7 @@ Java 文件路径：
 | JDK 17 | ✅ 17.0.12 | `C:\Program Files\Java\jdk-17` |
 | Maven | ⚠️ 未单独装 | 用 IDEA 自带（3.9.16），不必单独装 |
 | Docker | ✅ Desktop 29.8.0 | 已起 MySQL 8.0.39 + Redis 7.2 容器 |
-| MySQL | ✅ 8.0.39 | `127.0.0.1:3306`，库 `carwash`，root / carglow_dev |
+| MySQL | ✅ 8.0.39 | `127.0.0.1:3306`，库 `carwash`，root / carglow_dev（2026-09-18 因双重编码重建，现已全量正常） |
 | Redis | ✅ 7.2 | `127.0.0.1:6379`，密码 carglow_dev |
 | IDEA | ❌ 缺失 | 建议装 Community 免费版（自带 Maven） |
 
