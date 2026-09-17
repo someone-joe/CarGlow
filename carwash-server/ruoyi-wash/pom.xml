@@ -19,6 +19,8 @@
     <modules>
         <module>wash-common</module>
         <module>wash-member</module>
+        <module>wash-goods</module>
+        <module>wash-network</module>
         <module>wash-order</module>
     </modules>
 

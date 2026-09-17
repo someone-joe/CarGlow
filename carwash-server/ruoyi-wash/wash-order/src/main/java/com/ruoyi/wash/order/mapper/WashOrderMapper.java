@@ -18,4 +18,8 @@ public interface WashOrderMapper {
 
     long countByMember(@Param("memberId") Long memberId,
                        @Param("statuses") List<String> statuses);
+
+    WashOrder selectByOrderNo(@Param("orderNo") String orderNo);
+
+    int insertWashOrder(WashOrder order);
 }

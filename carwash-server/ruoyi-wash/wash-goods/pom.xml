@@ -10,11 +10,11 @@
         <version>3.9.2</version>
     </parent>
 
-    <artifactId>wash-order</artifactId>
+    <artifactId>wash-goods</artifactId>
     <packaging>jar</packaging>
 
-    <name>wash-order</name>
-    <description>订单域：下单、订单查询、状态流转接入</description>
+    <name>wash-goods</name>
+    <description>商品域：服务分类、服务项与价格</description>
 
     <dependencies>
         <dependency>
@@ -25,22 +25,6 @@
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
-        </dependency>
-        <!-- 下单需要校验车辆 / 服务项 / 机柜：只依赖对方 Service，不直接依赖其 Mapper -->
-        <dependency>
-            <groupId>com.ruoyi</groupId>
-            <artifactId>wash-member</artifactId>
-            <version>${ruoyi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ruoyi</groupId>
-            <artifactId>wash-goods</artifactId>
-            <version>${ruoyi.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ruoyi</groupId>
-            <artifactId>wash-network</artifactId>
-            <version>${ruoyi.version}</version>
         </dependency>
     </dependencies>
 

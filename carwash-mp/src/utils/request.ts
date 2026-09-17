@@ -36,6 +36,8 @@ export interface RequestOptions {
   auth?: boolean
   /** 为 true 时不弹错误 toast，由调用方自行处理 */
   silent?: boolean
+  /** 需要幂等键的接口（下单等），自动生成 UUID 放 Idempotency-Key 头 */
+  idempotent?: boolean
 }
 
 export function getToken(): string {
@@ -54,6 +56,15 @@ export function request<T>(options: RequestOptions): Promise<T> {
   return doRequest<T>(options, false)
 }
 
+/** 简易 UUID（幂等键用，不需要密码学强度） */
+function uuid(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const header: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -62,6 +73,11 @@ function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
       if (token) {
         header.Authorization = `Bearer ${token}`
       }
+    }
+    // 幂等键：同一键重复提交服务端返回首次结果，防止用户狂点生成多单
+    const idempotencyKey = options.idempotent ? uuid() : ''
+    if (idempotencyKey) {
+      header['Idempotency-Key'] = idempotencyKey
     }
 
     uni.request({

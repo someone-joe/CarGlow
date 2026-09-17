@@ -10,6 +10,9 @@ public class WashOrder extends BaseEntity {
 
     private Long orderId;
     private String orderNo;
+    private Long serviceId;
+    private Long vehicleId;
+    private Long cabinetId;
     private Long memberId;
     private Long siteId;
     private Long communityId;
@@ -19,6 +22,8 @@ public class WashOrder extends BaseEntity {
     private Long appointTime;
     /** 支付金额，单位：分 */
     private Long payAmount;
+    /** 支付截止时间，毫秒时间戳 */
+    private Long payExpireAt;
     private String plateNo;
     private String cancelReason;
     private String delFlag;
@@ -87,12 +92,44 @@ public class WashOrder extends BaseEntity {
         this.appointTime = appointTime;
     }
 
+    public Long getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(Long serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    public Long getVehicleId() {
+        return vehicleId;
+    }
+
+    public void setVehicleId(Long vehicleId) {
+        this.vehicleId = vehicleId;
+    }
+
+    public Long getCabinetId() {
+        return cabinetId;
+    }
+
+    public void setCabinetId(Long cabinetId) {
+        this.cabinetId = cabinetId;
+    }
+
     public Long getPayAmount() {
         return payAmount;
     }
 
     public void setPayAmount(Long payAmount) {
         this.payAmount = payAmount;
+    }
+
+    public Long getPayExpireAt() {
+        return payExpireAt;
+    }
+
+    public void setPayExpireAt(Long payExpireAt) {
+        this.payExpireAt = payExpireAt;
     }
 
     public String getPlateNo() {

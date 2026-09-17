@@ -20,6 +20,34 @@ export interface OrderListParams {
   pageSize?: number
 }
 
+/** 契约：openapi.yaml POST /api/v1/orders 请求体 */
+export interface CreateOrderRequest {
+  serviceId: number
+  vehicleId: number
+  cabinetId: number
+  appointDate: string
+  appointTime: string
+  pickupRequired?: boolean
+  remark?: string
+  parkPhotoFileIds?: string[]
+  agreed: boolean
+}
+
+export type CreateOrderVO = components['schemas']['CreateOrderVO']
+
+/**
+ * 提交订单。契约要求幂等键 Idempotency-Key（客户端生成 UUID，重复提交返回首次结果）。
+ * 幂等键由此处统一生成，页面不用关心。
+ */
+export function createOrder(data: CreateOrderRequest): Promise<CreateOrderVO> {
+  return request<CreateOrderVO>({
+    url: '/api/v1/orders',
+    method: 'POST',
+    data,
+    idempotent: true,
+  })
+}
+
 export function fetchOrderList(params: OrderListParams = {}): Promise<OrderPageVO> {
   return request<OrderPageVO>({
     url: '/api/v1/orders',

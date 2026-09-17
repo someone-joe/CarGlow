@@ -14,7 +14,9 @@ PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
 		<!-- 指定 MyBatis 所用日志的具体实现 -->
         <setting name="logImpl"                  value="SLF4J"  />
         <!-- 使用驼峰命名法转换字段 -->
-		<!-- <setting name="mapUnderscoreToCamelCase" value="true"/> -->
+		<!-- 开启驼峰映射：业务模块的注解式 Mapper（@Select）依赖自动映射，
+		     若依自带的 XML 全部用 resultMap 显式映射，开启不受影响 -->
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
 	</settings>
 	
 </configuration>

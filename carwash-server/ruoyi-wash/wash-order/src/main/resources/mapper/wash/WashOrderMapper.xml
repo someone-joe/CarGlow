@@ -42,4 +42,22 @@
         select count(*) from wash_order where <include refid="memberFilter"/>
     </select>
 
+    <select id="selectByOrderNo" resultMap="WashOrderResult">
+        select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id,
+               status, service_name, appoint_time, pay_amount, pay_expire_at, plate_no, cancel_reason,
+               del_flag, create_time, update_time
+        from wash_order
+        where order_no = #{orderNo} and del_flag = '0'
+        limit 1
+    </select>
+
+    <insert id="insertWashOrder" useGeneratedKeys="true" keyProperty="orderId">
+        insert into wash_order
+        (order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id, status,
+         service_name, appoint_time, pay_amount, pay_expire_at, plate_no, remark, del_flag, create_time)
+        values
+        (#{orderNo}, #{serviceId}, #{vehicleId}, #{cabinetId}, #{memberId}, #{siteId}, #{communityId}, #{status},
+         #{serviceName}, #{appointTime}, #{payAmount}, #{payExpireAt}, #{plateNo}, #{remark}, '0', sysdate())
+    </insert>
+
 </mapper>
