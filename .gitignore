@@ -216,3 +216,27 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===== CarGlow 项目补充 =====
+# 本地工具（Maven 等，不入库）
+.tools/
+
+# Node
+node_modules/
+.hbuilderx/
+.unpackage/
+
+# Java
+target/
+*.class
+*.jar
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 系统
+.DS_Store
+Thumbs.db

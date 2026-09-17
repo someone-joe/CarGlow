@@ -1,0 +1,59 @@
+# 本地开发中间件：MySQL 8 + Redis 7
+#
+# 用途：只在开发机用，避免在本机装一堆服务、造成版本冲突。
+# 生产环境部署方式见《洗车项目技术方案.md》"部署"章节（Linux 服务器 + Docker）。
+#
+# 常用命令（在仓库根目录执行）：
+#   启动  docker compose -f docker/docker-compose.dev.yml up -d
+#   停止  docker compose -f docker/docker-compose.dev.yml down
+#   看日志 docker compose -f docker/docker-compose.dev.yml logs -f mysql
+#   清数据 docker compose -f docker/docker-compose.dev.yml down -v   （会删库，慎用）
+#
+# 注意：下面的口令仅用于本机开发，禁止带到任何线上环境。
+
+services:
+  mysql:
+    image: mysql:8.0.39
+    container_name: carglow-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: carglow_dev
+      MYSQL_DATABASE: carwash
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --max_connections=300
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: carglow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      TZ: Asia/Shanghai
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "carglow_dev"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a carglow_dev ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  mysql-data:
+  redis-data:

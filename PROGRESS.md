@@ -1,13 +1,16 @@
 # 项目进度交接（换设备 / 新会话先看这里）
 
 > 用途：聊天记录不会跨设备，但本文件会。新会话开始时，让 AI 先读本文件即可无损接上。
-> 最后更新：2026-09-16
+> 最后更新：2026-09-17
 
 ---
 
 ## 一、当前进度（一句话）
 
-**三步走已完成前两步**（订单状态机、API 契约），**第三步（工程骨架）尚未开始**，卡点在：本地缺 JDK。
+**三步走：前两步已完成**（订单状态机、API 契约），**第三步（工程骨架）后端已跑通，前端未开始**。
+环境卡点已全部解除：JDK 17 已装、Docker 已可用、MySQL 8 + Redis 7 容器已跑起来。
+后端：若依官方 3.9.2（JDK 17 + Spring Boot 4.1）+ 我们的 `wash-common`（含状态机）编译通过，
+`ruoyi-admin.jar` 启动成功并能连上 MySQL/Redis（`/captchaImage` 返回正常）。
 
 ```
 [完成] 第 0 步 防漂移机制   → CODEBUDDY.md
@@ -43,7 +46,10 @@
 | `订单状态机规则表.md` | **订单 15 态 + 17 个流转事件的唯一定义** | 完成 |
 | `openapi.yaml` | **前后端接口契约唯一真源**，C 端 23 个接口 | 完成 |
 | `carwash-mp/src/api/schema.d.ts` | 由契约自动生成的前端 TS 类型（1369 行，已验证 15 个状态同步到位） | 已生成 |
-| `carwash-server/ruoyi-wash/wash-common/.../statemachine/` | 7 个状态机 Java 文件（订单状态枚举、事件、流转规则表、闸机、日志实体） | 已写，**尚未编译**（缺 JDK） |
+| `carwash-server/ruoyi-wash/wash-common/.../statemachine/` | 7 个状态机 Java 文件（订单状态枚举、事件、流转规则表、闸机、日志实体） | 已写，**尚未编译**（等后端 `pom.xml`） |
+| `docker/docker-compose.dev.yml` | 本地开发中间件编排（MySQL 8 + Redis 7） | 已启动，容器 healthy |
+| `carwash-server/` 若依原生模块 | 若依 3.9.2 后端：admin / framework / system / quartz / generator / common + `sql/` | 已接入，**构建通过**（BUILD SUCCESS） |
+| `carwash-server/ruoyi-wash/pom.xml`、`wash-common/pom.xml` | 业务父模块与公共模块，挂进若依根 pom | 已创建，编译通过 |
 
 Java 文件路径：
 `carwash-server/ruoyi-wash/wash-common/src/main/java/com/ruoyi/wash/common/statemachine/`
@@ -61,6 +67,9 @@ Java 文件路径：
 | 技术 | 金额一律**整数、单位分**；时间一律**毫秒时间戳** |
 | 技术 | 分页参数 `pageNum` / `pageSize`，从 1 开始 |
 | 技术 | 订单按钮（`OrderAction`）由后端返回，前端不得自行推断 |
+| 技术 | 后端脚手架 = **若依官方 3.9.2**（JDK 17 + Spring Boot 4.1），源码进仓库（GPL-3.0，内部使用无碍） |
+| 技术 | 构建用 **Docker 里的 Maven**（`maven:3.9-eclipse-temurin-17`），本机不装 Maven |
+| 技术 | 本地中间件用 **Docker Compose**（MySQL 8.0.39 + Redis 7.2），不用直装绿色版 |
 | 技术 | 状态机不引入 Spring StateMachine，自研轻量流转表 |
 | 技术 | 后端单体模块化（RuoYi 多模块），不上微服务 |
 | 技术 | C 端用 uni-app（Vue3 + TS），三端复用 |
@@ -69,23 +78,41 @@ Java 文件路径：
 
 ## 五、环境状态
 
-| 工具 | 本机（2026-09-16） | 说明 |
+| 工具 | 本机（2026-09-17） | 说明 |
 | --- | --- | --- |
 | Node.js | ✅ v20.20.2 / npm 10.8.2 | 已装 |
 | Git | ✅ 2.54.0 | 已装 |
-| JDK 17 | ❌ 缺失 | **阻塞项**，后端跑不起来 |
-| Maven | ❌ 缺失 | 可用 IDEA 自带版本替代 |
-| Docker | ❌ 缺失 | 用于起 MySQL 8 + Redis 7 |
+| JDK 17 | ✅ 17.0.12 | `C:\Program Files\Java\jdk-17` |
+| Maven | ⚠️ 未单独装 | 用 IDEA 自带（3.9.16），不必单独装 |
+| Docker | ✅ Desktop 29.8.0 | 已起 MySQL 8.0.39 + Redis 7.2 容器 |
+| MySQL | ✅ 8.0.39 | `127.0.0.1:3306`，库 `carwash`，root / carglow_dev |
+| Redis | ✅ 7.2 | `127.0.0.1:6379`，密码 carglow_dev |
 | IDEA | ❌ 缺失 | 建议装 Community 免费版（自带 Maven） |
+
+常用命令（仓库根目录）：
+
+```bash
+docker compose -f docker/docker-compose.dev.yml up -d   # 启动
+docker compose -f docker/docker-compose.dev.yml down    # 停止（数据在卷里，保留）
+docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，慎用
+```
+
+> 本机是 Windows 10 Pro，**非管理员**。曾尝试直装 MySQL/Redis 绿色版，因官方下载被挡而放弃，
+> 最终改回 Docker 方案（用户决策：长期开发宁可用 Docker，避免多应用环境冲突）。
 
 ---
 
 ## 六、下一步待办（按顺序，全部未开始）
 
-1. **装环境**：JDK 17（adoptium.net，装时勾选 JAVA_HOME + PATH）→ IDEA Community → Docker Desktop（可能需重启）
-2. **建后端骨架**：Maven 多模块 + 把已有状态机接进去 + 接入 Redis 锁与 MyBatis
+1. ~~**装环境**~~ ✅ 已完成：JDK 17.0.12 + Docker Desktop 29.8.0 + MySQL/Redis 容器
+2. ~~**建后端骨架**~~ ✅ 已完成（2026-09-17）：若依 3.9.2 + JDK17 + Spring Boot 4.1，`wash-common` 编译通过，jar 启动成功
+   - MySQL：`127.0.0.1:3306` 库 `carwash`，root / carglow_dev
+   - Redis：`127.0.0.1:6379`，密码 carglow_dev
+   - 启动：`java -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar`（端口 8080）
+   - 打包（用 Docker 里的 Maven，本机不装）：
+     `docker run --rm -v d:/CarGlow/carwash-server:/app -v carglow-m2:/root/.m2/repository -w /app maven:3.9-eclipse-temurin-17 mvn -B -DskipTests clean package`
 3. **建前端骨架**：uni-app 三端，引入已生成的 `schema.d.ts`
-4. **起 MySQL + Redis**，建表（状态机日志表 DDL 见《订单状态机规则表.md》第四节）
+4. **建表**（MySQL/Redis 容器已起）：状态机日志表 DDL 见《订单状态机规则表.md》第四节
 5. **跑通最小链路**：登录 → 空订单列表（微信开发者工具里看到"暂无订单"）
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截
 
@@ -95,8 +122,10 @@ Java 文件路径：
 
 - **契约只覆盖 C 端**：取送端、作业端、柜机回调、后台管理四块接口未定，已列在 `openapi.yaml` 末尾的 `x-roadmap`，对应模块开工前必须先补契约
 - **格口状态机、任务状态机未做**（PRD 4.4 / 4.5 已定义规则）
-- **状态机单元测试未写**（等工程能编译后立即补）
-- 后端 `pom.xml` 尚未创建，Java 文件目前无法编译
+- **状态机单元测试未写**（现在能编译了，应尽快补）
+- **前端 uni-app 工程未开始**（`carwash-mp` 目前只有 `src/api/schema.d.ts`）
+- **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
+- 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
 
 ---
 
