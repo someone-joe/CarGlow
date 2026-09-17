@@ -24,8 +24,8 @@ public class OrderPageVO {
         private String communityName;
         private String plateNo;
         private Long payAmount;
-        private Object mainAction;
-        private List<Object> subActions;
+        private OrderActionVO mainAction;
+        private List<OrderActionVO> subActions;
 
         public String getOrderNo() {
             return orderNo;
@@ -99,19 +99,19 @@ public class OrderPageVO {
             this.payAmount = payAmount;
         }
 
-        public Object getMainAction() {
+        public OrderActionVO getMainAction() {
             return mainAction;
         }
 
-        public void setMainAction(Object mainAction) {
+        public void setMainAction(OrderActionVO mainAction) {
             this.mainAction = mainAction;
         }
 
-        public List<Object> getSubActions() {
+        public List<OrderActionVO> getSubActions() {
             return subActions;
         }
 
-        public void setSubActions(List<Object> subActions) {
+        public void setSubActions(List<OrderActionVO> subActions) {
             this.subActions = subActions;
         }
     }

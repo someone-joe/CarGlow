@@ -632,6 +632,33 @@ paths:
                             format: int64
                             description: 支付截止时间（毫秒时间戳），前端倒计时以此为准
 
+  # ============================ 支付（开发用） ============================
+  /api/v1/payments/{orderNo}/mock-pay:
+    post:
+      tags: [pay]
+      summary: 模拟支付成功（仅本地开发）
+      description: |
+        开发期替代微信支付回调，触发状态机 PAY_SUCCESS 事件（WAIT_PAY → WAIT_KEY）。
+        由配置项 wash.pay.mock-enabled 控制，生产环境必须为 false，否则返回 A0003。
+      x-dev-only: true
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PayResultVO'
+
   # ============================ 评价 / 售后 ============================
   /api/v1/orders/{orderNo}/reviews:
     post:
@@ -1121,6 +1148,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrderAction'
+
+    PayResultVO:
+      type: object
+      description: 模拟支付返回（x-dev-only）
+      properties:
+        orderNo: { type: string }
+        status:
+          $ref: '#/components/schemas/OrderStatus'
 
     OrderAction:
       type: object

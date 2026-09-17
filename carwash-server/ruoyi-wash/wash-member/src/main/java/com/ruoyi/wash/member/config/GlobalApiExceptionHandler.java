@@ -2,6 +2,8 @@ package com.ruoyi.wash.member.config;
 
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ApiResult;
+import com.ruoyi.wash.common.api.ErrorCode;
+import com.ruoyi.wash.common.statemachine.OrderStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -25,5 +27,15 @@ public class GlobalApiExceptionHandler {
     public ApiResult<Void> handleApiException(ApiException e) {
         log.warn("[业务异常] code={} msg={}", e.getErrorCode(), e.getMessage());
         return ApiResult.fail(e.getErrorCode(), e.getMessage());
+    }
+
+    /**
+     * 状态机拒绝流转 → 契约错误码 B1002（订单状态不允许该操作）。
+     * 不映射的话会被若依处理器兜成 500，前端拿不到错误码。
+     */
+    @ExceptionHandler(OrderStatusException.class)
+    public ApiResult<Void> handleOrderStatusException(OrderStatusException e) {
+        log.warn("[状态机拒绝] {}", e.getMessage());
+        return ApiResult.fail(ErrorCode.B1002, e.getMessage());
     }
 }

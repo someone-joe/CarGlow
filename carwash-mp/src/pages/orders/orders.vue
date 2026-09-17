@@ -28,6 +28,11 @@
         <text>{{ item.plateNo || '未填车牌' }}</text>
         <text>¥{{ formatAmount(item.payAmount) }}</text>
       </view>
+
+      <!-- 按钮由后端 mainAction 返回，前端不自行判断该显示什么按钮 -->
+      <view v-if="item.mainAction?.enabled" class="action" @click.stop="onAction(item)">
+        {{ item.mainAction.label }}
+      </view>
     </view>
 
     <view v-if="!loading && list.length > 0 && list.length >= total" class="tip">没有更多了</view>
@@ -37,7 +42,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { fetchOrderList, type OrderListItemVO, type OrderTab } from '@/api/order'
+import { fetchOrderList, payOrder, type OrderListItemVO, type OrderTab } from '@/api/order'
 
 const tabs: { key: OrderTab; label: string }[] = [
   { key: 'ONGOING', label: '进行中' },
@@ -67,6 +72,20 @@ async function loadOrders(): Promise<void> {
     total.value = 0
   } finally {
     loading.value = false
+  }
+}
+
+/** 订单按钮点击：目前只实现 PAY，其余 action 随功能开工在此扩展 */
+async function onAction(item: OrderListItemVO): Promise<void> {
+  if (item.mainAction?.action !== 'PAY') {
+    return
+  }
+  try {
+    await payOrder(item.orderNo ?? '')
+    uni.showToast({ title: '支付成功，等待存钥匙', icon: 'none' })
+    await loadOrders()
+  } catch {
+    // request 层已统一提示（含 21002 状态不允许）
   }
 }
 
@@ -173,5 +192,15 @@ onShow(() => {
 .status {
   font-size: 26rpx;
   color: #1a73e8;
+}
+
+.action {
+  margin-top: 24rpx;
+  background: #1a73e8;
+  color: #fff;
+  text-align: center;
+  padding: 18rpx 0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
 }
 </style>

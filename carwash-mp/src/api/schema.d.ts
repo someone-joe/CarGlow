@@ -636,7 +636,6 @@ export interface paths {
          * 提交订单
          * @description 后端按顺序校验：格口可用 → 产能未超 → 车辆/地址/机柜/协议齐全。
          *     成功后生成 WAIT_PAY 订单并预占格口（TTL 15 分钟，与支付倒计时一致）。
-         *
          */
         post: {
             parameters: {
@@ -726,7 +725,6 @@ export interface paths {
          * 取消订单
          * @description 走状态机 CANCEL 事件。客户自助仅限 WAIT_PAY / WAIT_KEY / KEY_IN / PICKING，
          *     其余状态返回 B1002。取消后释放格口、回补产能、返还权益并自动触发退款。
-         *
          */
         post: {
             parameters: {
@@ -817,7 +815,6 @@ export interface paths {
          * 紧急取钥匙
          * @description 未取车 → 立即告警 + 取消 + 全额退款；
          *     已在清洗 → 返回预计完成时间并拒绝取回（错误码 B1002）。
-         *
          */
         post: {
             parameters: {
@@ -887,6 +884,50 @@ export interface paths {
                                  */
                                 expireAt?: number;
                             };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{orderNo}/mock-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 模拟支付成功（仅本地开发）
+         * @description 开发期替代微信支付回调，触发状态机 PAY_SUCCESS 事件（WAIT_PAY → WAIT_KEY）。
+         *     由配置项 wash.pay.mock-enabled 控制，生产环境必须为 false，否则返回 A0003。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["PayResultVO"];
                         };
                     };
                 };
@@ -1087,7 +1128,9 @@ export interface components {
     schemas: {
         Result: {
             /**
-             * @description 0 = 成功，非 0 见 x-error-codes
+             * @description 0 = 成功，非 0 见 x-error-codes。
+             *     数字映射规则：分段字母转前缀（A=1 / B=2 / C=3）+ 4 位编号，
+             *     即 A0002 → 10002、B1002 → 21002、C0001 → 30001。
              * @example 0
              */
             code: number;
@@ -1100,7 +1143,6 @@ export interface components {
         };
         /**
          * @description 订单状态，取值必须与《订单状态机规则表.md》及 OrderStatus 枚举完全一致（15 个）。
-         *
          * @enum {string}
          */
         OrderStatus: "WAIT_PAY" | "WAIT_KEY" | "KEY_IN" | "PICKING" | "TO_STATION" | "WASHING" | "QC" | "WAIT_RETURN" | "RETURNING" | "RETURNED" | "WAIT_REVIEW" | "FINISHED" | "CANCELED" | "REFUNDING" | "REFUNDED";
@@ -1329,6 +1371,11 @@ export interface components {
             medias?: components["schemas"]["MediaVO"][];
             mainAction?: components["schemas"]["OrderAction"];
             subActions?: components["schemas"]["OrderAction"][];
+        };
+        /** @description 模拟支付返回（x-dev-only） */
+        PayResultVO: {
+            orderNo?: string;
+            status?: components["schemas"]["OrderStatus"];
         };
         /** @description 按钮随状态机变化，前端不得自行推断，一律用后端返回值 */
         OrderAction: {

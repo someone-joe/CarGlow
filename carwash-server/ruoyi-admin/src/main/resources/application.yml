@@ -158,3 +158,6 @@ wash:
   order:
     # 下单后支付倒计时（分钟），阈值走配置不硬编码
     pay-timeout-minutes: 15
+  pay:
+    # 是否开启模拟支付（仅本地开发）。生产环境必须为 false，否则接口直接返回 A0003
+    mock-enabled: true

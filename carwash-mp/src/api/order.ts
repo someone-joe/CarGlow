@@ -48,6 +48,14 @@ export function createOrder(data: CreateOrderRequest): Promise<CreateOrderVO> {
   })
 }
 
+/** 契约：openapi.yaml POST /api/v1/payments/{orderNo}/mock-pay（x-dev-only，生产由支付回调替代） */
+export function payOrder(orderNo: string): Promise<components['schemas']['PayResultVO']> {
+  return request<components['schemas']['PayResultVO']>({
+    url: `/api/v1/payments/${orderNo}/mock-pay`,
+    method: 'POST',
+  })
+}
+
 export function fetchOrderList(params: OrderListParams = {}): Promise<OrderPageVO> {
   return request<OrderPageVO>({
     url: '/api/v1/orders',

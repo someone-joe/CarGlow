@@ -4,6 +4,7 @@ import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.order.dto.OrderActionVO;
 import com.ruoyi.wash.order.dto.OrderPageVO;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,20 @@ public class WashOrderQueryService {
         vo.setPlateNo(order.getPlateNo());
         vo.setPayAmount(order.getPayAmount());
         vo.setSubActions(List.of());
+        // 按钮由后端返回（契约 OrderAction），前端不得自行推断
+        vo.setMainAction(resolveMainAction(order.getStatus()));
         return vo;
+    }
+
+    /**
+     * 主按钮规则：目前只实现「待支付 → 去支付」。
+     * 其余状态（存钥匙、看进度、评价、再来一单等）随对应功能开工逐个补，
+     * 补的时候改这里，前端不用动。
+     */
+    private OrderActionVO resolveMainAction(String status) {
+        if (OrderStatus.WAIT_PAY.name().equals(status)) {
+            return new OrderActionVO("PAY", "去支付", true);
+        }
+        return null;
     }
 }
