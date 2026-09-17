@@ -126,9 +126,13 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - 待执行：`cd carwash-mp && npm install --registry=https://registry.npmmirror.com && npm run dev:mp-weixin`
    - 产物目录 `dist/dev/mp-weixin`，用微信开发者工具导入；`src/manifest.json` 里需填你自己的小程序 appid
 4. **建表**（MySQL/Redis 容器已起）：状态机日志表 DDL 见《订单状态机规则表.md》第四节
-5. **跑通最小链路**（后端 ✅ / 前端待做）：登录 → 空订单列表（微信开发者工具里看到"暂无订单"）
-   - 后端已完成并 curl 实测通过（登录、鉴权拦截、空列表、错误码）
-   - 前端待做：`src/utils/request.ts` 请求封装（带 token、code!=0 统一处理、10002 跳登录）+ 订单列表页（三 Tab + 空状态）+ 登录引导
+5. **跑通最小链路** ✅ 前后端均已完成（2026-09-17）
+   - 后端：curl 实测通过（登录、鉴权拦截、空列表、错误码）
+   - 前端：`src/utils/request.ts`（带 token、拆信封、统一报错、10002 自动续登重试一次）
+     + `src/api/auth.ts`、`src/api/order.ts` + `src/pages/orders/orders.vue`（三 Tab + 空状态）
+     + `App.vue` 启动静默登录；`npm run build:mp-weixin` 与 `vue-tsc --noEmit` 均通过
+   - **联调前提**：微信开发者工具「详情 → 本地设置 → 不校验合法域名」必须勾选
+     （后端是 http://localhost，非备案域名）；后端进程需在运行中
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截
 
 ---
@@ -141,8 +145,9 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
   - **测试抓到一个真 bug 并已修复**：`FINISHED` 被标记为终态，`fire()` / `canFire()` 用 `isTerminal()` 一刀切拦截，
     导致你确认过的「已完成仍可退款」在代码里走不通。已改为**以流转规则表为准**拦截，
     真正无出边的只有 `REFUNDED`（《订单状态机规则表.md》已同步说明）
-- **前端页面还是模板默认页**：`carwash-mp/src/pages/index/index.vue` 是 uni-app 示例页，没有订单列表、没有登录
-- **"跑通登录与空订单列表"尚未兑现**：需要后端 `/api/v1/order/list` 接口 + 前端订单页 + 鉴权封装，这是第四步要做的事
+- **只有订单列表，没有下单**：`wash_order` 表已建，但下单接口未实现，列表永远是空的（下一步就是下单）
+- **订单按钮（mainAction / subActions）恒为空**：契约要求由后端返回，待按钮规则实现；前端不得自行推断按钮
+- **后端错误码数字映射**已写进 `openapi.yaml`（A/B/C 段 → 1/2/3 前缀 + 4 位编号），改动需同步契约与 `ErrorCode.numeric()`
 - **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
 - 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
 
