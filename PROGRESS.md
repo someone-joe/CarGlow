@@ -144,8 +144,13 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - **联调前提**：微信开发者工具「详情 → 本地设置 → 不校验合法域名」必须勾选
      （后端是 http://localhost，非备案域名）；后端进程需在运行中
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截（状态机单测已有 15 个，接入层测试待补）
-7. **下一步建议**：取消订单 —— `CANCEL` 事件走状态机，验证"客户在车没动时可自助取消、已开洗只能客服取消"这条业务规则；
-   取消后进入退款占位（`CANCELED → REFUNDING`），与已确认的"退全款"决策对齐
+7. **取消订单已完成**（2026-09-18）：`POST /api/v1/orders/{orderNo}/cancel`，走 `CANCEL` 事件 + 产能回补 + 已支付自动退款。
+   实测四场景：未支付取消→`CANCELED`、未填原因→`21004`、已支付取消→`REFUNDING`（自动全额退款）、
+   **已开洗客户取消→`21002` 拒绝**（PRD 红线在真实接口上生效）
+8. **下一步建议**（三选一，按价值排序）：
+   - **运营后台**：把订单/会员放进若依后台，运营能看能干预（后台脚手架已就绪，成本低）
+   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件，需要柜机/格口模块开工（PRD 核心链路，但依赖硬件协议）
+   - **真实微信支付**：替换 mock-pay（需要商户号与备案域名）
 
 ---
 
@@ -167,6 +172,9 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
   实测：首次支付成功、重复支付 `21002`、订单不存在 `21001`、日志落库 `WAIT_PAY→WAIT_KEY/PAY_SUCCESS/CUSTOMER`
 - **真实微信支付未接**：`mock-pay` 是 x-dev-only 接口，由 `wash.pay.mock-enabled` 控制（生产必须 false）。
   真支付接入只需在回调里调 `WashOrderStateService.paySuccess()`，状态机与日志零改动
+- **退款只到 `REFUNDING`**：状态机已推进到"退款中"，但**没有真正调微信退款 API**，
+  也没有退款单表/定时任务重试机制——生产前必须补齐，否则钱退不出去
+- **格口始终未预占**：下单不预占、取消不释放，因柜机模块未开工（契约要求下单即预占）
 - **订单按钮只实现了 PAY**：其余 action（存钥匙/看进度/评价/再来一单）随功能开工补在
   `WashOrderQueryService.resolveMainAction()`，前端不用动
 - **订单详情已实现**（2026-09-18）：`GET /api/v1/orders/{orderNo}`，含 **C 端 8 节点时间轴**。
