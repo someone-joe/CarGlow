@@ -80,6 +80,8 @@ Java 文件路径：
 | 技术 | 已开启 MyBatis 驼峰映射（若依默认注释掉了）：业务模块用注解式 Mapper，不开会全字段为 null |
 | 技术 | 产能抢占用 **Lua 脚本**保证原子；直接 `DECR` 不存在的 key 会被 Redis 建成 -1，"未设置产能"会被误判成"已满" |
 | 技术 | 新增错误码 A0006（当晚产能已满），契约 `openapi.yaml` 与 `ErrorCode` 已同步 |
+| 技术 | **导入 SQL 必须带 `--default-character-set=utf8mb4`**：容器内 mysql 客户端默认 latin1，
+  中文会被双重编码——症状很阴险：`mysql` 命令行看着"正常"（字节原样吐出），API 返回却全是乱码 |
 | 技术 | 状态机不引入 Spring StateMachine，自研轻量流转表 |
 | 技术 | 后端单体模块化（RuoYi 多模块），不上微服务 |
 | 技术 | C 端用 uni-app（Vue3 + TS），三端复用 |

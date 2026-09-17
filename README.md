@@ -39,6 +39,11 @@ docker run --rm -v d:/CarGlow/carwash-server:/app -v carglow-m2:/root/.m2/reposi
 # 小程序：安装依赖 / 构建
 cd carwash-mp && npm install --registry=https://registry.npmmirror.com
 npm run build:mp-weixin     # 构建产物 dist/build/mp-weixin
+
+# 导入业务表 / 种子数据（必须带 --default-character-set=utf8mb4，
+# 否则中文会被双重编码：库里看着"正常"，API 返回全是乱码）
+docker cp carwash-server/sql/wash_seed_dev.sql carglow-mysql:/tmp/seed.sql
+docker exec carglow-mysql sh -c "mysql -uroot -pcarglow_dev --default-character-set=utf8mb4 carwash < /tmp/seed.sql"
 ```
 
 ## 本地连接信息（仅开发用）

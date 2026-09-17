@@ -1,0 +1,19 @@
+-- =============================================================
+-- 本地开发种子数据（仅开发库使用，生产不要执行！）
+-- 导入命令必须带 --default-character-set=utf8mb4，否则中文会被双重编码：
+--   docker cp sql/wash_seed_dev.sql carglow-mysql:/tmp/seed.sql
+--   docker exec carglow-mysql sh -c "mysql -uroot -pcarglow_dev --default-character-set=utf8mb4 carwash < /tmp/seed.sql"
+-- =============================================================
+
+truncate table wash_service;
+truncate table wash_vehicle;
+truncate table wash_cabinet;
+
+insert into wash_service (service_id, service_name, price_amount, work_minutes, enabled, create_time)
+values (101, '标准洗车（外观+内饰吸尘）', 3900, 45, 'Y', sysdate());
+
+insert into wash_vehicle (vehicle_id, member_id, plate_no, brand, color, is_new_energy, community_id, parking_no, create_time)
+values (201, 1, '粤A12345', '丰田 凯美瑞', '白色', 'N', 1, 'A区23号车位', sysdate());
+
+insert into wash_cabinet (cabinet_id, site_id, community_id, cabinet_name, enabled, create_time)
+values (301, 1, 1, '3栋负一层钥匙柜', 'Y', sysdate());
