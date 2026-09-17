@@ -16,3 +16,37 @@ export function statusOptions() {
     method: 'get'
   })
 }
+
+// 订单详情（含 8 节点时间轴）
+export function getOrder(orderNo) {
+  return request({
+    url: '/admin-api/wash/order/' + orderNo,
+    method: 'get'
+  })
+}
+
+// 当前状态下允许触发的事件（由状态机规则表算出，避免客服误操作）
+export function eventOptions(orderNo) {
+  return request({
+    url: '/admin-api/wash/order/' + orderNo + '/event-options',
+    method: 'get'
+  })
+}
+
+// 人工推进状态（异常补救，会写流转日志留痕）
+export function advanceOrder(orderNo, event, reason) {
+  return request({
+    url: '/admin-api/wash/order/' + orderNo + '/advance',
+    method: 'post',
+    data: { event, reason }
+  })
+}
+
+// 后台取消（不受"客户只能取消车未动"限制）
+export function cancelOrder(orderNo, reason) {
+  return request({
+    url: '/admin-api/wash/order/' + orderNo + '/cancel',
+    method: 'post',
+    data: { reason }
+  })
+}

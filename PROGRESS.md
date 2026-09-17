@@ -152,10 +152,18 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - 菜单：`sql/wash_menu.sql`（洗车业务 → 订单管理，perms = `wash:order:list`）
    - 前端：`carwash-admin`（RuoYi-Vue3），新增 `src/views/wash/order/index.vue` 与 `src/api/wash/order.js`；
      dev 端口改为 1024（80 端口非管理员起不来），浏览器打开 `http://localhost:1024`，admin / admin123
-9. **下一步建议**（按价值排序）：
-   - **后台订单详情 + 干预**：详情抽屉（含时间轴），异常订单可人工推进/取消（客服最常用）
-   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
-   - **真实微信支付**：替换 mock-pay（需商户号与备案域名）
+9. **后台详情 + 人工干预已完成**（2026-09-18）：
+   - 接口：`GET /admin-api/wash/order/{orderNo}`（详情+时间轴，perm `wash:order:query`）、
+     `GET /{orderNo}/event-options`（可触发事件，由规则表算出）、`POST /{orderNo}/advance`、`POST /{orderNo}/cancel`
+     （后两个 perm `wash:order:edit`）；后台取消用 ADMIN 触发方，不受"客户只能取消车未动"限制
+   - 前端：`views/wash/order/index.vue` 加详情抽屉（el-descriptions + el-timeline）+ 干预区
+   - **全链路实测**（后台接口连推 10 个事件）：
+     WAIT_KEY→KEY_IN→PICKING→TO_STATION→WASHING→QC→WAIT_RETURN→RETURNING→RETURNED→WAIT_REVIEW→**FINISHED**，
+     时间轴 **8/8 节点全亮**；再对 FINISHED 发起取消 → 被状态机拒绝（终态保护生效）
+10. **下一步建议**（按价值排序）：
+   - **真实微信支付 + 退款**：替换 mock-pay，并补真正的退款 API 与失败重试（上线前必须）
+   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件与格口预占，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
+   - **后台会员/车辆管理**：运营查得到人，才能处理"客户电话来说车没洗好"
 
 ---
 
@@ -180,6 +188,8 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
 - **退款只到 `REFUNDING`**：状态机已推进到"退款中"，但**没有真正调微信退款 API**，
   也没有退款单表/定时任务重试机制——生产前必须补齐，否则钱退不出去
 - **格口始终未预占**：下单不预占、取消不释放，因柜机模块未开工（契约要求下单即预占）
+- **后台"人工推进"是双刃剑**：现在客服可以一步把订单推到"已完成"（实测就是这么走完链路的）。
+  上线前必须：① 限制哪些事件允许后台触发 ② 关键节点（如 FINISHED）要求二次确认 ③ 操作审计可查（日志已有）
 - **订单按钮只实现了 PAY**：其余 action（存钥匙/看进度/评价/再来一单）随功能开工补在
   `WashOrderQueryService.resolveMainAction()`，前端不用动
 - **订单详情已实现**（2026-09-18）：`GET /api/v1/orders/{orderNo}`，含 **C 端 8 节点时间轴**。

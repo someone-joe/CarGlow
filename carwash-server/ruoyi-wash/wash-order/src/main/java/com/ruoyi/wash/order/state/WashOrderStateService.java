@@ -74,18 +74,33 @@ public class WashOrderStateService {
      * 格口释放待柜机模块开工后补（下单时也没预占，见 WashOrderCreateService 的 TODO）。
      */
     public OrderStatus cancel(String orderNo, Long memberId, String reason) {
+        return doCancel(orderNo, memberId, OrderOperatorType.CUSTOMER, reason);
+    }
+
+    /**
+     * 后台人工取消：与客户端取消的区别是触发方为 ADMIN，
+     * 因此不受「客户仅可取消车未动的 4 个状态」限制（如已开洗也能由客服取消）。
+     */
+    public OrderStatus adminCancel(String orderNo, Long operatorId, String reason) {
+        return doCancel(orderNo, operatorId, OrderOperatorType.ADMIN, reason);
+    }
+
+    private OrderStatus doCancel(String orderNo, Long operatorId, OrderOperatorType operatorType, String reason) {
         if (reason == null || reason.isBlank()) {
             // 契约 required: [reason]，对应错误码 B1004
             throw new ApiException(ErrorCode.B1004);
         }
-        WashOrder order = requireOwned(orderNo, memberId);
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new ApiException(ErrorCode.B1001);
+        }
         OrderStatus from = OrderStatus.of(order.getStatus());
 
         OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
                 .orderNo(order.getOrderNo())
                 .event(OrderEvent.CANCEL)
-                .operatorType(OrderOperatorType.CUSTOMER)
-                .operatorId(memberId)
+                .operatorType(operatorType)
+                .operatorId(operatorId)
                 .reason(reason)
                 .build();
         stateMachine.fire(ctx);
@@ -104,6 +119,28 @@ public class WashOrderStateService {
             return OrderStatus.REFUNDING;
         }
         return OrderStatus.CANCELED;
+    }
+
+    /**
+     * 后台人工推进：客服/站长在异常场景下（如柜机故障、司机忘打卡）手动触发事件。
+     *
+     * <p>能否流转仍由状态机规则表决定，后台只是"换了个触发方"，
+     * 不能绕过规则（例如不能在 WAIT_PAY 上触发 QC_PASS）。
+     * 每次推进都会写流转日志，操作人留痕，后台可追溯。
+     */
+    public OrderStatus adminFire(String orderNo, OrderEvent event, Long operatorId, String reason) {
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new ApiException(ErrorCode.B1001);
+        }
+        OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
+                .orderNo(order.getOrderNo())
+                .event(event)
+                .operatorType(OrderOperatorType.ADMIN)
+                .operatorId(operatorId)
+                .reason(reason)
+                .build();
+        return stateMachine.fire(ctx);
     }
 
     /** 产能回补：下单时 DECR 过，取消要加回去；key 不存在说明当日未限量，无需处理。 */

@@ -60,12 +60,25 @@ public class WashOrderDetailService {
     @Autowired
     private WashOrderQueryService queryService;
 
+    /** C 端详情：必须校验归属，防止看到别人的订单 */
     public OrderDetailVO detail(String orderNo, Long memberId) {
         WashOrder order = orderMapper.selectByOrderNo(orderNo);
         if (order == null || !order.getMemberId().equals(memberId)) {
             throw new ApiException(ErrorCode.B1001);
         }
+        return buildDetail(order);
+    }
 
+    /** 后台详情：运营看全量订单，不校验归属（权限由后台菜单与角色控制） */
+    public OrderDetailVO adminDetail(String orderNo) {
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new ApiException(ErrorCode.B1001);
+        }
+        return buildDetail(order);
+    }
+
+    private OrderDetailVO buildDetail(WashOrder order) {
         OrderStatus currentStatus = OrderStatus.of(order.getStatus());
         List<OrderStatusLog> logs = orderMapper.selectLogsByOrderId(order.getOrderId());
 
