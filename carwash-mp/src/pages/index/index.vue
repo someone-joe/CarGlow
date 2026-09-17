@@ -1,41 +1,65 @@
 <template>
-  <view class="content">
-    <image class="logo" src="/static/logo.png" />
-    <view class="text-area">
-      <text class="title">{{ title }}</text>
+  <view class="page">
+    <view class="hero">
+      <text class="title">夜间代客洗车</text>
+      <text class="subtitle">今晚下单，明早干净上路</text>
+    </view>
+
+    <view class="entry" @click="goOrders">
+      <text class="entry-title">我的订单</text>
+      <text class="entry-desc">查看进行中 / 待评价 / 全部订单</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-const title = ref('Hello')
+function goOrders(): void {
+  uni.navigateTo({ url: '/pages/orders/orders' })
+}
 </script>
 
 <style>
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.page {
+  padding: 32rpx;
+  background: #f6f7f9;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 200rpx;
-  width: 200rpx;
-  margin-top: 200rpx;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 50rpx;
-}
-
-.text-area {
-  display: flex;
-  justify-content: center;
+.hero {
+  padding: 48rpx 0;
 }
 
 .title {
-  font-size: 36rpx;
-  color: #8f8f94;
+  display: block;
+  font-size: 44rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.subtitle {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  color: #888;
+}
+
+.entry {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+}
+
+.entry-title {
+  display: block;
+  font-size: 32rpx;
+  color: #222;
+}
+
+.entry-desc {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: #999;
 }
 </style>
