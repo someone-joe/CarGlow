@@ -3,6 +3,7 @@ import { request } from '@/utils/request'
 
 export type OrderListItemVO = components['schemas']['OrderListItemVO']
 export type OrderDetailVO = components['schemas']['OrderDetailVO']
+export type OrderAction = components['schemas']['OrderAction']
 export type TimelineNodeVO = components['schemas']['TimelineNode']
 
 /** 契约：openapi.yaml /api/v1/orders 响应 data */
@@ -55,6 +56,15 @@ export function fetchOrderDetail(orderNo: string): Promise<components['schemas']
   return request<components['schemas']['OrderDetailVO']>({
     url: `/api/v1/orders/${orderNo}`,
     method: 'GET',
+  })
+}
+
+/** 契约：openapi.yaml POST /api/v1/orders/{orderNo}/cancel（reason 必填） */
+export function cancelOrder(orderNo: string, reason: string): Promise<void> {
+  return request<void>({
+    url: `/api/v1/orders/${orderNo}/cancel`,
+    method: 'POST',
+    data: { reason },
   })
 }
 

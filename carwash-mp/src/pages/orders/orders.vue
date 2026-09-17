@@ -29,9 +29,19 @@
         <text>¥{{ formatAmount(item.payAmount) }}</text>
       </view>
 
-      <!-- 按钮由后端 mainAction 返回，前端不自行判断该显示什么按钮 -->
-      <view v-if="item.mainAction?.enabled" class="action" @click.stop="onAction(item)">
-        {{ item.mainAction.label }}
+      <!-- 按钮由后端 mainAction / subActions 返回，前端不自行判断该显示什么按钮 -->
+      <view class="actions">
+        <view v-if="item.mainAction?.enabled" class="action" @click.stop="onAction(item, item.mainAction)">
+          {{ item.mainAction.label }}
+        </view>
+        <view
+          v-for="sub in item.subActions ?? []"
+          :key="sub.action"
+          class="action action-plain"
+          @click.stop="onAction(item, sub)"
+        >
+          {{ sub.label }}
+        </view>
       </view>
     </view>
 
@@ -42,7 +52,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { fetchOrderList, payOrder, type OrderListItemVO, type OrderTab } from '@/api/order'
+import { cancelOrder, fetchOrderList, payOrder, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 
 const tabs: { key: OrderTab; label: string }[] = [
   { key: 'ONGOING', label: '进行中' },
@@ -79,17 +89,43 @@ function goDetail(item: OrderListItemVO): void {
   uni.navigateTo({ url: `/pages/order-detail/order-detail?orderNo=${item.orderNo}` })
 }
 
-/** 订单按钮点击：目前只实现 PAY，其余 action 随功能开工在此扩展 */
-async function onAction(item: OrderListItemVO): Promise<void> {
-  if (item.mainAction?.action !== 'PAY') {
+/** 订单按钮点击：action 由后端返回，前端按 action 分发；新增按钮时改这里 */
+async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<void> {
+  const orderNo = item.orderNo ?? ''
+  if (action?.action === 'PAY') {
+    try {
+      await payOrder(orderNo)
+      uni.showToast({ title: '支付成功，等待存钥匙', icon: 'none' })
+      await loadOrders()
+    } catch {
+      // request 层已统一提示（含 21002 状态不允许）
+    }
     return
   }
-  try {
-    await payOrder(item.orderNo ?? '')
-    uni.showToast({ title: '支付成功，等待存钥匙', icon: 'none' })
-    await loadOrders()
-  } catch {
-    // request 层已统一提示（含 21002 状态不允许）
+  if (action?.action === 'CANCEL') {
+    uni.showModal({
+      title: '取消订单',
+      content: '取消后不可恢复，已支付将全额退款',
+      placeholderText: '请填写取消原因',
+      editable: true,
+      success: async (res) => {
+        if (!res.confirm) {
+          return
+        }
+        const reason = (res.content ?? '').trim()
+        if (!reason) {
+          uni.showToast({ title: '请填写取消原因', icon: 'none' })
+          return
+        }
+        try {
+          await cancelOrder(orderNo, reason)
+          uni.showToast({ title: '已取消', icon: 'none' })
+          await loadOrders()
+        } catch {
+          // request 层已统一提示（含 21002「已开洗不可取消」、21004「原因必填」）
+        }
+      },
+    })
   }
 }
 
@@ -198,13 +234,25 @@ onShow(() => {
   color: #1a73e8;
 }
 
-.action {
+.actions {
+  display: flex;
+  gap: 16rpx;
   margin-top: 24rpx;
+}
+
+.action {
+  flex: 1;
   background: #1a73e8;
   color: #fff;
   text-align: center;
   padding: 18rpx 0;
   border-radius: 12rpx;
   font-size: 28rpx;
+}
+
+.action-plain {
+  background: #fff;
+  color: #666;
+  border: 2rpx solid #ddd;
 }
 </style>

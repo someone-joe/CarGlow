@@ -69,18 +69,32 @@ public class WashOrderQueryService {
         vo.setSubActions(List.of());
         // 按钮由后端返回（契约 OrderAction），前端不得自行推断
         vo.setMainAction(resolveMainAction(order.getStatus()));
+        vo.setSubActions(resolveSubActions(order.getStatus()));
         return vo;
     }
 
     /**
-     * 主按钮规则：目前只实现「待支付 → 去支付」。
+     * 主按钮规则：目前实现「去支付」与「取消订单」。
      * 其余状态（存钥匙、看进度、评价、再来一单等）随对应功能开工逐个补，
      * 补的时候改这里，前端不用动。
+     *
+     * <p>能否取消一律以状态机的 isCustomerCancelable() 为准，不在此另写一份状态名单。
      */
     public OrderActionVO resolveMainAction(String status) {
         if (OrderStatus.WAIT_PAY.name().equals(status)) {
             return new OrderActionVO("PAY", "去支付", true);
         }
+        if (OrderStatus.of(status).isCustomerCancelable()) {
+            return new OrderActionVO("CANCEL", "取消订单", true);
+        }
         return null;
+    }
+
+    /** 次按钮：待支付的订单，主按钮是支付，取消降级为次按钮 */
+    public List<OrderActionVO> resolveSubActions(String status) {
+        if (OrderStatus.WAIT_PAY.name().equals(status)) {
+            return List.of(new OrderActionVO("CANCEL", "取消订单", true));
+        }
+        return List.of();
     }
 }

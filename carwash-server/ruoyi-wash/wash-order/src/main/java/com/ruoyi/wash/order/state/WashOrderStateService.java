@@ -11,7 +11,11 @@ import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.ZoneId;
 
 /**
  * 订单状态流转的唯一入口 —— 业务代码只允许调用本服务，禁止直接 update 状态。
@@ -22,10 +26,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class WashOrderStateService {
 
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+    /** 与 WashOrderCreateService 保持一致，key 规范见技术方案 5.3 */
+    private static final String CAPACITY_PREFIX = "capacity:";
+
     private final OrderRedisLock lock;
     private final WashOrderStatusAccessor accessor;
     private final WashOrderMapper orderMapper;
     private OrderStateMachine stateMachine;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     public WashOrderStateService(OrderRedisLock lock, WashOrderStatusAccessor accessor, WashOrderMapper orderMapper) {
@@ -51,6 +62,60 @@ public class WashOrderStateService {
                 .expectFrom(OrderStatus.WAIT_PAY)
                 .build();
         return stateMachine.fire(ctx);
+    }
+
+    /**
+     * 取消订单：走状态机 CANCEL 事件。
+     *
+     * <p>客户自助取消仅限车未动的 4 个状态（WAIT_PAY / WAIT_KEY / KEY_IN / PICKING），
+     * 其余状态由状态机直接拒绝（B1002），这里不重复判断，避免规则两处漂移。
+     *
+     * <p>取消后按契约：回补产能 → 已支付的自动触发退款（APPLY_REFUND → REFUNDING）。
+     * 格口释放待柜机模块开工后补（下单时也没预占，见 WashOrderCreateService 的 TODO）。
+     */
+    public OrderStatus cancel(String orderNo, Long memberId, String reason) {
+        if (reason == null || reason.isBlank()) {
+            // 契约 required: [reason]，对应错误码 B1004
+            throw new ApiException(ErrorCode.B1004);
+        }
+        WashOrder order = requireOwned(orderNo, memberId);
+        OrderStatus from = OrderStatus.of(order.getStatus());
+
+        OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
+                .orderNo(order.getOrderNo())
+                .event(OrderEvent.CANCEL)
+                .operatorType(OrderOperatorType.CUSTOMER)
+                .operatorId(memberId)
+                .reason(reason)
+                .build();
+        stateMachine.fire(ctx);
+
+        releaseCapacity(order);
+
+        // 未支付（WAIT_PAY）取消无需退款；已支付的一律退全款（已确认决策）
+        if (from != OrderStatus.WAIT_PAY) {
+            OrderStateMachine.TransitionContext refundCtx = OrderStateMachine.TransitionContext.builder()
+                    .orderNo(order.getOrderNo())
+                    .event(OrderEvent.APPLY_REFUND)
+                    .operatorType(OrderOperatorType.JOB)
+                    .reason("取消订单自动退款（全额）")
+                    .build();
+            stateMachine.fire(refundCtx);
+            return OrderStatus.REFUNDING;
+        }
+        return OrderStatus.CANCELED;
+    }
+
+    /** 产能回补：下单时 DECR 过，取消要加回去；key 不存在说明当日未限量，无需处理。 */
+    private void releaseCapacity(WashOrder order) {
+        if (order.getAppointTime() == null) {
+            return;
+        }
+        String date = Instant.ofEpochMilli(order.getAppointTime()).atZone(ZONE).toLocalDate().toString();
+        String key = CAPACITY_PREFIX + order.getSiteId() + ":" + date;
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
+            stringRedisTemplate.opsForValue().increment(key);
+        }
     }
 
     private WashOrder requireOwned(String orderNo, Long memberId) {
