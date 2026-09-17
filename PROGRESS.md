@@ -50,6 +50,8 @@
 | `docker/docker-compose.dev.yml` | 本地开发中间件编排（MySQL 8 + Redis 7） | 已启动，容器 healthy |
 | `carwash-server/` 若依原生模块 | 若依 3.9.2 后端：admin / framework / system / quartz / generator / common + `sql/` | 已接入，**构建通过**（BUILD SUCCESS） |
 | `carwash-server/ruoyi-wash/pom.xml`、`wash-common/pom.xml` | 业务父模块与公共模块，挂进若依根 pom | 已创建，编译通过 |
+| `wash-common/src/test/.../OrderStateMachineTest.java` | 订单状态机 15 个单元测试（回归网第一道） | 已跑通，15/15 通过 |
+| `carwash-mp/`（uni-app 模板） | 小程序工程：pages / static / manifest.json / pages.json / vite.config.ts | 已合并，**依赖未安装** |
 
 Java 文件路径：
 `carwash-server/ruoyi-wash/wash-common/src/main/java/com/ruoyi/wash/common/statemachine/`
@@ -70,6 +72,7 @@ Java 文件路径：
 | 技术 | 后端脚手架 = **若依官方 3.9.2**（JDK 17 + Spring Boot 4.1），源码进仓库（GPL-3.0，内部使用无碍） |
 | 技术 | 构建用 **Docker 里的 Maven**（`maven:3.9-eclipse-temurin-17`），本机不装 Maven |
 | 技术 | 本地中间件用 **Docker Compose**（MySQL 8.0.39 + Redis 7.2），不用直装绿色版 |
+| 技术 | 流转拦截**以规则表为准**，不用 `isTerminal()` 一刀切（否则"已完成可退款"被误拦） |
 | 技术 | 状态机不引入 Spring StateMachine，自研轻量流转表 |
 | 技术 | 后端单体模块化（RuoYi 多模块），不上微服务 |
 | 技术 | C 端用 uni-app（Vue3 + TS），三端复用 |
@@ -111,7 +114,10 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - 启动：`java -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar`（端口 8080）
    - 打包（用 Docker 里的 Maven，本机不装）：
      `docker run --rm -v d:/CarGlow/carwash-server:/app -v carglow-m2:/root/.m2/repository -w /app maven:3.9-eclipse-temurin-17 mvn -B -DskipTests clean package`
-3. **建前端骨架**：uni-app 三端，引入已生成的 `schema.d.ts`
+3. **建前端骨架**（进行中）：uni-app 三端，引入已生成的 `schema.d.ts`
+   - 已完成：官方 `vite-ts` 模板合并进 `carwash-mp`（uni-app 3.0.0 + Vue 3.4 + Vite 5.2.8 + TS 4.9），`src/api/schema.d.ts` 已保留
+   - 待执行：`cd carwash-mp && npm install --registry=https://registry.npmmirror.com && npm run dev:mp-weixin`
+   - 产物目录 `dist/dev/mp-weixin`，用微信开发者工具导入；`src/manifest.json` 里需填你自己的小程序 appid
 4. **建表**（MySQL/Redis 容器已起）：状态机日志表 DDL 见《订单状态机规则表.md》第四节
 5. **跑通最小链路**：登录 → 空订单列表（微信开发者工具里看到"暂无订单"）
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截
@@ -122,7 +128,10 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
 
 - **契约只覆盖 C 端**：取送端、作业端、柜机回调、后台管理四块接口未定，已列在 `openapi.yaml` 末尾的 `x-roadmap`，对应模块开工前必须先补契约
 - **格口状态机、任务状态机未做**（PRD 4.4 / 4.5 已定义规则）
-- **状态机单元测试未写**（现在能编译了，应尽快补）
+- ~~**状态机单元测试**~~ ✅ 已补 15 个用例（2026-09-17，全绿）
+  - **测试抓到一个真 bug 并已修复**：`FINISHED` 被标记为终态，`fire()` / `canFire()` 用 `isTerminal()` 一刀切拦截，
+    导致你确认过的「已完成仍可退款」在代码里走不通。已改为**以流转规则表为准**拦截，
+    真正无出边的只有 `REFUNDED`（《订单状态机规则表.md》已同步说明）
 - **前端 uni-app 工程未开始**（`carwash-mp` 目前只有 `src/api/schema.d.ts`）
 - **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
 - 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
