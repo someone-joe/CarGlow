@@ -793,7 +793,10 @@ components:
       properties:
         code:
           type: integer
-          description: 0 = 成功，非 0 见 x-error-codes
+          description: |
+            0 = 成功，非 0 见 x-error-codes。
+            数字映射规则：分段字母转前缀（A=1 / B=2 / C=3）+ 4 位编号，
+            即 A0002 → 10002、B1002 → 21002、C0001 → 30001。
           example: 0
         msg:
           type: string

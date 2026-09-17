@@ -54,6 +54,18 @@
             <artifactId>ruoyi-generator</artifactId>
         </dependency>
 
+        <!-- 洗车业务模块 -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-member</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-order</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>

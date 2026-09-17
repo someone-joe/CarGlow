@@ -145,3 +145,13 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
+
+# 业务配置（wash 模块）
+wash:
+  wx:
+    # 微信小程序 appid / secret；secret 留空 = 本地模拟登录（固定 dev-openid，仅限开发）
+    appid:
+    secret:
+  token:
+    # C 端 token 有效期（天），滑动过期
+    ttl-days: 30

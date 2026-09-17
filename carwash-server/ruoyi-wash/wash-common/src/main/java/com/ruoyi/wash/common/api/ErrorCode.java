@@ -1,0 +1,66 @@
+package com.ruoyi.wash.common.api;
+
+/**
+ * 错误码枚举 —— 唯一定义处，与 openapi.yaml 的 x-error-codes 逐条一致。
+ * 命名即错误码（A0001 等），ApiResult 里的 code 取数字部分。
+ * 修改本枚举前，必须先修改 openapi.yaml。
+ */
+public enum ErrorCode {
+
+    /* ---- A0 通用 ---- */
+    A0001("参数错误"),
+    A0002("未登录或登录已过期"),
+    A0003("无权限"),
+    A0004("请求过于频繁"),
+    A0005("系统繁忙，请稍后重试"),
+
+    /* ---- B1 订单 ---- */
+    B1001("订单不存在"),
+    B1002("订单状态不允许该操作"),
+    B1003("未到存钥匙时间 / 已过截止时间"),
+    B1004("取消原因必填"),
+
+    /* ---- B2 柜机格口 ---- */
+    B2001("柜机离线"),
+    B2002("格口已被占用"),
+    B2003("无空闲格口"),
+    B2004("开箱码无效或已失效"),
+    B2005("开箱失败，请重试或联系客服"),
+
+    /* ---- B3 支付 ---- */
+    B3001("支付超时"),
+    B3002("支付失败"),
+    B3003("退款失败"),
+
+    /* ---- B4 任务 ---- */
+    B4001("任务已被他人接单"),
+    B4002("照片数量不足"),
+
+    /* ---- C0 第三方 ---- */
+    C0001("第三方服务异常");
+
+    private final String msg;
+
+    ErrorCode(String msg) {
+        this.msg = msg;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    /**
+     * 契约数字码：分段字母转数字前缀（A=1 / B=2 / C=3）+ 4 位数字。
+     * A0002 → 10002，B1002 → 21002，C0001 → 30001。
+     * 直接 parseInt("A0002".substring(1)) 会让 A0001 与 C0001 撞成同一个 1，故必须走本方法。
+     */
+    public int numeric() {
+        int segment = switch (name().charAt(0)) {
+            case 'A' -> 1;
+            case 'B' -> 2;
+            case 'C' -> 3;
+            default -> 9;
+        };
+        return segment * 10000 + Integer.parseInt(name().substring(1));
+    }
+}

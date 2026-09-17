@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wash.member.mapper.WashMemberMapper">
+
+    <resultMap type="WashMember" id="WashMemberResult">
+        <id property="memberId" column="member_id"/>
+        <result property="openid" column="openid"/>
+        <result property="unionid" column="unionid"/>
+        <result property="nickname" column="nickname"/>
+        <result property="phone" column="phone"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="selectByOpenid" resultMap="WashMemberResult">
+        select member_id, openid, unionid, nickname, phone, create_time
+        from wash_member
+        where openid = #{openid} and del_flag = '0'
+        limit 1
+    </select>
+
+    <insert id="insertWashMember" useGeneratedKeys="true" keyProperty="memberId">
+        insert into wash_member (openid, unionid, nickname, phone, create_time)
+        values (#{openid}, #{unionid}, #{nickname}, #{phone}, sysdate())
+    </insert>
+
+</mapper>

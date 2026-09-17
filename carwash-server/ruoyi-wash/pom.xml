@@ -18,6 +18,8 @@
 
     <modules>
         <module>wash-common</module>
+        <module>wash-member</module>
+        <module>wash-order</module>
     </modules>
 
     <build>

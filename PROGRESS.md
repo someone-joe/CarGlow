@@ -7,7 +7,11 @@
 
 ## 一、当前进度（一句话）
 
-**三步走：前两步已完成**（订单状态机、API 契约），**第三步（工程骨架）后端已跑通，前端未开始**。
+**三步走全部完成**（状态机、契约、工程骨架）。**第四步进行中：登录 + 空订单列表最小链路——后端已完成并实测通过，前端待接。**
+- 后端已实测：`POST /api/v1/auth/login`（模拟登录，固定 dev-openid）✅、`GET /api/v1/orders`（空列表）✅、
+  无 token 返回 10002 ✅、非法 tab 返回 10001 ✅、会员落库 ✅
+- 新增业务模块：`wash-member`（登录/token/拦截器/独立安全链/异常处理）、`wash-order`（订单查询）
+- 新表：`wash_member`、`wash_order`（SQL 见 `carwash-server/sql/wash_20260917_minimal.sql`）
 环境卡点已全部解除：JDK 17 已装、Docker 已可用、MySQL 8 + Redis 7 容器已跑起来。
 后端：若依官方 3.9.2（JDK 17 + Spring Boot 4.1）+ 我们的 `wash-common`（含状态机）编译通过，
 `ruoyi-admin.jar` 启动成功并能连上 MySQL/Redis（`/captchaImage` 返回正常）。
@@ -114,12 +118,17 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - 启动：`java -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar`（端口 8080）
    - 打包（用 Docker 里的 Maven，本机不装）：
      `docker run --rm -v d:/CarGlow/carwash-server:/app -v carglow-m2:/root/.m2/repository -w /app maven:3.9-eclipse-temurin-17 mvn -B -DskipTests clean package`
-3. **建前端骨架**（进行中）：uni-app 三端，引入已生成的 `schema.d.ts`
+3. **建前端骨架** ✅ 已完成（2026-09-17）：`npm run build:mp-weixin` 构建成功，产物 `dist/build/mp-weixin`
+   - 编译命令：`cd carwash-mp && npm run build:mp-weixin`（开发热更新用 `npm run dev:mp-weixin`）
+   - 微信开发者工具导入 `dist/build/mp-weixin`（或 dev 模式导入 `dist/dev/mp-weixin`）
+   - `src/manifest.json` 里需填你自己的小程序 appid（测试号亦可）
    - 已完成：官方 `vite-ts` 模板合并进 `carwash-mp`（uni-app 3.0.0 + Vue 3.4 + Vite 5.2.8 + TS 4.9），`src/api/schema.d.ts` 已保留
    - 待执行：`cd carwash-mp && npm install --registry=https://registry.npmmirror.com && npm run dev:mp-weixin`
    - 产物目录 `dist/dev/mp-weixin`，用微信开发者工具导入；`src/manifest.json` 里需填你自己的小程序 appid
 4. **建表**（MySQL/Redis 容器已起）：状态机日志表 DDL 见《订单状态机规则表.md》第四节
-5. **跑通最小链路**：登录 → 空订单列表（微信开发者工具里看到"暂无订单"）
+5. **跑通最小链路**（后端 ✅ / 前端待做）：登录 → 空订单列表（微信开发者工具里看到"暂无订单"）
+   - 后端已完成并 curl 实测通过（登录、鉴权拦截、空列表、错误码）
+   - 前端待做：`src/utils/request.ts` 请求封装（带 token、code!=0 统一处理、10002 跳登录）+ 订单列表页（三 Tab + 空状态）+ 登录引导
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截
 
 ---
@@ -132,7 +141,8 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
   - **测试抓到一个真 bug 并已修复**：`FINISHED` 被标记为终态，`fire()` / `canFire()` 用 `isTerminal()` 一刀切拦截，
     导致你确认过的「已完成仍可退款」在代码里走不通。已改为**以流转规则表为准**拦截，
     真正无出边的只有 `REFUNDED`（《订单状态机规则表.md》已同步说明）
-- **前端 uni-app 工程未开始**（`carwash-mp` 目前只有 `src/api/schema.d.ts`）
+- **前端页面还是模板默认页**：`carwash-mp/src/pages/index/index.vue` 是 uni-app 示例页，没有订单列表、没有登录
+- **"跑通登录与空订单列表"尚未兑现**：需要后端 `/api/v1/order/list` 接口 + 前端订单页 + 鉴权封装，这是第四步要做的事
 - **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
 - 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
 
