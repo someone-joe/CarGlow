@@ -74,7 +74,33 @@
 - 需要新增依赖、新增表、修改公共组件或状态机定义；
 - 有多种实现路径且代价差异较大。
 
-## 7. 代码风格（与技术方案附录 C 一致）
+## 7. 目录边界与端归属（防越界）
+
+本项目是 **monorepo**：三端代码同一个仓库，但**依赖关系、构建、发布完全独立**，不要合并依赖，也不要拆仓库。
+
+| 目录 | 端 | 技术栈 | 产物 | 运行端口 |
+| --- | --- | --- | --- | --- |
+| `carwash-mp` | C 端 / 取送端 / 作业端小程序 | uni-app + Vue3 + TS | `dist/build/mp-weixin` | 无（微信开发者工具导入） |
+| `carwash-admin` | **运营后台前端**（尚未建） | RuoYi-Vue3 + Element Plus | `dist/` | 1024 |
+| `carwash-server` | 后端（含若依原生模块 + `ruoyi-wash` 业务模块） | Spring Boot 4.1 + JDK17 | `ruoyi-admin/target/*.jar` | 8080 |
+| `docker` | 本地中间件（MySQL 8 / Redis 7） | Compose | — | 3306 / 6379 |
+
+**跨端改动的硬性顺序**（新增或修改接口时必须遵守）：
+
+```
+① openapi.yaml（契约）→ ② 后端 Controller/DTO → ③ 前端重新生成类型 → ④ 前端页面
+```
+
+**边界规则：**
+
+1. **一次任务只动一端**。任务说改小程序，就不许碰后端；任务说改后端，就不许顺手改前端。
+2. **跨端需求先声明**。确实需要同时改两端（如新增一个接口），开工前必须列出"要改哪几个端的哪几个文件"，不允许默默扩散。
+3. **后台前端只能放 `carwash-admin`**，不得放进 `carwash-server`（后端目录里只允许有 Java / SQL / 配置）。
+4. **依赖各自锁定**。禁止在仓库根建 `package.json`、禁止引入 npm/pnpm workspace、禁止把三端依赖合并——现阶段没有收益，只会增加耦合。
+5. **按端提交**。一个 commit 只包含一个端的改动；跨端改动（如契约变更）单独一个 commit，并在 message 里写清影响哪些端。
+6. **端口固定**，见上表。需要新增端口先更新本表。
+
+## 8. 代码风格（与技术方案附录 C 一致）
 
 - 后端：RuoYi 分层 Controller → Service → Manager → Mapper；跨模块只能调对方 Service/Manager，禁止跨模块直接调 Mapper。
 - 前端：uni-app（Vue3 + TS + Pinia），接口统一走 `src/api`，请求拦截统一处理 token/错误/埋点。
