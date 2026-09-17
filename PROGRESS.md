@@ -144,7 +144,8 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - **联调前提**：微信开发者工具「详情 → 本地设置 → 不校验合法域名」必须勾选
      （后端是 http://localhost，非备案域名）；后端进程需在运行中
 6. **补测试**：17 条合法流转全跑通 + 1 条非法流转被拦截（状态机单测已有 15 个，接入层测试待补）
-7. **下一步建议**：订单详情 + 时间轴（直接读 `wash_order_status_log`），或取消订单（`CANCEL` 事件走状态机 + 退款占位）
+7. **下一步建议**：取消订单 —— `CANCEL` 事件走状态机，验证"客户在车没动时可自助取消、已开洗只能客服取消"这条业务规则；
+   取消后进入退款占位（`CANCELED → REFUNDING`），与已确认的"退全款"决策对齐
 
 ---
 
@@ -168,6 +169,11 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
   真支付接入只需在回调里调 `WashOrderStateService.paySuccess()`，状态机与日志零改动
 - **订单按钮只实现了 PAY**：其余 action（存钥匙/看进度/评价/再来一单）随功能开工补在
   `WashOrderQueryService.resolveMainAction()`，前端不用动
+- **订单详情已实现**（2026-09-18）：`GET /api/v1/orders/{orderNo}`，含 **C 端 8 节点时间轴**。
+  时间轴**直接读 `wash_order_status_log`** 生成（规则表第七条，不另写一套进度）；
+  实测：8 节点齐全、ORDERED 已到达并带时间、当前节点高亮、越权/不存在返回 `21001`
+- **详情页部分字段仍为 null**：`siteName` / `cabinetName` / `promiseReturnTime` / 影像证据，
+  对应网点表、站点表、影像模块未开工，前端目前不展示空值即可
 - **后端错误码数字映射**已写进 `openapi.yaml`（A/B/C 段 → 1/2/3 前缀 + 4 位编号），改动需同步契约与 `ErrorCode.numeric()`
 - **`ruoyi-wash` 还没被 `ruoyi-admin` 依赖**：业务模块目前只是"能编译"，尚未接进主工程，订单相关接口一个都还没有
 - 若依配置文件改动仅两处：数据库连接串（+`allowPublicKeyRetrieval=true`）、Redis 口令；**未改任何若依 Java 代码**
