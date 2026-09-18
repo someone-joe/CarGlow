@@ -79,4 +79,21 @@ public interface WashOrderMapper {
     /** 各状态分布：供看板图表，排序与标签在 Service 层按 OrderStatus 枚举补全 */
     @Select("select status, count(*) as cnt from wash_order where del_flag = '0' group by status")
     List<Map<String, Object>> countGroupByStatus();
+
+    /**
+     * 取消原因落到订单主表。
+     * 流转日志里也有，但日志是流水、不便检索；后台列表与详情要直接看到"为什么取消"。
+     */
+    @Update("update wash_order set cancel_reason = #{reason}, update_time = sysdate() " +
+            "where order_no = #{orderNo} and del_flag = '0'")
+    int updateCancelReason(@Param("orderNo") String orderNo, @Param("reason") String reason);
+
+    /**
+     * 超时未支付的订单：给支付超时自动取消任务用。
+     * 只取 WAIT_PAY 且 pay_expire_at 已过期的，按创建时间正序，避免老单一直排不到。
+     */
+    @Select("select order_no from wash_order where status = 'WAIT_PAY' and del_flag = '0' " +
+            "and pay_expire_at is not null and pay_expire_at < #{now} " +
+            "order by create_time asc limit #{limit}")
+    List<String> selectExpiredWaitPay(@Param("now") long now, @Param("limit") int limit);
 }

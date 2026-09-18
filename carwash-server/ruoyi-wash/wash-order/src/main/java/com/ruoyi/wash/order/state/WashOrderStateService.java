@@ -12,6 +12,8 @@ import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,9 +31,15 @@ import java.time.ZoneId;
 @Service
 public class WashOrderStateService {
 
+    private static final Logger log = LoggerFactory.getLogger(WashOrderStateService.class);
+
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     /** 与 WashOrderCreateService 保持一致，key 规范见技术方案 5.3 */
     private static final String CAPACITY_PREFIX = "capacity:";
+
+    /** 系统取消原因：留痕用，客户能在时间轴里看到是谁、为什么取消 */
+    private static final String REASON_PAY_TIMEOUT = "支付超时自动取消";
+    private static final String REASON_EMERGENCY = "客户紧急取回钥匙";
 
     private final OrderRedisLock lock;
     private final WashOrderStatusAccessor accessor;
@@ -93,6 +101,33 @@ public class WashOrderStateService {
         return doCancel(orderNo, operatorId, OrderOperatorType.ADMIN, reason);
     }
 
+    /**
+     * 系统取消（支付超时等定时任务触发）：触发方 JOB。
+     *
+     * <p>副作用必须与客户取消完全一致（回补产能 + 释放格口），否则超时未支付的订单会
+     * 永久占着预占格口，柜子很快被占满，新订单直接报 B2003（无空闲格口）。
+     */
+    public OrderStatus systemCancel(String orderNo) {
+        return doCancel(orderNo, null, OrderOperatorType.JOB, REASON_PAY_TIMEOUT);
+    }
+
+    /**
+     * 紧急取钥匙。契约：openapi.yaml POST /api/v1/orders/{orderNo}/emergency-take-key。
+     *
+     * <p>车尚未移动（客户可自助取消的 4 个状态）→ 取消订单，已支付的一律全额退款，并告警留痕；
+     * 车已取走或已在作业 → 按契约拒绝（B1002）。
+     */
+    public OrderStatus emergencyTakeKey(String orderNo, Long memberId) {
+        WashOrder order = requireOwned(orderNo, memberId);
+        OrderStatus from = OrderStatus.of(order.getStatus());
+        if (!from.isCustomerCancelable()) {
+            throw new ApiException(ErrorCode.B1002, "当前状态不支持紧急取回钥匙，当前状态：" + from.getLabel());
+        }
+        // 红线：异常场景必须留痕并告警，运营要能看到是谁在什么时候紧急取回
+        log.warn("[紧急取钥匙] 告警：orderNo={} memberId={} 触发前状态={}", orderNo, memberId, from.getLabel());
+        return doCancel(orderNo, memberId, OrderOperatorType.CUSTOMER, REASON_EMERGENCY);
+    }
+
     private OrderStatus doCancel(String orderNo, Long operatorId, OrderOperatorType operatorType, String reason) {
         if (reason == null || reason.isBlank()) {
             // 契约 required: [reason]，对应错误码 B1004
@@ -112,6 +147,9 @@ public class WashOrderStateService {
                 .reason(reason)
                 .build();
         stateMachine.fire(ctx);
+
+        // 取消原因双写：流转日志（留痕）+ 订单主表（后台可检索）
+        orderMapper.updateCancelReason(order.getOrderNo(), reason);
 
         releaseCapacity(order);
         // 释放预占的格口（取消时车还没动，格口里没钥匙，直接释放即可）

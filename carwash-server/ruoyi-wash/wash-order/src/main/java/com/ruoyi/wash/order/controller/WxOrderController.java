@@ -44,6 +44,18 @@ public class WxOrderController {
         return ApiResult.ok();
     }
 
+    /**
+     * 紧急取钥匙。契约：openapi.yaml POST /api/v1/orders/{orderNo}/emergency-take-key。
+     *
+     * <p>车未动 → 取消 + 已支付全额退款（并告警留痕）；车已动 → 状态机拒绝（B1002）。
+     * 契约里提到的"预计完成时间"暂不返回：依赖承诺还车时间（站点/产能模块），响应体也没有 data 字段。
+     */
+    @PostMapping("/api/v1/orders/{orderNo}/emergency-take-key")
+    public ApiResult<Void> emergencyTakeKey(@PathVariable String orderNo) {
+        stateService.emergencyTakeKey(orderNo, MemberContext.require());
+        return ApiResult.ok();
+    }
+
     /** 与契约 request body 逐字段一致 */
     public record CancelRequest(String reason) {
     }
