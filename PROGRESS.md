@@ -168,7 +168,17 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - 前端：`views/wash/member/index.vue`、`views/wash/vehicle/index.vue`，菜单见 `sql/wash_menu.sql`（2010/2011/2012）
     - 实测：会员 1 条（脱敏正确）、车辆 1 条、按会员查订单 15 条、车牌模糊查命中 1 条
       ⚠️ 新菜单需**退出重新登录**才会出现（若依动态路由按角色权限缓存）
-11. **下一步建议**（按价值排序）：
+11. **格口预占 + 取送钥匙链路已完成**（2026-09-18）：
+    - 新增 `wash-network` 模块：`wash_cabinet` / `wash_slot` / `wash_slot_open_log` 三张表（SQL `wash_20260919_slot.sql`），
+      机柜/格口领域对象、`WashCabinetQueryService` / `WashCabinetMapper` / `WashSlotService` / `WashSlotMapper`
+    - 下单即预占格口（`WashOrderCreateService` 调 `WashSlotService.reserve`，乐观更新防超卖，无空闲格口返回 **B2003**）；
+      取消订单释放预占（`WashOrderStateService.doCancel` 调 `release`）
+    - C 端取开箱码：`POST /api/v1/orders/{orderNo}/open-code`（仅 WAIT_KEY / RETURNED 可用，10 分钟有效，留痕脱敏）
+    - 柜机回调：`POST /device-callback/v1/slot/deposit`（校验开箱码 → 格口占用 + `DEPOSIT_KEY` 事件 WAIT_KEY→KEY_IN）
+    - 开箱操作全部写入 `wash_slot_open_log`（只增不删，含开箱码脱敏）
+    - **契约对齐**：`openapi.yaml` 的 `open-code` 由 GET+action 改为 POST（后端按状态判定存/取，前端不传 action）
+    - 实测全链路：下单(预占A02)→mock-pay(WAIT_KEY)→取码(967229)→柜机回调→**KEY_IN**，留痕正常
+12. **下一步建议**（按价值排序）：
     - **真实微信支付 + 退款**：替换 mock-pay，并补真正的退款 API 与失败重试（上线前必须）
     - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件与格口预占，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
     - **后台首页数据看板**：今日单量、在洗数、异常数（经营决策要看）
