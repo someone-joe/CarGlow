@@ -158,6 +158,12 @@ wash:
   order:
     # 下单后支付倒计时（分钟），阈值走配置不硬编码
     pay-timeout-minutes: 15
+  customer-service:
+    # 客服配置：前端一律走接口取，不得硬编码电话号码
+    wecom-qrcode-url:
+    platform-phone:
+    station-phone:
+    night-tip: "夜间服务 20:00-08:00，紧急情况可用「取钥匙」自助处理"
   pay:
     # 是否开启模拟支付（仅本地开发）。生产环境必须为 false，否则接口直接返回 A0003
     mock-enabled: true
