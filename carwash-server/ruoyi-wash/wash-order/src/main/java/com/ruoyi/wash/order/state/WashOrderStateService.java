@@ -8,9 +8,11 @@ import com.ruoyi.wash.common.statemachine.OrderStateMachine;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.common.statemachine.OrderStatusLog;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +39,9 @@ public class WashOrderStateService {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     public WashOrderStateService(OrderRedisLock lock, WashOrderStatusAccessor accessor, WashOrderMapper orderMapper) {
@@ -107,16 +112,11 @@ public class WashOrderStateService {
 
         releaseCapacity(order);
 
-        // 未支付（WAIT_PAY）取消无需退款；已支付的一律退全款（已确认决策）
+        // 未支付（WAIT_PAY）取消无需退款；已支付的一律退全款（已确认决策）。
+        // 这里只发事件，真正建退款单、调渠道、推进状态机由 wash-pay 负责（避免订单域依赖支付域）。
         if (from != OrderStatus.WAIT_PAY) {
-            OrderStateMachine.TransitionContext refundCtx = OrderStateMachine.TransitionContext.builder()
-                    .orderNo(order.getOrderNo())
-                    .event(OrderEvent.APPLY_REFUND)
-                    .operatorType(OrderOperatorType.JOB)
-                    .reason("取消订单自动退款（全额）")
-                    .build();
-            stateMachine.fire(refundCtx);
-            return OrderStatus.REFUNDING;
+            eventPublisher.publishEvent(new OrderCanceledEvent(
+                    order.getOrderNo(), order.getMemberId(), order.getPayAmount(), reason));
         }
         return OrderStatus.CANCELED;
     }
@@ -138,6 +138,24 @@ public class WashOrderStateService {
                 .event(event)
                 .operatorType(OrderOperatorType.ADMIN)
                 .operatorId(operatorId)
+                .reason(reason)
+                .build();
+        return stateMachine.fire(ctx);
+    }
+
+    /**
+     * 系统触发（支付回调、退款结果、定时任务）：触发方为 JOB。
+     * 与 adminFire 一样受规则表约束，只是换了个操作者标记，便于日志区分是人还是系统。
+     */
+    public OrderStatus systemFire(String orderNo, OrderEvent event, String reason) {
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new ApiException(ErrorCode.B1001);
+        }
+        OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
+                .orderNo(order.getOrderNo())
+                .event(event)
+                .operatorType(OrderOperatorType.JOB)
                 .reason(reason)
                 .build();
         return stateMachine.fire(ctx);

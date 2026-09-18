@@ -161,3 +161,7 @@ wash:
   pay:
     # 是否开启模拟支付（仅本地开发）。生产环境必须为 false，否则接口直接返回 A0003
     mock-enabled: true
+    # 支付渠道：mock（本地） / wechat（真实微信支付，需商户号、API 证书、备案回调域名）
+    provider: mock
+    # 退款失败自动重试开关（定时任务每 5 分钟扫一次）
+    refund-retry-enabled: true

@@ -20,6 +20,7 @@ public class MemberWebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(memberAuthInterceptor)
                 .addPathPatterns("/api/v1/**")
-                .excludePathPatterns("/api/v1/auth/**");
+                // 登录接口与支付回调不需要会员 token（回调是微信服务器调用，无登录态）
+                .excludePathPatterns("/api/v1/auth/**", "/api/v1/payments/wechat/**");
     }
 }

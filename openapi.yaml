@@ -632,6 +632,26 @@ paths:
                             format: int64
                             description: 支付截止时间（毫秒时间戳），前端倒计时以此为准
 
+  /api/v1/payments/wechat/notify:
+    post:
+      tags: [pay]
+      summary: 微信支付结果回调
+      description: |
+        由微信支付服务器调用，无需登录态。必须：① 验签 ② 幂等（同一通知多次到达只处理一次）
+        ③ 成功后调状态机 PAY_SUCCESS。
+        本地开发（provider=mock）可直接 POST 该接口模拟回调。
+      security: []
+      responses:
+        '200':
+          description: 成功（返回给微信的应答）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string, example: SUCCESS }
+                  message: { type: string }
+
   # ============================ 支付（开发用） ============================
   /api/v1/payments/{orderNo}/mock-pay:
     post:
