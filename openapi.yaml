@@ -552,20 +552,17 @@ paths:
                 $ref: '#/components/schemas/Result'
 
   /api/v1/orders/{orderNo}/open-code:
-    get:
+    post:
       tags: [order]
       summary: 获取开箱码（存/取钥匙）
+      description: |
+        仅「待存钥匙 WAIT_KEY」与「已送回 RETURNED」两个环节可调用，后端按订单状态自行判定存/取，
+        前端无需传 action。开箱码 10 分钟内有效，仅可使用一次（取码即写入开箱留痕，明文不留库）。
       parameters:
         - name: orderNo
           in: path
           required: true
           schema: { type: string }
-        - name: action
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [DEPOSIT, TAKE_BACK, EMERGENCY]
       responses:
         '200':
           description: 成功
@@ -631,6 +628,33 @@ paths:
                             type: integer
                             format: int64
                             description: 支付截止时间（毫秒时间戳），前端倒计时以此为准
+
+  /device-callback/v1/slot/deposit:
+    post:
+      tags: [device]
+      summary: 柜机回调：钥匙已存入
+      description: |
+        客户凭开箱码打开格口并放入钥匙后，柜机回调本接口，触发状态机 DEPOSIT_KEY（WAIT_KEY → KEY_IN）。
+        生产环境必须校验柜机签名 + IP 白名单（当前实现仅校验开箱码，接入硬件时补签名校验）。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderNo, code]
+              properties:
+                orderNo: { type: string }
+                code: { type: string, description: 6 位开箱码 }
+                slotNo: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
 
   /api/v1/payments/wechat/notify:
     post:

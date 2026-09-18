@@ -767,12 +767,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取开箱码（存/取钥匙） */
-        get: {
+        get?: never;
+        put?: never;
+        /**
+         * 获取开箱码（存/取钥匙）
+         * @description 仅「待存钥匙 WAIT_KEY」与「已送回 RETURNED」两个环节可调用，后端按订单状态自行判定存/取，
+         *     前端无需传 action。开箱码 10 分钟内有效，仅可使用一次（取码即写入开箱留痕，明文不留库）。
+         */
+        post: {
             parameters: {
-                query: {
-                    action: "DEPOSIT" | "TAKE_BACK" | "EMERGENCY";
-                };
+                query?: never;
                 header?: never;
                 path: {
                     orderNo: string;
@@ -794,8 +798,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -884,6 +886,100 @@ export interface paths {
                                  */
                                 expireAt?: number;
                             };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/device-callback/v1/slot/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 柜机回调：钥匙已存入
+         * @description 客户凭开箱码打开格口并放入钥匙后，柜机回调本接口，触发状态机 DEPOSIT_KEY（WAIT_KEY → KEY_IN）。
+         *     生产环境必须校验柜机签名 + IP 白名单（当前实现仅校验开箱码，接入硬件时补签名校验）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        orderNo: string;
+                        /** @description 6 位开箱码 */
+                        code: string;
+                        slotNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/wechat/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 微信支付结果回调
+         * @description 由微信支付服务器调用，无需登录态。必须：① 验签 ② 幂等（同一通知多次到达只处理一次）
+         *     ③ 成功后调状态机 PAY_SUCCESS。
+         *     本地开发（provider=mock）可直接 POST 该接口模拟回调。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功（返回给微信的应答） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example SUCCESS */
+                            code?: string;
+                            message?: string;
                         };
                     };
                 };
