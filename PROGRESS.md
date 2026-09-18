@@ -178,10 +178,25 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - 开箱操作全部写入 `wash_slot_open_log`（只增不删，含开箱码脱敏）
     - **契约对齐**：`openapi.yaml` 的 `open-code` 由 GET+action 改为 POST（后端按状态判定存/取，前端不传 action）
     - 实测全链路：下单(预占A02)→mock-pay(WAIT_KEY)→取码(967229)→柜机回调→**KEY_IN**，留痕正常
-12. **下一步建议**（按价值排序）：
-    - **真实微信支付 + 退款**：替换 mock-pay，并补真正的退款 API 与失败重试（上线前必须）
-    - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件与格口预占，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
-    - **后台首页数据看板**：今日单量、在洗数、异常数（经营决策要看）
+12. **后台数据看板已完成**（2026-09-19）：
+    - 接口 `GET /admin-api/wash/dashboard/stats`（perm `wash:dashboard:list`）：今日单量 / 在洗数 / 待存钥匙 / 异常数 + 状态分布
+    - 口径集中在 `WashOrderStatsService`（在洗 = 去程+清洗+待质检；异常 = 退款中），状态取值一律引 `OrderStatus` 枚举，前端不维护名单
+    - 纯只读聚合，不新增表；菜单 `sql/wash_menu.sql`（2020 数据看板 / 2021 按钮权限），**导入后需重新登录才显示**
+    - 前端 `carwash-admin/src/views/wash/dashboard/index.vue` + `src/api/wash/dashboard.js`
+13. **C 端基础数据接口 + 正式下单页已完成**（2026-09-19）：
+    - `GET /api/v1/services`（wash-goods）、`GET /api/v1/vehicles`（wash-member，只返回本人车辆）、
+      `GET /api/v1/cabinets`（wash-network，带空闲格口数，`full` 由后端判定）—— 契约早已定义，本次补实现
+    - 小程序首页 `pages/index/index.vue` 由"种子数据临时入口"改为**真实选择页**（服务/车辆/机柜/时间/备注），
+      `DEMO_SERVICE_ID` 等三个常量已删除；新增 `src/api/catalog.ts`
+    - 未实现（契约里有、表上没有）：服务分类 `categoryId`、`isDefault`、`distance`（定位未开工）→ 一律返回 null，前端不展示
+    - 实测：三接口均返回数据 → 下单 `SE20260919004248124205`（3900 分 / WAIT_PAY）→ 格口自动占为 2/3 → 看板今日单量 1
+    - **开发种子已补格口复位**：`wash_seed_dev.sql` 末尾释放 wash_slot，否则联调占满后一直报 B2003
+14. **下一步建议**（按价值排序）：
+    - **真实微信支付 + 退款**：替换 mock-pay。**当前挂起**——用户尚无微信支付普通商户号（需企业资质 + 备案域名）。
+      接入时只填 `WechatPayProvider` + 给 `WxPaymentController.notify` 加验签解密，业务层零改动
+    - **后台人工干预收敛**：限制可触发事件、FINISHED 二次确认（上线前必须）
+    - **订单按钮**：目前只实现 PAY，存钥匙 / 看进度 / 评价待补在 `resolveMainAction()`
+    - **影像证据 / 站点网点表**：详情页 `siteName`、`cabinetName`、`promiseReturnTime` 仍为 null
 
 ---
 
