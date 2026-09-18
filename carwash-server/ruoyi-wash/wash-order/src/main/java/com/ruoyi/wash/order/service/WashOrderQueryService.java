@@ -10,6 +10,7 @@ import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -23,6 +24,11 @@ public class WashOrderQueryService {
             OrderStatus.WAIT_PAY, OrderStatus.WAIT_KEY, OrderStatus.KEY_IN, OrderStatus.PICKING,
             OrderStatus.TO_STATION, OrderStatus.WASHING, OrderStatus.QC,
             OrderStatus.WAIT_RETURN, OrderStatus.RETURNING, OrderStatus.RETURNED);
+
+    /** 作业中：车已被取走，进入运输/清洗/质检/还车环节（客户此时只能看进度、找客服） */
+    private static final List<OrderStatus> WORKING_STATUSES = List.of(
+            OrderStatus.TO_STATION, OrderStatus.WASHING, OrderStatus.QC,
+            OrderStatus.WAIT_RETURN, OrderStatus.RETURNING);
 
     /** 单页上限，防止一次性拉全量 */
     private static final int MAX_PAGE_SIZE = 50;
@@ -74,30 +80,52 @@ public class WashOrderQueryService {
     }
 
     /**
-     * 主按钮规则：目前实现「去支付」与「取消订单」。
-     * 其余状态（存钥匙、看进度、评价、再来一单等）随对应功能开工逐个补，
-     * 补的时候改这里，前端不用动。
+     * 主按钮规则：取值来自契约 OrderAction 的枚举，前端按 action 分发，不得自行推断。
      *
-     * <p>能否取消一律以状态机的 isCustomerCancelable() 为准，不在此另写一份状态名单。
+     * <p>已结束（已完成 / 已取消 / 退款中 / 已退款）一律回落为「再来一单」，
+     * 避免客户在终态订单上看到无按钮的死界面。
      */
     public OrderActionVO resolveMainAction(String status) {
-        if (OrderStatus.WAIT_PAY.name().equals(status)) {
+        OrderStatus s = OrderStatus.of(status);
+        if (s == OrderStatus.WAIT_PAY) {
             return new OrderActionVO("PAY", "去支付", true);
         }
-        if (OrderStatus.WAIT_KEY.name().equals(status)) {
+        if (s == OrderStatus.WAIT_KEY) {
             return new OrderActionVO("DEPOSIT_KEY", "去存钥匙", true);
         }
-        if (OrderStatus.of(status).isCustomerCancelable()) {
-            return new OrderActionVO("CANCEL", "取消订单", true);
+        if (s == OrderStatus.RETURNED) {
+            return new OrderActionVO("TAKE_KEY", "取钥匙", true);
         }
-        return null;
+        if (s == OrderStatus.WAIT_REVIEW) {
+            return new OrderActionVO("REVIEW", "去评价", true);
+        }
+        if (s == OrderStatus.FINISHED || s == OrderStatus.CANCELED
+                || s == OrderStatus.REFUNDING || s == OrderStatus.REFUNDED) {
+            return new OrderActionVO("REORDER", "再来一单", true);
+        }
+        // 车已取走或在作业中：客户最想知道的是进度
+        return new OrderActionVO("VIEW_PROGRESS", "看进度", true);
     }
 
-    /** 次按钮：待支付的订单，主按钮是支付，取消降级为次按钮 */
+    /**
+     * 次按钮。
+     *
+     * <p>能否取消一律以状态机的 isCustomerCancelable() 为准，不在此另写一份状态名单（避免规则两处漂移）。
+     * 车已取走或订单已结束时，给客户留一条找人的通道（联系客服）。
+     */
     public List<OrderActionVO> resolveSubActions(String status) {
-        if (OrderStatus.WAIT_PAY.name().equals(status)) {
-            return List.of(new OrderActionVO("CANCEL", "取消订单", true));
+        OrderStatus s = OrderStatus.of(status);
+        List<OrderActionVO> subs = new ArrayList<>();
+        if (s.isCustomerCancelable()) {
+            subs.add(new OrderActionVO("CANCEL", "取消订单", true));
         }
-        return List.of();
+        if (s == OrderStatus.WAIT_REVIEW) {
+            subs.add(new OrderActionVO("REORDER", "再来一单", true));
+        }
+        if (WORKING_STATUSES.contains(s) || s == OrderStatus.RETURNED
+                || s == OrderStatus.FINISHED || s == OrderStatus.REFUNDING) {
+            subs.add(new OrderActionVO("CONTACT_SERVICE", "联系客服", true));
+        }
+        return subs;
     }
 }
