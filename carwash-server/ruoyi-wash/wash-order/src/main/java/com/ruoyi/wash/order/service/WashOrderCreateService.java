@@ -10,6 +10,7 @@ import com.ruoyi.wash.member.domain.WashVehicle;
 import com.ruoyi.wash.member.service.WashVehicleQueryService;
 import com.ruoyi.wash.network.domain.WashCabinet;
 import com.ruoyi.wash.network.service.WashCabinetQueryService;
+import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.dto.CreateOrderRequest;
 import com.ruoyi.wash.order.dto.CreateOrderVO;
@@ -35,8 +36,7 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>校验顺序（契约描述）：协议已同意 → 服务项有效 → 车辆属于本人 → 机柜有效 → 预约时间合法 → 产能未超。
  *
- * <p>已实现：幂等、参数与归属校验、产能原子抢占、价格快照、支付倒计时。
- * 未实现（对应模块未开工，不得假装做了）：格口预占（PRD 要求下单即预占格口，格口表与柜机模块未建）。
+ * <p>已实现：幂等、参数与归属校验、产能原子抢占、价格快照、支付倒计时、下单即预占格口。
  */
 @Service
 public class WashOrderCreateService {
@@ -64,6 +64,9 @@ public class WashOrderCreateService {
     /** 产能用原子 DECR，必须用 StringRedisTemplate 而不是先读再写 */
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private WashSlotService slotService;
 
     /** 支付倒计时（分钟），阈值走配置，不硬编码 */
     @Value("${wash.order.pay-timeout-minutes:15}")
@@ -104,6 +107,9 @@ public class WashOrderCreateService {
         long now = System.currentTimeMillis();
         String orderNo = generateOrderNo(now);
         long payExpireAt = now + payTimeoutMinutes * 60L * 1000;
+
+        // 预占格口（PRD：下单即预占，与支付倒计时同生命周期）；事务回滚会自动释放
+        slotService.reserve(request.cabinetId(), orderNo, memberId);
 
         WashOrder order = new WashOrder();
         order.setOrderNo(orderNo);

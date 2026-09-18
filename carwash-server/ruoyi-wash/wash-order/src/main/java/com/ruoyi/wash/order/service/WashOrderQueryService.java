@@ -84,6 +84,9 @@ public class WashOrderQueryService {
         if (OrderStatus.WAIT_PAY.name().equals(status)) {
             return new OrderActionVO("PAY", "去支付", true);
         }
+        if (OrderStatus.WAIT_KEY.name().equals(status)) {
+            return new OrderActionVO("DEPOSIT_KEY", "去存钥匙", true);
+        }
         if (OrderStatus.of(status).isCustomerCancelable()) {
             return new OrderActionVO("CANCEL", "取消订单", true);
         }

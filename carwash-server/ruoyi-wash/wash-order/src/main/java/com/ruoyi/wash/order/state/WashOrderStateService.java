@@ -8,6 +8,7 @@ import com.ruoyi.wash.common.statemachine.OrderStateMachine;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.common.statemachine.OrderStatusLog;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import jakarta.annotation.PostConstruct;
@@ -44,6 +45,9 @@ public class WashOrderStateService {
     private ApplicationEventPublisher eventPublisher;
 
     @Autowired
+    private WashSlotService slotService;
+
+    @Autowired
     public WashOrderStateService(OrderRedisLock lock, WashOrderStatusAccessor accessor, WashOrderMapper orderMapper) {
         this.lock = lock;
         this.accessor = accessor;
@@ -75,8 +79,7 @@ public class WashOrderStateService {
      * <p>客户自助取消仅限车未动的 4 个状态（WAIT_PAY / WAIT_KEY / KEY_IN / PICKING），
      * 其余状态由状态机直接拒绝（B1002），这里不重复判断，避免规则两处漂移。
      *
-     * <p>取消后按契约：回补产能 → 已支付的自动触发退款（APPLY_REFUND → REFUNDING）。
-     * 格口释放待柜机模块开工后补（下单时也没预占，见 WashOrderCreateService 的 TODO）。
+     * <p>取消后按契约：回补产能 → 释放预占格口 → 已支付的自动触发退款（APPLY_REFUND → REFUNDING）。
      */
     public OrderStatus cancel(String orderNo, Long memberId, String reason) {
         return doCancel(orderNo, memberId, OrderOperatorType.CUSTOMER, reason);
@@ -111,6 +114,8 @@ public class WashOrderStateService {
         stateMachine.fire(ctx);
 
         releaseCapacity(order);
+        // 释放预占的格口（取消时车还没动，格口里没钥匙，直接释放即可）
+        slotService.release(order.getOrderNo());
 
         // 未支付（WAIT_PAY）取消无需退款；已支付的一律退全款（已确认决策）。
         // 这里只发事件，真正建退款单、调渠道、推进状态机由 wash-pay 负责（避免订单域依赖支付域）。

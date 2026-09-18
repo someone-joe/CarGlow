@@ -24,7 +24,7 @@ public class WxApiSecurityConfig {
     @Order(1)
     public SecurityFilterChain wxApiFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/v1/**")
+                .securityMatcher("/api/v1/**", "/device-callback/**")
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
