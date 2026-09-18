@@ -52,7 +52,8 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { cancelOrder, fetchOrderList, payOrder, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
+import { cancelOrder, fetchOpenCode, fetchOrderList, payOrder, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
+import { fetchCustomerService } from '@/api/config'
 
 const tabs: { key: OrderTab; label: string }[] = [
   { key: 'ONGOING', label: '进行中' },
@@ -102,6 +103,69 @@ async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<vo
     }
     return
   }
+  // 存钥匙 / 取钥匙共用 open-code 接口（后端按订单状态判定存还是取），取到码弹窗展示
+  if (action?.action === 'DEPOSIT_KEY' || action?.action === 'TAKE_KEY') {
+    try {
+      const data = await fetchOpenCode(orderNo)
+      const lines = [
+        data.cabinetName ? `柜机：${data.cabinetName}${data.slotNo ? ' · ' + data.slotNo + ' 格口' : ''}` : '',
+        `开箱码：${data.code}`,
+        '10 分钟内有效，仅可使用一次',
+      ].filter(Boolean)
+      uni.showModal({
+        title: action.action === 'TAKE_KEY' ? '取钥匙开箱码' : '存钥匙开箱码',
+        content: lines.join('\n'),
+        showCancel: false,
+        confirmText: '知道了',
+      })
+    } catch {
+      // request 层已统一提示（如状态不允许取码）
+    }
+    return
+  }
+  // 看进度 = 跳详情页（时间轴由后端流转日志生成，前端不另算进度）
+  if (action?.action === 'VIEW_PROGRESS') {
+    goDetail(item)
+    return
+  }
+
+  // 再来一单：回到下单页重新选服务/车辆/机柜
+  if (action?.action === 'REORDER') {
+    uni.navigateTo({ url: '/pages/index/index' })
+    return
+  }
+
+  // 联系客服：电话与夜间提示由后端配置下发，前端不硬编码号码
+  if (action?.action === 'CONTACT_SERVICE') {
+    try {
+      const cfg = await fetchCustomerService()
+      const phones = [cfg.platformPhone, cfg.stationPhone].filter((p): p is string => !!p)
+      if (phones.length === 0) {
+        uni.showModal({
+          title: '联系客服',
+          content: cfg.nightTip || '客服联系方式暂未配置',
+          showCancel: false
+        })
+        return
+      }
+      uni.showActionSheet({
+        itemList: phones.map((p) => '拨打 ' + p),
+        success: (res) => {
+          uni.makePhoneCall({ phoneNumber: phones[res.tapIndex] })
+        }
+      })
+    } catch {
+      // request 层已统一提示
+    }
+    return
+  }
+
+  // 评价：评价页随评价模块（售后域）开工，这里先给出反馈，避免点了没反应
+  if (action?.action === 'REVIEW') {
+    uni.showToast({ title: '评价功能开发中', icon: 'none' })
+    return
+  }
+
   if (action?.action === 'CANCEL') {
     uni.showModal({
       title: '取消订单',

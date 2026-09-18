@@ -79,11 +79,17 @@
       <text class="entry-title">我的订单</text>
       <text class="entry-desc">查看进行中 / 待评价 / 全部订单</text>
     </view>
+
+    <view class="entry" @click="goVehicles">
+      <text class="entry-title">我的车辆</text>
+      <text class="entry-desc">添加或修改车辆信息</text>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { createOrder } from '@/api/order'
 import { fetchCabinets, fetchServices, fetchVehicles } from '@/api/catalog'
 import type { CabinetVO, ServiceVO, VehicleVO } from '@/api/catalog'
@@ -197,7 +203,12 @@ function goOrders(): void {
   uni.navigateTo({ url: '/pages/orders/orders' })
 }
 
-onMounted(loadOptions)
+function goVehicles(): void {
+  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
+}
+
+// 用 onShow 而非 onMounted：从车辆页新增车辆返回后，这里的车辆列表要立刻看到新车
+onShow(loadOptions)
 </script>
 
 <style>

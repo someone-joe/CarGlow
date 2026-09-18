@@ -37,6 +37,7 @@ export interface CreateOrderRequest {
 }
 
 export type CreateOrderVO = components['schemas']['CreateOrderVO']
+export type OpenCodeVO = components['schemas']['OpenCodeVO']
 
 /**
  * 提交订单。契约要求幂等键 Idempotency-Key（客户端生成 UUID，重复提交返回首次结果）。
@@ -56,6 +57,17 @@ export function fetchOrderDetail(orderNo: string): Promise<components['schemas']
   return request<components['schemas']['OrderDetailVO']>({
     url: `/api/v1/orders/${orderNo}`,
     method: 'GET',
+  })
+}
+
+/**
+ * 契约：openapi.yaml POST /api/v1/orders/{orderNo}/open-code。
+ * 存钥匙（DEPOSIT_KEY）与取钥匙（TAKE_KEY）走同一接口，后端按订单状态自行判定，前端不传 action。
+ */
+export function fetchOpenCode(orderNo: string): Promise<OpenCodeVO> {
+  return request<OpenCodeVO>({
+    url: `/api/v1/orders/${orderNo}/open-code`,
+    method: 'POST',
   })
 }
 

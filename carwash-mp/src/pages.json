@@ -17,6 +17,12 @@
 			"style": {
 				"navigationBarTitleText": "订单详情"
 			}
+		},
+		{
+			"path": "pages/vehicle/vehicle",
+			"style": {
+				"navigationBarTitleText": "我的车辆"
+			}
 		}
 	],
 	"globalStyle": {

@@ -32,3 +32,34 @@ export function fetchCabinets(communityId?: number): Promise<CabinetVO[]> {
     data: communityId ? { communityId } : {}
   })
 }
+
+/**
+ * 车辆入参：契约 VehicleRequest 的可落库子集。
+ * photoFileId / isDefault / building,unit,floor 后端暂不支持（影像、默认车、地址模块未开工）。
+ */
+export interface VehicleRequest {
+  plateNo?: string
+  brand?: string
+  color?: string
+  isNewEnergy?: boolean
+  communityId?: number
+  parkingNo?: string
+}
+
+/** 契约：openapi.yaml POST /api/v1/vehicles（plateNo 必填）。返回新建车辆 ID */
+export function createVehicle(data: VehicleRequest): Promise<number> {
+  return request<number>({
+    url: '/api/v1/vehicles',
+    method: 'POST',
+    data
+  })
+}
+
+/** 契约：openapi.yaml PUT /api/v1/vehicles/{vehicleId}（只更新传了值的字段） */
+export function updateVehicle(vehicleId: number, data: VehicleRequest): Promise<void> {
+  return request<void>({
+    url: `/api/v1/vehicles/${vehicleId}`,
+    method: 'PUT',
+    data
+  })
+}
