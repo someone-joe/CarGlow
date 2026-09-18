@@ -33,3 +33,15 @@ values (2002, '订单查询', 2001, 1, '', null, 1, 0, 'F', '0', '0', 'wash:orde
 
 insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
 values (2003, '订单干预', 2001, 2, '', null, 1, 0, 'F', '0', '0', 'wash:order:edit', '#', 'admin', sysdate(), '人工推进状态 / 后台取消');
+
+-- ----------------------------
+-- 数据看板（2026-09-19 新增）
+-- ----------------------------
+delete from sys_menu where menu_id = 2020;
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2020, '数据看板', 2000, 0, 'dashboard', 'wash/dashboard/index', 1, 0, 'C', '0', '0', 'wash:dashboard:list', 'chart', 'admin', sysdate(), '今日单量 / 在洗数 / 异常数');
+
+-- 按钮级权限：看板刷新
+delete from sys_menu where menu_id = 2021;
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2021, '看板查询', 2020, 1, '', null, 1, 0, 'F', '0', '0', 'wash:dashboard:list', '#', 'admin', sysdate(), '查看经营数据看板');

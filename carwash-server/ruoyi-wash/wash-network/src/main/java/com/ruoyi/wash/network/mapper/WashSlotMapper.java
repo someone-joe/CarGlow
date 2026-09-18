@@ -24,6 +24,14 @@ public interface WashSlotMapper {
             "order by slot_no asc limit #{limit}")
     List<WashSlot> selectFree(@Param("cabinetId") Long cabinetId, @Param("limit") int limit);
 
+    /** 机柜格口总数（C 端展示"共几个格口"） */
+    @Select("select count(*) from wash_slot where cabinet_id = #{cabinetId} and del_flag = '0'")
+    long countByCabinet(@Param("cabinetId") Long cabinetId);
+
+    /** 机柜空闲格口数：C 端据此判断柜子是否已满，避免用户选了才发现没格子 */
+    @Select("select count(*) from wash_slot where cabinet_id = #{cabinetId} and status = 'FREE' and del_flag = '0'")
+    long countFreeByCabinet(@Param("cabinetId") Long cabinetId);
+
     /** 乐观占用：只有当前状态符合预期才更新成功，返回影响行数 */
     @Update("update wash_slot set status = #{toStatus}, order_no = #{orderNo}, member_id = #{memberId}, update_time = sysdate() " +
             "where slot_id = #{slotId} and status = #{fromStatus} and del_flag = '0'")

@@ -26,6 +26,11 @@ public interface WashVehicleMapper {
                                       @Param("offset") int offset,
                                       @Param("pageSize") int pageSize);
 
+    /** C 端我的车辆：只看本人名下，按添加时间倒序（前端按首项预选） */
+    @Select("select vehicle_id, member_id, plate_no, brand, color, is_new_energy, community_id, parking_no, create_time " +
+            "from wash_vehicle where member_id = #{memberId} and del_flag = '0' order by create_time desc")
+    List<WashVehicle> selectByMember(@Param("memberId") Long memberId);
+
     @Select("<script>" +
             "select count(*) from wash_vehicle where del_flag = '0' " +
             "<if test='plateNo != null and plateNo != \"\"'> and plate_no like concat('%', #{plateNo}, '%') </if> " +

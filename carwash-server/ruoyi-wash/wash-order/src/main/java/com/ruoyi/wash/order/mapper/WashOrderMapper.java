@@ -7,7 +7,9 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 订单查询。写入类操作（下单/状态流转）后续单独加方法，并必须走状态机。
@@ -58,4 +60,23 @@ public interface WashOrderMapper {
             "(order_id, from_status, to_status, event, operator_type, operator_id, source, reason, create_time) " +
             "values (#{orderId}, #{fromStatus}, #{toStatus}, #{event}, #{operatorType}, #{operatorId}, #{source}, #{reason}, sysdate())")
     int insertStatusLog(OrderStatusLog log);
+
+    // ==================== 后台看板统计（只读，不改状态） ====================
+
+    /** 今日下单数：以 create_time 计，起始时刻由调用方按 Asia/Shanghai 算好传入 */
+    @Select("select count(*) from wash_order where del_flag = '0' and create_time >= #{start}")
+    long countSince(@Param("start") LocalDateTime start);
+
+    /** 按状态集合计数：空集合表示不过滤（全量） */
+    @Select("<script>" +
+            "select count(*) from wash_order where del_flag = '0' " +
+            "<if test='statuses != null and statuses.size() > 0'> " +
+            "and status in <foreach collection='statuses' item='s' open='(' separator=',' close=')'>#{s}</foreach> " +
+            "</if>" +
+            "</script>")
+    long countByStatuses(@Param("statuses") List<String> statuses);
+
+    /** 各状态分布：供看板图表，排序与标签在 Service 层按 OrderStatus 枚举补全 */
+    @Select("select status, count(*) as cnt from wash_order where del_flag = '0' group by status")
+    List<Map<String, Object>> countGroupByStatus();
 }

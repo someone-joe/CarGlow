@@ -72,6 +72,16 @@ public class WashSlotService {
         return slot;
     }
 
+    /** 机柜格口总数 */
+    public long countTotal(Long cabinetId) {
+        return slotMapper.countByCabinet(cabinetId);
+    }
+
+    /** 机柜空闲格口数 */
+    public long countFree(Long cabinetId) {
+        return slotMapper.countFreeByCabinet(cabinetId);
+    }
+
     /** 取开箱码时留痕（开箱码脱敏后记录，不明文落库） */
     public void logOpenCode(WashSlot slot, String openCode) {
         String masked = openCode == null ? null : openCode.substring(0, Math.min(2, openCode.length())) + "****";

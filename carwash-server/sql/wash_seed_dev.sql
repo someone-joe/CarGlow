@@ -24,3 +24,7 @@ values (201, 1, '粤A12345', '丰田 凯美瑞', '白色', 'N', 1, 'A区23号车
 
 insert into wash_cabinet (cabinet_id, site_id, community_id, cabinet_name, enabled, create_time)
 values (301, 1, 1, '3栋负一层钥匙柜', 'Y', sysdate());
+
+-- 格口复位：联调下单会把格口占成 RESERVED/OCCUPIED，重跑种子时若不释放，
+-- 再下单会一直报 B2003（无空闲格口）。开箱流水日志只增不删，这里不清理。
+update wash_slot set status = 'FREE', order_no = null, member_id = null, update_time = sysdate();

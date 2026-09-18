@@ -3,13 +3,20 @@ package com.ruoyi.wash.member.service;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.member.domain.WashVehicle;
+import com.ruoyi.wash.member.dto.AddressVO;
+import com.ruoyi.wash.member.dto.VehicleVO;
 import com.ruoyi.wash.member.mapper.WashVehicleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** 车辆查询。跨模块只能调 Service，禁止其他模块直接注入 WashVehicleMapper。 */
 @Service
 public class WashVehicleQueryService {
+
+    private static final String YES = "Y";
 
     @Autowired
     private WashVehicleMapper vehicleMapper;
@@ -21,5 +28,26 @@ public class WashVehicleQueryService {
             throw new ApiException(ErrorCode.A0001, "车辆不存在或不属于当前用户");
         }
         return vehicle;
+    }
+
+    /** C 端我的车辆列表 */
+    public List<VehicleVO> listByMember(Long memberId) {
+        List<VehicleVO> list = new ArrayList<>();
+        for (WashVehicle vehicle : vehicleMapper.selectByMember(memberId)) {
+            VehicleVO vo = new VehicleVO();
+            vo.setVehicleId(vehicle.getVehicleId());
+            vo.setPlateNo(vehicle.getPlateNo());
+            vo.setBrand(vehicle.getBrand());
+            vo.setColor(vehicle.getColor());
+            vo.setIsNewEnergy(YES.equals(vehicle.getIsNewEnergy()));
+
+            AddressVO address = new AddressVO();
+            address.setCommunityId(vehicle.getCommunityId());
+            address.setParkingNo(vehicle.getParkingNo());
+            vo.setAddress(address);
+
+            list.add(vo);
+        }
+        return list;
     }
 }
