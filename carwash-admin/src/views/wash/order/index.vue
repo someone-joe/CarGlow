@@ -1,5 +1,10 @@
 <template>
   <div class="app-container">
+    <el-alert v-if="memberFilter" type="success" :closable="false" show-icon style="margin-bottom: 12px">
+      正在查看会员 #{{ memberFilter }} 的订单
+      <el-button link type="primary" style="margin-left: 8px" @click="clearMemberFilter">清除筛选</el-button>
+    </el-alert>
+
     <el-form :model="queryParams" :inline="true" label-width="90px">
       <el-form-item label="订单号">
         <el-input v-model="queryParams.orderNo" placeholder="支持模糊查询" clearable style="width: 220px"
@@ -75,9 +80,11 @@
 <script setup name="Order">
 import { listOrder, statusOptions, getOrder, eventOptions, advanceOrder, cancelOrder } from '@/api/wash/order'
 import useUserStore from '@/store/modules/user'
+import { useRoute } from 'vue-router'
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
+const route = useRoute()
 
 const orderList = ref([])
 const statusList = ref([])
@@ -93,8 +100,17 @@ const queryParams = ref({
   pageNum: 1,
   pageSize: 10,
   orderNo: undefined,
-  status: undefined
+  status: undefined,
+  memberId: undefined
 })
+
+// 从会员/车辆页跳过来时带 memberId，客服不用再手输
+const memberFilter = computed(() => queryParams.value.memberId)
+
+function clearMemberFilter() {
+  queryParams.value.memberId = undefined
+  handleQuery()
+}
 
 // 按钮级权限：与后台菜单 perms（wash:order:edit）一致
 const hasEditPermi = computed(() => userStore.permissions.includes('wash:order:edit'))
@@ -176,6 +192,11 @@ function submitCancel() {
 statusOptions().then(res => {
   statusList.value = res.data
 })
+
+// 支持从会员页带 memberId 直接进入
+if (route.query.memberId) {
+  queryParams.value.memberId = Number(route.query.memberId)
+}
 
 getList()
 </script>

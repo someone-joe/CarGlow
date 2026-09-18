@@ -54,10 +54,11 @@ public class AdminOrderController {
     @GetMapping("/list")
     public TableDataInfo list(@RequestParam(required = false) String orderNo,
                               @RequestParam(required = false) String status,
+                              @RequestParam(required = false) Long memberId,
                               @RequestParam(defaultValue = "1") int pageNum,
                               @RequestParam(defaultValue = "10") int pageSize) {
-        List<AdminOrderVO> list = adminService.list(orderNo, status, pageNum, pageSize);
-        long total = adminService.count(orderNo, status);
+        List<AdminOrderVO> list = adminService.list(orderNo, status, memberId, pageNum, pageSize);
+        long total = adminService.count(orderNo, status, memberId);
         TableDataInfo rspData = new TableDataInfo();
         rspData.setCode(200);
         rspData.setMsg("查询成功");

@@ -38,13 +38,16 @@ public interface WashOrderMapper {
             "where order_no = #{orderNo} and status = #{from} and del_flag = '0'")
     int updateStatus(@Param("orderNo") String orderNo, @Param("from") String from, @Param("to") String to);
 
-    /** 后台全量分页：orderNo 模糊匹配，status 精确匹配（空表示不过滤） */
+    /** 后台全量分页：orderNo 模糊匹配，status / memberId 精确匹配（空表示不过滤） */
     List<WashOrder> selectAdminPage(@Param("orderNo") String orderNo,
                                     @Param("status") String status,
+                                    @Param("memberId") Long memberId,
                                     @Param("offset") int offset,
                                     @Param("pageSize") int pageSize);
 
-    long countAdmin(@Param("orderNo") String orderNo, @Param("status") String status);
+    long countAdmin(@Param("orderNo") String orderNo,
+                    @Param("status") String status,
+                    @Param("memberId") Long memberId);
 
     /** 流转日志按时间正序：时间轴与后台追溯都读它，只增不删 */
     @Select("select id, order_id, from_status, to_status, event, operator_type, operator_id, source, reason, create_time " +

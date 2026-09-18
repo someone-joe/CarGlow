@@ -23,18 +23,19 @@ public class WashOrderAdminService {
     @Autowired
     private WashOrderMapper orderMapper;
 
-    public List<AdminOrderVO> list(String orderNo, String status, int pageNum, int pageSize) {
+    /** memberId 用于"从会员查他的订单"（客服接到电话时的主路径） */
+    public List<AdminOrderVO> list(String orderNo, String status, Long memberId, int pageNum, int pageSize) {
         int size = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
         int num = Math.max(pageNum, 1);
         return orderMapper
-                .selectAdminPage(orderNo, status, (num - 1) * size, size)
+                .selectAdminPage(orderNo, status, memberId, (num - 1) * size, size)
                 .stream()
                 .map(this::toVO)
                 .toList();
     }
 
-    public long count(String orderNo, String status) {
-        return orderMapper.countAdmin(orderNo, status);
+    public long count(String orderNo, String status, Long memberId) {
+        return orderMapper.countAdmin(orderNo, status, memberId);
     }
 
     private AdminOrderVO toVO(WashOrder order) {

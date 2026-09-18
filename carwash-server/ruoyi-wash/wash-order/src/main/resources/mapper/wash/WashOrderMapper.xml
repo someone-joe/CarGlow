@@ -50,6 +50,9 @@
         <if test="orderNo != null and orderNo != ''">
             and order_no like concat('%', #{orderNo}, '%')
         </if>
+        <if test="memberId != null">
+            and member_id = #{memberId}
+        </if>
     </sql>
 
     <select id="selectAdminPage" resultMap="WashOrderResult">

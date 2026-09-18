@@ -160,10 +160,18 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
    - **全链路实测**（后台接口连推 10 个事件）：
      WAIT_KEY→KEY_IN→PICKING→TO_STATION→WASHING→QC→WAIT_RETURN→RETURNING→RETURNED→WAIT_REVIEW→**FINISHED**，
      时间轴 **8/8 节点全亮**；再对 FINISHED 发起取消 → 被状态机拒绝（终态保护生效）
-10. **下一步建议**（按价值排序）：
-   - **真实微信支付 + 退款**：替换 mock-pay，并补真正的退款 API 与失败重试（上线前必须）
-   - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件与格口预占，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
-   - **后台会员/车辆管理**：运营查得到人，才能处理"客户电话来说车没洗好"
+10. **后台会员 / 车辆管理已完成**（2026-09-18）：
+    - 接口：`GET /admin-api/wash/member/list`（perm `wash:member:list`，按昵称/手机号模糊查）、
+      `GET /admin-api/wash/vehicle/list`（perm `wash:vehicle:list`，按车牌模糊查 / 按会员过滤）
+    - **手机号与 openid 一律脱敏返回**（`138****1234`、`dev-****enid`），后台也不出明文（个保法最小化 P8）
+    - 订单列表新增 `memberId` 过滤；会员/车辆页有「他的订单」按钮直接跳订单页并带上筛选
+    - 前端：`views/wash/member/index.vue`、`views/wash/vehicle/index.vue`，菜单见 `sql/wash_menu.sql`（2010/2011/2012）
+    - 实测：会员 1 条（脱敏正确）、车辆 1 条、按会员查订单 15 条、车牌模糊查命中 1 条
+      ⚠️ 新菜单需**退出重新登录**才会出现（若依动态路由按角色权限缓存）
+11. **下一步建议**（按价值排序）：
+    - **真实微信支付 + 退款**：替换 mock-pay，并补真正的退款 API 与失败重试（上线前必须）
+    - **存钥匙 + 柜机**：`DEPOSIT_KEY` 事件与格口预占，需柜机/格口模块开工（PRD 核心链路，依赖硬件协议）
+    - **后台首页数据看板**：今日单量、在洗数、异常数（经营决策要看）
 
 ---
 
