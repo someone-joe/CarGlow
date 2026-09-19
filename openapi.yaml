@@ -1035,6 +1035,201 @@ paths:
                     properties:
                       data: { $ref: '#/components/schemas/InsurancePolicyVO' }
 
+  # ============================ 师傅端流转接口（取送 + 作业合并） ============================
+  # 师傅端 = 原「取送端」+「作业端」合并后的单一工作人员 App（详见《订单状态机规则表.md》端合并说明）
+  # 所有接口需已登录且角色为「师傅」；照片均先经 POST /api/v1/media/upload 上传，再以 fileId 引用
+
+  /api/v1/pick/tasks:
+    get:
+      tags: [master-pick]
+      summary: 师傅任务池（待取 / 待送）
+      description: 返回当前师傅可见的待取车（PICKING / TO_STATION）与待送回（WAIT_RETURN / RETURNING）订单列表
+      parameters:
+        - name: stage
+          in: query
+          schema: { type: string, enum: [PICKUP, RETURN, ALL] }
+          description: PICKUP=待取车；RETURN=待送回；ALL=全部（默认）
+      responses:
+        '200':
+          description: 任务列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer }
+                  data:
+                    type: array
+                    items: { type: object, description: 待定，字段随任务池页面细化 }
+
+  /api/v1/pick/orders/{orderNo}/pick-car-done:
+    post:
+      tags: [master-pick]
+      summary: 取车拍照完成（触发 PICK_CAR_DONE）
+      description: |
+        触发状态机 PICK_CAR_DONE：PICKING → TO_STATION。
+        **必填 ≥6 张 360° 照片 + 仪表盘**（bizType=PICK），否则后端拒绝。详见《订单状态机规则表.md》。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileIds]
+              properties:
+                fileIds:
+                  type: array
+                  items: { type: string }
+                  minItems: 6
+                  description: 上传后的 fileId 列表，bizType=PICK
+                note: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/pick/orders/{orderNo}/return-done:
+    post:
+      tags: [master-pick]
+      summary: 送回停放完成 + 钥匙归柜（触发 RETURN_DONE）
+      description: |
+        触发状态机 RETURN_DONE：RETURNING → RETURNED。
+        **必填停放照（含车位号）**（bizType=RETURN），否则后端拒绝。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileIds, parkingNo]
+              properties:
+                fileIds:
+                  type: array
+                  items: { type: string }
+                  description: 停放照 fileId 列表，bizType=RETURN
+                parkingNo: { type: string, description: 车位号 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/station/queue:
+    get:
+      tags: [master-station]
+      summary: 中央站工位队列看板
+      description: 返回站内各工位状态与排队中的洗车订单（WASHING / QC）
+      responses:
+        '200':
+          description: 工位队列
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer }
+                  data:
+                    type: array
+                    items: { type: object, description: 待定，随作业台页面细化 }
+
+  /api/v1/station/orders/{orderNo}/sop-done:
+    post:
+      tags: [master-station]
+      summary: SOP 全部完成（触发 SOP_DONE）
+      description: 触发状态机 SOP_DONE：WASHING → QC；15 步打卡明细后端按 step 记录，这里汇总提交
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                steps:
+                  type: array
+                  items: { type: string }
+                  description: 已完成的 15 步 SOP 步骤标识
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/station/orders/{orderNo}/qc-pass:
+    post:
+      tags: [master-station]
+      summary: 质检通过（触发 QC_PASS）
+      description: |
+        触发状态机 QC_PASS：QC → WAIT_RETURN。
+        **必填洗后照**（bizType=WASHED，前后对比图由后端自动拼），否则后端拒绝。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileIds]
+              properties:
+                fileIds:
+                  type: array
+                  items: { type: string }
+                  description: 洗后照 fileId 列表，bizType=WASHED
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/station/orders/{orderNo}/qc-fail:
+    post:
+      tags: [master-station]
+      summary: 质检不合格（触发 QC_FAIL）
+      description: 触发状态机 QC_FAIL：QC → WASHING；必填原因，重洗次数 +1，≥2 次自动生成复盘工单
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
 components:
 
   securitySchemes:
