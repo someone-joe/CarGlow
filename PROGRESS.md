@@ -191,12 +191,34 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - 未实现（契约里有、表上没有）：服务分类 `categoryId`、`isDefault`、`distance`（定位未开工）→ 一律返回 null，前端不展示
     - 实测：三接口均返回数据 → 下单 `SE20260919004248124205`（3900 分 / WAIT_PAY）→ 格口自动占为 2/3 → 看板今日单量 1
     - **开发种子已补格口复位**：`wash_seed_dev.sql` 末尾释放 wash_slot，否则联调占满后一直报 B2003
-14. **下一步建议**（按价值排序）：
+14. **B1 支付超时取消 + B7 紧急取钥匙已完成**（2026-09-19）：
+    - `OrderPayTimeoutJob` 每分钟扫 `pay_expire_at` 过期的 WAIT_PAY 单 → `systemCancel`（触发方 JOB），
+      复用 `doCancel` 因此回补产能 + 释放格口。**不补会泄漏格口**：不付钱的单永久占柜，新单报 B2003
+    - `emergencyTakeKey`：车未动 → 取消 + 全额退款 + 告警留痕；车已动 → 拒绝 B1002
+    - 取消原因双写：`wash_order.cancel_reason` + 流转日志（之前只写日志，后台看不到原因）
+15. **B4 车辆管理 + B6 订单按钮已完成**（2026-09-19）：
+    - 车辆 `POST /vehicles`、`PUT /vehicles/{id}`（越权/不存在统一 A0001）；小程序新增「我的车辆」页
+    - 按钮按状态返回：PAY / DEPOSIT_KEY / TAKE_KEY / VIEW_PROGRESS / REVIEW / REORDER / CANCEL / CONTACT_SERVICE；
+      前端全部有落点，客服电话走 `GET /api/v1/config/customer-service`（配置化，不硬编码）
+16. **B2 站点小区产能 + B8 分类默认车已完成**（2026-09-19）：
+    - 建表 `wash_site` / `wash_community` / `wash_service_category`；`wash_service.category_id`、`wash_vehicle.is_default`
+    - `/api/v1/site/current`、`/communities`、`/capacity`（产能按站点+日期读 Redis；最晚存钥匙与承诺还车取站点配置）
+    - 订单详情补全 `siteName` / `cabinetName` / `promiseReturnTime`（预约日次日 7 点，小时走配置）
+    - ⚠️ **产能 Redis key 目前无人初始化**：`capacity:{siteId}:{date}` 不存在时下单按"不限量"放行，
+      接口则返回站点上限 —— 要准需补"每日产能初始化"任务
+17. **B5 评价售后 + B3 影像已完成**（2026-09-19）：
+    - 评价 `POST /orders/{orderNo}/reviews`：rating 1-5，≤4 星强制填原因并告警；一单一评；
+      走状态机 `REVIEW_SUBMIT`（WAIT_REVIEW → FINISHED）。小程序新增评价页
+    - 售后 `POST /after-sales`：REWASH / REFUND / CLAIM，生成 AF 工单号，只建单不直接改钱
+    - 影像 `POST /media/upload` + `GET /media/{fileId}/raw`：本地磁盘（store-path 可配，阈值走配置），
+      对外只暴露 fileId，读取做路径穿越校验；换对象存储只改 `WashMediaService.save/resolve`
+18. **下一步建议**（按价值排序）：
     - **真实微信支付 + 退款**：替换 mock-pay。**当前挂起**——用户尚无微信支付普通商户号（需企业资质 + 备案域名）。
       接入时只填 `WechatPayProvider` + 给 `WxPaymentController.notify` 加验签解密，业务层零改动
-    - **后台人工干预收敛**：限制可触发事件、FINISHED 二次确认（上线前必须）
-    - **订单按钮**：目前只实现 PAY，存钥匙 / 看进度 / 评价待补在 `resolveMainAction()`
-    - **影像证据 / 站点网点表**：详情页 `siteName`、`cabinetName`、`promiseReturnTime` 仍为 null
+    - **柜机硬件对接**：软件侧 `device-callback` 已就绪，缺硬件与协议（当前挂起）
+    - **每日产能初始化任务**：见第 16 条 ⚠️，否则产能数字不准
+    - **后台人工干预收敛**：限制可触发事件白名单 + FINISHED 二次确认（上线前必须）
+    - **取送端 / 作业端小程序**：契约只覆盖 C 端，这两端开工前必须先补 `openapi.yaml`
 
 ---
 
