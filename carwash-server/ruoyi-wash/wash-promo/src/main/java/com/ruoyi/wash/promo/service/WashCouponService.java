@@ -95,6 +95,33 @@ public class WashCouponService {
         userMapper.updateUsed(couponUserId, orderNo, now);
     }
 
+    /**
+     * 下单用券：校验归属/状态/有效期/门槛，扣减应付金额后核销（同一事务内由调用方落库）。
+     * @return 抵扣金额（分），调用方用于扣减 payAmount
+     */
+    public long applyToOrder(Long memberId, Long couponUserId, long payAmount, String orderNo, long now) {
+        WashCouponUser u = userMapper.selectById(couponUserId);
+        if (u == null || !memberId.equals(u.getMemberId())) {
+            throw new ApiException(ErrorCode.C1003, "优惠券不存在或不属于本人");
+        }
+        if (!"UNUSED".equals(u.getStatus())) {
+            throw new ApiException(ErrorCode.C1003, "优惠券已使用或已失效");
+        }
+        if (u.getExpireTime() != null && u.getExpireTime() < now) {
+            throw new ApiException(ErrorCode.C1003, "优惠券已过期");
+        }
+        WashCouponTemplate t = templateMapper.selectById(u.getTemplateId());
+        if (t == null || t.getThresholdAmount() == null || t.getThresholdAmount() > payAmount) {
+            throw new ApiException(ErrorCode.C1003, "优惠券不满足使用门槛");
+        }
+        long discount = t.getDiscountAmount() == null ? 0 : t.getDiscountAmount();
+        if (discount <= 0) {
+            throw new ApiException(ErrorCode.C1003, "优惠券无可用减免");
+        }
+        userMapper.updateUsed(couponUserId, orderNo, now);
+        return discount;
+    }
+
     private CouponUserVO toUserVO(WashCouponUser u, WashCouponTemplate t) {
         String name = t == null ? "" : t.getName();
         Long threshold = t == null ? 0L : t.getThresholdAmount();

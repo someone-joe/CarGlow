@@ -5,8 +5,10 @@ public class CreateOrderVO {
 
     private String orderNo;
     private String status;
-    /** 应付金额，单位：分 */
+    /** 应付金额，单位：分（已扣除优惠券抵扣） */
     private Long payAmount;
+    /** 优惠券抵扣金额，单位：分；未用券时为 0 */
+    private Long couponDiscount;
     /** 支付截止时间，毫秒时间戳 */
     private Long payExpireAt;
 
@@ -32,6 +34,14 @@ public class CreateOrderVO {
 
     public void setPayAmount(Long payAmount) {
         this.payAmount = payAmount;
+    }
+
+    public Long getCouponDiscount() {
+        return couponDiscount;
+    }
+
+    public void setCouponDiscount(Long couponDiscount) {
+        this.couponDiscount = couponDiscount;
     }
 
     public Long getPayExpireAt() {

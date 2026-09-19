@@ -93,6 +93,7 @@ x-error-codes:
   C0001: 第三方服务异常
   C1001: 优惠券已领完或已下架
   C1002: 超过每人领取上限
+  C1003: 优惠券不可用（已使用/已过期/不满足门槛）
   C2001: 保险产品不存在或已下架
   C2002: 投保车辆必填
 
@@ -1389,6 +1390,11 @@ components:
         agreed:
           type: boolean
           description: 已同意《服务条款与钥匙寄存协议》
+        couponUserId:
+          type: integer
+          format: int64
+          description: 使用的优惠券 ID（来自「我的优惠券」UNUSED 券），不传则不使用优惠券
+
 
     CreateOrderVO:
       type: object
@@ -1398,7 +1404,11 @@ components:
           example: SE202609151601276839838676768265
         status:
           $ref: '#/components/schemas/OrderStatus'
-        payAmount: { type: integer, description: 应付金额，单位分 }
+        payAmount: { type: integer, description: 应付金额，单位分（已扣除优惠券抵扣） }
+        couponDiscount:
+          type: integer
+          format: int64
+          description: 优惠券抵扣金额，单位分；未用券时为 0
         payExpireAt:
           type: integer
           format: int64

@@ -15,6 +15,7 @@ import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.dto.CreateOrderRequest;
 import com.ruoyi.wash.order.dto.CreateOrderVO;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
+import com.ruoyi.wash.promo.service.WashCouponService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -68,6 +69,10 @@ public class WashOrderCreateService {
     @Autowired
     private WashSlotService slotService;
 
+    /** 下单用券：跨模块调用 wash-promo 的券服务校验并核销，不直接依赖其 Mapper */
+    @Autowired
+    private WashCouponService couponService;
+
     /** 支付倒计时（分钟），阈值走配置，不硬编码 */
     @Value("${wash.order.pay-timeout-minutes:15}")
     private int payTimeoutMinutes;
@@ -84,7 +89,7 @@ public class WashOrderCreateService {
         if (existedOrderNo != null) {
             WashOrder existed = orderMapper.selectByOrderNo(existedOrderNo);
             if (existed != null) {
-                return buildVO(existed, existed.getPayAmount(), existed.getPayExpireAt());
+                return buildVO(existed, existed.getPayAmount(), 0L, existed.getPayExpireAt());
             }
         }
 
@@ -108,6 +113,14 @@ public class WashOrderCreateService {
         String orderNo = generateOrderNo(now);
         long payExpireAt = now + payTimeoutMinutes * 60L * 1000;
 
+        // 下单用券：校验归属/状态/门槛并核销，返回抵扣额；不传 couponUserId 则不使用
+        long payAmount = service.getPriceAmount();
+        long couponDiscount = 0;
+        if (request.couponUserId() != null) {
+            couponDiscount = couponService.applyToOrder(memberId, request.couponUserId(), payAmount, orderNo, now);
+            payAmount = Math.max(0, payAmount - couponDiscount);
+        }
+
         // 预占格口（PRD：下单即预占，与支付倒计时同生命周期）；事务回滚会自动释放
         slotService.reserve(request.cabinetId(), orderNo, memberId);
 
@@ -122,7 +135,7 @@ public class WashOrderCreateService {
         order.setStatus(OrderStatus.WAIT_PAY.name());
         order.setServiceName(service.getServiceName());
         order.setAppointTime(appointTime);
-        order.setPayAmount(service.getPriceAmount());
+        order.setPayAmount(payAmount);
         order.setPayExpireAt(payExpireAt);
         order.setPlateNo(vehicle.getPlateNo());
         order.setRemark(request.remark());
@@ -132,7 +145,7 @@ public class WashOrderCreateService {
         // 幂等记录保留 24 小时，覆盖重复提交与网络重试窗口
         redisCache.setCacheObject(idemKey, orderNo, 24, TimeUnit.HOURS);
 
-        return buildVO(order, service.getPriceAmount(), payExpireAt);
+        return buildVO(order, payAmount, couponDiscount, payExpireAt);
     }
 
     /**
@@ -158,11 +171,12 @@ public class WashOrderCreateService {
         }
     }
 
-    private CreateOrderVO buildVO(WashOrder order, Long payAmount, Long payExpireAt) {
+    private CreateOrderVO buildVO(WashOrder order, Long payAmount, long couponDiscount, Long payExpireAt) {
         CreateOrderVO vo = new CreateOrderVO();
         vo.setOrderNo(order.getOrderNo());
         vo.setStatus(order.getStatus());
         vo.setPayAmount(payAmount);
+        vo.setCouponDiscount(couponDiscount);
         vo.setPayExpireAt(payExpireAt);
         return vo;
     }

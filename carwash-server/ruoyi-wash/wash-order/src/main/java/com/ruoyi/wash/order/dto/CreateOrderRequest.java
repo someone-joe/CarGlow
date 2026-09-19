@@ -14,6 +14,7 @@ public record CreateOrderRequest(
         Boolean pickupRequired,
         String remark,
         List<String> parkPhotoFileIds,
-        Boolean agreed
+        Boolean agreed,
+        Long couponUserId
 ) {
 }

@@ -27,6 +27,10 @@ public interface WashCouponUserMapper {
             "where template_id = #{templateId} and member_id = #{memberId} and del_flag = '0'")
     int countByTemplateAndMember(@Param("templateId") long templateId, @Param("memberId") long memberId);
 
+    @Select("select coupon_user_id, template_id, member_id, status, order_no, obtain_time, used_time, expire_time " +
+            "from wash_coupon_user where coupon_user_id = #{id} and del_flag = '0'")
+    WashCouponUser selectById(@Param("id") long id);
+
     /** 核销：仅当仍是 UNUSED 才置为 USED，避免重复核销。 */
     @Update("update wash_coupon_user set status = 'USED', order_no = #{orderNo}, used_time = #{now} " +
             "where coupon_user_id = #{id} and status = 'UNUSED' and del_flag = '0'")

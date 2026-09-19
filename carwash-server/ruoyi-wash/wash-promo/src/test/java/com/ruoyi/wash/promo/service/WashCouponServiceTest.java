@@ -206,4 +206,67 @@ class WashCouponServiceTest {
         service.markUsed(9L, "SE123", NOW);
         verify(userMapper).updateUsed(9L, "SE123", NOW);
     }
+
+    private WashCouponUser ownedCoupon(Long id, long templateId, String status, long expireTime) {
+        WashCouponUser u = new WashCouponUser();
+        u.setCouponUserId(id);
+        u.setMemberId(MEMBER);
+        u.setTemplateId(templateId);
+        u.setStatus(status);
+        u.setExpireTime(expireTime);
+        return u;
+    }
+
+    @Test
+    @DisplayName("下单用券：校验通过返回抵扣额并核销（门槛0减500）")
+    void applyToOrder_success() {
+        WashCouponTemplate t = availableTemplate(); // 门槛0 减500
+        when(userMapper.selectById(11L)).thenReturn(ownedCoupon(11L, 1L, "UNUSED", NOW + 1000));
+        when(templateMapper.selectById(1L)).thenReturn(t);
+
+        long discount = service.applyToOrder(MEMBER, 11L, 3900L, "SE_ORDER", NOW);
+
+        assertEquals(500L, discount);
+        verify(userMapper).updateUsed(11L, "SE_ORDER", NOW);
+    }
+
+    @Test
+    @DisplayName("下单用券：不属于本人或未找到抛 C1003")
+    void applyToOrder_notOwned_throwsC1003() {
+        when(userMapper.selectById(11L)).thenReturn(null);
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.applyToOrder(MEMBER, 11L, 3900L, "SE_ORDER", NOW));
+        assertEquals(ErrorCode.C1003, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("下单用券：已使用抛 C1003，不重复核销")
+    void applyToOrder_alreadyUsed_throwsC1003() {
+        when(userMapper.selectById(11L)).thenReturn(ownedCoupon(11L, 1L, "USED", NOW + 1000));
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.applyToOrder(MEMBER, 11L, 3900L, "SE_ORDER", NOW));
+        assertEquals(ErrorCode.C1003, ex.getErrorCode());
+        verify(userMapper, never()).updateUsed(anyLong(), anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("下单用券：已过期抛 C1003")
+    void applyToOrder_expired_throwsC1003() {
+        when(userMapper.selectById(11L)).thenReturn(ownedCoupon(11L, 1L, "UNUSED", NOW - 1000));
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.applyToOrder(MEMBER, 11L, 3900L, "SE_ORDER", NOW));
+        assertEquals(ErrorCode.C1003, ex.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("下单用券：订单金额不满足门槛抛 C1003")
+    void applyToOrder_thresholdNotMet_throwsC1003() {
+        WashCouponTemplate t = availableTemplate();
+        t.setThresholdAmount(5000L); // 门槛 5000，订单仅 3900
+        when(userMapper.selectById(11L)).thenReturn(ownedCoupon(11L, 1L, "UNUSED", NOW + 1000));
+        when(templateMapper.selectById(1L)).thenReturn(t);
+        ApiException ex = assertThrows(ApiException.class,
+                () -> service.applyToOrder(MEMBER, 11L, 3900L, "SE_ORDER", NOW));
+        assertEquals(ErrorCode.C1003, ex.getErrorCode());
+    }
 }
