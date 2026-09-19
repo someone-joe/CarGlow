@@ -36,7 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { onShow, ref } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import { fetchCustomerService, type CustomerServiceVO } from '@/api/config'
 
 /** 常见问题标签：PRD P16 固定清单，后端暂未提供接口，前端按契约常量维护 */

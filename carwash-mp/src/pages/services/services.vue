@@ -60,7 +60,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onShow, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import SiteBar from '@/components/SiteBar.vue'
 import { fetchServiceCategories, type ServiceCategoryVO } from '@/api/home'
 import { fetchServices as fetchServiceList, type ServiceVO } from '@/api/catalog'
@@ -93,11 +94,13 @@ async function load(): Promise<void> {
   }
 }
 
-function goDetail(serviceId: number): void {
+function goDetail(serviceId?: number): void {
+  if (!serviceId) return
   uni.navigateTo({ url: `/pages/service-detail/service-detail?serviceId=${serviceId}` })
 }
 
-function book(serviceId: number): void {
+function book(serviceId?: number): void {
+  if (!serviceId) return
   setOrderDraft({ serviceId })
   uni.switchTab({ url: '/pages/index/index' })
 }

@@ -10,7 +10,6 @@
 
       <view class="panel">
         <view class="row"><text class="label">服务项</text><text class="value">{{ detail.serviceName || '—' }}</text></view>
-        <view class="row"><text class="label">预计工时</text><text class="value">{{ detail.workMinutes ?? '—' }} 分钟</text></view>
         <view class="row"><text class="label">钥匙柜</text><text class="value">{{ detail.cabinetName || '—' }}</text></view>
         <view class="row"><text class="label">车辆</text><text class="value">{{ detail.plateNo || '—' }}</text></view>
       </view>

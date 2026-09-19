@@ -1137,6 +1137,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/media/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 上传影像证据
+         * @description multipart 上传。大小与类型限制由服务端配置（wash.media），前端不要自行放宽。
+         *     bizType 决定这张图属于哪个环节（停车 / 取车 / 洗后 / 还车 / 对比 / 视频）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                        /** @enum {string} */
+                        bizType: "PARK" | "PICK" | "WASHED" | "RETURN" | "COMPARE" | "VIDEO";
+                        orderNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["MediaVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/media/{fileId}/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取影像原文件
+         * @description 需登录；服务端按 fileId 定位文件，不向前端暴露磁盘路径。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 文件流 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                        "video/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/faqs": {
         parameters: {
             query?: never;
@@ -1218,10 +1312,365 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coupons/center": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 领券中心
+         * @description 返回当前可领的券模板，含该会员已领数量与剩余库存。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["CouponTemplateVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/templates/{templateId}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 领取优惠券 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["CouponUserVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的优惠券 */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "UNUSED" | "USED" | "EXPIRED";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["CouponUserVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/coupons/best": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 下单页算最优券
+         * @description 给定支付金额，返回可用且减免最多的券（可能为空）。
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description 待支付金额（分） */
+                    amount: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["CouponBestVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurances/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 可投保产品列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["InsuranceProductVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的保单 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["InsurancePolicyVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 投保（dev 模式直接生效） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        productId: number;
+                        /** Format: int64 */
+                        vehicleId: number;
+                        orderNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["InsurancePolicyVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CouponTemplateVO: {
+            /** Format: int64 */
+            templateId?: number;
+            name?: string;
+            /** @enum {string} */
+            type?: "NORMAL" | "NEWBIE";
+            /**
+             * Format: int64
+             * @description 使用门槛（分）
+             */
+            thresholdAmount?: number;
+            /**
+             * Format: int64
+             * @description 减免金额（分）
+             */
+            discountAmount?: number;
+            perLimit?: number;
+            /**
+             * Format: int64
+             * @description 失效时间（毫秒）
+             */
+            endTime?: number;
+            /** @description 剩余库存 */
+            remain?: number;
+            /** @description 当前会员已领数量 */
+            claimed?: number;
+        };
+        CouponUserVO: {
+            /** Format: int64 */
+            couponUserId?: number;
+            /** Format: int64 */
+            templateId?: number;
+            name?: string;
+            /** Format: int64 */
+            thresholdAmount?: number;
+            /** Format: int64 */
+            discountAmount?: number;
+            /** @enum {string} */
+            status?: "UNUSED" | "USED" | "EXPIRED";
+            /** Format: int64 */
+            expireTime?: number;
+            orderNo?: string;
+        };
+        CouponBestVO: {
+            /** Format: int64 */
+            couponUserId?: number;
+            /** Format: int64 */
+            discountAmount?: number;
+        };
+        InsuranceProductVO: {
+            /** Format: int64 */
+            productId?: number;
+            name?: string;
+            /**
+             * Format: int64
+             * @description 保费（分）
+             */
+            priceAmount?: number;
+            coverageDesc?: string;
+        };
+        InsurancePolicyVO: {
+            /** Format: int64 */
+            policyId?: number;
+            policyNo?: string;
+            /** Format: int64 */
+            productId?: number;
+            name?: string;
+            /** Format: int64 */
+            vehicleId?: number;
+            orderNo?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "EXPIRED" | "CANCELED";
+            /** Format: int64 */
+            startTime?: number;
+            /** Format: int64 */
+            endTime?: number;
+            /**
+             * Format: int64
+             * @description 实付保费（分）
+             */
+            paidAmount?: number;
+        };
         Result: {
             /**
              * @description 0 = 成功，非 0 见 x-error-codes。
@@ -1415,7 +1864,10 @@ export interface components {
             parkPhotoFileIds?: string[];
             /** @description 已同意《服务条款与钥匙寄存协议》 */
             agreed: boolean;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description 使用的优惠券 ID（来自「我的优惠券」UNUSED 券），不传则不使用优惠券
+             */
             couponUserId?: number;
         };
         CreateOrderVO: {
@@ -1424,7 +1876,10 @@ export interface components {
             status?: components["schemas"]["OrderStatus"];
             /** @description 应付金额，单位分（已扣除优惠券抵扣） */
             payAmount?: number;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description 优惠券抵扣金额，单位分；未用券时为 0
+             */
             couponDiscount?: number;
             /**
              * Format: int64
@@ -1510,73 +1965,6 @@ export interface components {
             answer?: string;
             /** @description 绑定的工单类型，一键建单时带入 */
             ticketType?: string;
-        };
-        CouponTemplateVO: {
-            /** Format: int64 */
-            templateId?: number;
-            name?: string;
-            /** @enum {string} */
-            type?: "NORMAL" | "NEWBIE";
-            /** @description 使用门槛（分） */
-            thresholdAmount?: number;
-            /** @description 减免金额（分） */
-            discountAmount?: number;
-            perLimit?: number;
-            /** @description 失效时间（毫秒） */
-            endTime?: number;
-            /** @description 剩余库存 */
-            remain?: number;
-            /** @description 当前会员已领数量 */
-            claimed?: number;
-        };
-        CouponUserVO: {
-            /** Format: int64 */
-            couponUserId?: number;
-            /** Format: int64 */
-            templateId?: number;
-            name?: string;
-            /** Format: int64 */
-            thresholdAmount?: number;
-            /** Format: int64 */
-            discountAmount?: number;
-            /** @enum {string} */
-            status?: "UNUSED" | "USED" | "EXPIRED";
-            /** Format: int64 */
-            expireTime?: number;
-            orderNo?: string;
-        };
-        CouponBestVO: {
-            /** Format: int64 */
-            couponUserId?: number;
-            /** Format: int64 */
-            discountAmount?: number;
-        };
-        InsuranceProductVO: {
-            /** Format: int64 */
-            productId?: number;
-            name?: string;
-            /** @description 保费（分） */
-            priceAmount?: number;
-            coverageDesc?: string;
-        };
-        InsurancePolicyVO: {
-            /** Format: int64 */
-            policyId?: number;
-            policyNo?: string;
-            /** Format: int64 */
-            productId?: number;
-            name?: string;
-            /** Format: int64 */
-            vehicleId?: number;
-            orderNo?: string;
-            /** @enum {string} */
-            status?: "ACTIVE" | "EXPIRED" | "CANCELED";
-            /** Format: int64 */
-            startTime?: number;
-            /** Format: int64 */
-            endTime?: number;
-            /** @description 实付保费（分） */
-            paidAmount?: number;
         };
     };
     responses: never;

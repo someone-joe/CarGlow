@@ -9,13 +9,11 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else>
-      <!-- 从优惠券页「去使用」带过来的券（暂只做展示，后端下单接口接入 couponUserId 后再真正抵扣） -->
       <view v-if="selectedCouponId" class="coupon-banner">
         <text class="coupon-banner-text">已选优惠券 #{{ selectedCouponId }}，提交订单时将尝试抵扣</text>
         <text class="coupon-banner-clear" @click="clearCoupon">清除</text>
       </view>
 
-      <!-- 服务项：价格与时长全部由后端返回，前端不写死任何价格 -->
       <view class="section">
         <text class="section-title">选择服务</text>
         <view v-for="item in services" :key="item.serviceId" class="option"
@@ -41,18 +39,16 @@
         <view v-if="!vehicles.length" class="empty">还没有车辆，请先添加车辆</view>
       </view>
 
-      <!-- 钥匙柜：已满的柜子不允许选，避免下单时才报"无空闲格口" -->
+      <!-- P4 钥匙柜选择：独立页面，点击进入列表选柜 -->
       <view class="section">
         <text class="section-title">选择钥匙柜</text>
-        <view v-for="item in cabinets" :key="item.cabinetId" class="option"
-              :class="{ active: cabinetId === item.cabinetId, disabled: item.full }" @click="selectCabinet(item)">
+        <view class="cabinet-entry" @click="goCabinet">
           <view class="option-main">
-            <text class="option-name">{{ item.name }}</text>
-            <text class="option-sub">空闲格口 {{ item.slotFree }} / {{ item.slotTotal }}</text>
+            <text class="option-name">{{ selectedCabinetName || '请选择就近钥匙柜' }}</text>
+            <text class="option-sub">{{ cabinetSub }}</text>
           </view>
-          <text class="option-tag" :class="{ 'tag-full': item.full }">{{ item.full ? '已满' : '可预约' }}</text>
+          <text class="arrow">›</text>
         </view>
-        <view v-if="!cabinets.length" class="empty">暂无可用钥匙柜</view>
       </view>
 
       <view class="section">
@@ -72,7 +68,6 @@
         <input class="input" v-model="remark" placeholder="如：停在地库 A 区 23 号" />
       </view>
 
-      <!-- P7 停放照片：选填但强引导，最多 3 张；fileId 待上传接口（openapi 未定义）接入后再随单上报 -->
       <view class="section">
         <text class="section-title">车辆停放照片（选填）</text>
         <text class="section-hint">拍一张停放照片，工作人员更容易找到您的车</text>
@@ -108,10 +103,17 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { createOrder } from '@/api/order'
-import { fetchCabinets, fetchServices, fetchVehicles } from '@/api/catalog'
+import {
+  fetchCabinets,
+  fetchServices,
+  fetchVehicles,
+  type CabinetVO,
+  type ServiceVO,
+  type VehicleVO,
+} from '@/api/catalog'
+import { uploadMedia } from '@/api/media'
 import SiteBar from '@/components/SiteBar.vue'
 import { orderDraft } from '@/store/orderDraft'
-import type { CabinetVO, ServiceVO, VehicleVO } from '@/api/catalog'
 
 const services = ref<ServiceVO[]>([])
 const vehicles = ref<VehicleVO[]>([])
@@ -134,6 +136,15 @@ const todayStr = today()
 const canSubmit = computed(
   () => !!serviceId.value && !!vehicleId.value && !!cabinetId.value && agreed.value && !submitting.value
 )
+
+const selectedCabinetName = computed(
+  () => cabinets.value.find((c) => c.cabinetId === cabinetId.value)?.name || ''
+)
+const cabinetSub = computed(() => {
+  const c = cabinets.value.find((x) => x.cabinetId === cabinetId.value)
+  if (!c) return '点击选择就近的自助钥匙柜'
+  return `空闲格口 ${c.slotFree} / ${c.slotTotal}`
+})
 
 function clearCoupon(): void {
   selectedCouponId.value = undefined
@@ -160,14 +171,6 @@ function tomorrow(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function selectCabinet(item: CabinetVO): void {
-  if (item.full) {
-    uni.showToast({ title: '该柜格口已满，换一个吧', icon: 'none' })
-    return
-  }
-  cabinetId.value = item.cabinetId
-}
-
 function onDateChange(e: { detail: { value: string } }): void {
   appointDate.value = e.detail.value
 }
@@ -176,7 +179,7 @@ function onTimeChange(e: { detail: { value: string } }): void {
   appointTime.value = e.detail.value
 }
 
-/** 选停放照片，最多 3 张；本地临时路径预览，真正上报待上传接口接入 */
+/** 选停放照片，最多 3 张；本地临时路径预览 */
 function choosePhoto(): void {
   uni.chooseImage({
     count: 3 - photos.value.length,
@@ -190,6 +193,14 @@ function removePhoto(i: number): void {
   photos.value.splice(i, 1)
 }
 
+function goCabinet(): void {
+  uni.navigateTo({ url: '/pages/cabinet/cabinet' })
+}
+
+function goOrders(): void {
+  uni.navigateTo({ url: '/pages/orders/orders' })
+}
+
 /** 三个列表一次性拉齐，失败由 request 层统一提示；缺任一选项就不允许提交 */
 function loadOptions(): void {
   loading.value = true
@@ -199,15 +210,30 @@ function loadOptions(): void {
       vehicles.value = vehicleList || []
       cabinets.value = cabinetList || []
 
-      // 默认选中：优先用服务列表/详情带入的预选服务，否则取第一项
+      // 默认选中：优先用服务/详情/选柜页带入的预选，否则取第一项
       serviceId.value = orderDraft.serviceId ?? services.value[0]?.serviceId
       vehicleId.value = vehicles.value[0]?.vehicleId
       const usable = cabinets.value.find((item) => !item.full)
-      cabinetId.value = usable?.cabinetId ?? cabinets.value[0]?.cabinetId
+      cabinetId.value = orderDraft.cabinetId ?? usable?.cabinetId ?? cabinets.value[0]?.cabinetId
     })
     .finally(() => {
       loading.value = false
     })
+}
+
+/** P7 停放照片：逐张上传（bizType=PARK），拿到 fileId 后随单上报 */
+async function uploadParkPhotos(): Promise<string[]> {
+  const ids: string[] = []
+  for (const p of photos.value) {
+    try {
+      const m = await uploadMedia(p, 'PARK')
+      if (m.fileId) ids.push(m.fileId)
+    } catch {
+      uni.showToast({ title: '照片上传失败，请重试', icon: 'none' })
+      throw new Error('upload failed')
+    }
+  }
+  return ids
 }
 
 async function submitOrder(): Promise<void> {
@@ -219,6 +245,7 @@ async function submitOrder(): Promise<void> {
   }
   submitting.value = true
   try {
+    const parkPhotoFileIds = await uploadParkPhotos()
     const result = await createOrder({
       serviceId: serviceId.value as number,
       vehicleId: vehicleId.value as number,
@@ -227,8 +254,9 @@ async function submitOrder(): Promise<void> {
       appointTime: appointTime.value,
       pickupRequired: true,
       remark: remark.value || undefined,
+      parkPhotoFileIds,
       agreed: true,
-      couponUserId: selectedCouponId.value
+      couponUserId: selectedCouponId.value,
     })
     uni.showToast({ title: '下单成功，待支付', icon: 'none' })
     // 用券后清空选择，避免返回重复带参
@@ -241,17 +269,13 @@ async function submitOrder(): Promise<void> {
   }
 }
 
-function goOrders(): void {
-  uni.navigateTo({ url: '/pages/orders/orders' })
-}
-
 // 从优惠券页「去使用」带入的券 ID（示例：pages/coupons/coupons.vue 跳转时携带）
 onLoad((opts) => {
   const id = opts?.couponUserId ? Number(opts.couponUserId) : undefined
   selectedCouponId.value = id && !isNaN(id) ? id : orderDraft.couponUserId
 })
 
-// 用 onShow 而非 onMounted：从车辆页新增车辆返回后，这里的车辆列表要立刻看到新车
+// 用 onShow 而非 onMounted：从车辆页/选柜页返回后，列表与预选要立刻生效
 onShow(loadOptions)
 </script>
 
@@ -351,6 +375,26 @@ onShow(loadOptions)
 
 .tag-full {
   color: #d93025;
+}
+
+.arrow {
+  font-size: 40rpx;
+  color: #ccc;
+  margin-left: 16rpx;
+}
+
+.cabinet-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 2rpx solid transparent;
+  border-radius: 16rpx;
+  padding: 28rpx;
+}
+
+.cabinet-entry:active {
+  background: #f2f7ff;
 }
 
 .empty {
