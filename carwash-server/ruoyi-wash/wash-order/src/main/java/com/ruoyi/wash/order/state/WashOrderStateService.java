@@ -102,6 +102,23 @@ public class WashOrderStateService {
     }
 
     /**
+     * 客户提交评价：WAIT_REVIEW → FINISHED。
+     *
+     * <p>必须走状态机而不是直接改状态：评价是订单主链路的收尾节点，
+     * 时间轴与后台追溯都依赖流转日志。
+     */
+    public OrderStatus submitReview(String orderNo, Long memberId) {
+        WashOrder order = requireOwned(orderNo, memberId);
+        OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
+                .orderNo(order.getOrderNo())
+                .event(OrderEvent.REVIEW_SUBMIT)
+                .operatorType(OrderOperatorType.CUSTOMER)
+                .operatorId(memberId)
+                .build();
+        return stateMachine.fire(ctx);
+    }
+
+    /**
      * 系统取消（支付超时等定时任务触发）：触发方 JOB。
      *
      * <p>副作用必须与客户取消完全一致（回补产能 + 释放格口），否则超时未支付的订单会
