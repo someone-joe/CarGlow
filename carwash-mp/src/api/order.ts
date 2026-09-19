@@ -34,6 +34,8 @@ export interface CreateOrderRequest {
   remark?: string
   parkPhotoFileIds?: string[]
   agreed: boolean
+  /** 使用的优惠券 ID（来自「我的优惠券」UNUSED 券），不传则不使用 */
+  couponUserId?: number
 }
 
 export type CreateOrderVO = components['schemas']['CreateOrderVO']

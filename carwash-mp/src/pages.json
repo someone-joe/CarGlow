@@ -29,6 +29,18 @@
 			"style": {
 				"navigationBarTitleText": "服务评价"
 			}
+		},
+		{
+			"path": "pages/coupons/coupons",
+			"style": {
+				"navigationBarTitleText": "优惠券"
+			}
+		},
+		{
+			"path": "pages/insurance/insurance",
+			"style": {
+				"navigationBarTitleText": "我的保单"
+			}
 		}
 	],
 	"globalStyle": {

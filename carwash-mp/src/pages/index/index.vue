@@ -8,6 +8,12 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else>
+      <!-- 从优惠券页「去使用」带过来的券（暂只做展示，后端下单接口接入 couponUserId 后再真正抵扣） -->
+      <view v-if="selectedCouponId" class="coupon-banner">
+        <text class="coupon-banner-text">已选优惠券 #{{ selectedCouponId }}，提交订单时将尝试抵扣</text>
+        <text class="coupon-banner-clear" @click="clearCoupon">清除</text>
+      </view>
+
       <!-- 服务项：价格与时长全部由后端返回，前端不写死任何价格 -->
       <view class="section">
         <text class="section-title">选择服务</text>
@@ -84,12 +90,22 @@
       <text class="entry-title">我的车辆</text>
       <text class="entry-desc">添加或修改车辆信息</text>
     </view>
+
+    <view class="entry" @click="goCoupons">
+      <text class="entry-title">优惠券</text>
+      <text class="entry-desc">领券中心与我的优惠券</text>
+    </view>
+
+    <view class="entry" @click="goInsurance">
+      <text class="entry-title">我的保单</text>
+      <text class="entry-desc">保障方案与投保记录</text>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { createOrder } from '@/api/order'
 import { fetchCabinets, fetchServices, fetchVehicles } from '@/api/catalog'
 import type { CabinetVO, ServiceVO, VehicleVO } from '@/api/catalog'
@@ -108,11 +124,16 @@ const remark = ref('')
 const agreed = ref(false)
 const submitting = ref(false)
 const loading = ref(true)
+const selectedCouponId = ref<number | undefined>(undefined)
 
 const todayStr = today()
 const canSubmit = computed(
   () => !!serviceId.value && !!vehicleId.value && !!cabinetId.value && agreed.value && !submitting.value
 )
+
+function clearCoupon(): void {
+  selectedCouponId.value = undefined
+}
 
 /** 金额一律以「分」传给后端，展示时才转元 */
 function fen2yuan(fen?: number): string {
@@ -188,9 +209,12 @@ async function submitOrder(): Promise<void> {
       appointTime: appointTime.value,
       pickupRequired: true,
       remark: remark.value || undefined,
-      agreed: true
+      agreed: true,
+      couponUserId: selectedCouponId.value
     })
     uni.showToast({ title: '下单成功，待支付', icon: 'none' })
+    // 用券后清空选择，避免返回重复带参
+    selectedCouponId.value = undefined
     uni.navigateTo({ url: `/pages/orders/orders?orderNo=${result.orderNo}` })
   } catch {
     // request 层已统一提示，这里只恢复按钮状态
@@ -206,6 +230,20 @@ function goOrders(): void {
 function goVehicles(): void {
   uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
+
+function goCoupons(): void {
+  uni.navigateTo({ url: '/pages/coupons/coupons' })
+}
+
+function goInsurance(): void {
+  uni.navigateTo({ url: '/pages/insurance/insurance' })
+}
+
+// 从优惠券页「去使用」带入的券 ID（示例：pages/coupons/coupons.vue 跳转时携带）
+onLoad((opts) => {
+  const id = opts?.couponUserId ? Number(opts.couponUserId) : undefined
+  selectedCouponId.value = id && !isNaN(id) ? id : undefined
+})
 
 // 用 onShow 而非 onMounted：从车辆页新增车辆返回后，这里的车辆列表要立刻看到新车
 onShow(loadOptions)
@@ -387,5 +425,26 @@ onShow(loadOptions)
   margin-top: 10rpx;
   font-size: 26rpx;
   color: #999;
+}
+
+.coupon-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff3e0;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.coupon-banner-text {
+  font-size: 26rpx;
+  color: #e8700a;
+}
+
+.coupon-banner-clear {
+  font-size: 26rpx;
+  color: #1a73e8;
+  margin-left: 16rpx;
 }
 </style>

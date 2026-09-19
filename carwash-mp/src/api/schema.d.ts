@@ -1415,13 +1415,17 @@ export interface components {
             parkPhotoFileIds?: string[];
             /** @description 已同意《服务条款与钥匙寄存协议》 */
             agreed: boolean;
+            /** Format: int64 */
+            couponUserId?: number;
         };
         CreateOrderVO: {
             /** @example SE202609151601276839838676768265 */
             orderNo?: string;
             status?: components["schemas"]["OrderStatus"];
-            /** @description 应付金额，单位分 */
+            /** @description 应付金额，单位分（已扣除优惠券抵扣） */
             payAmount?: number;
+            /** Format: int64 */
+            couponDiscount?: number;
             /**
              * Format: int64
              * @description 支付截止时间，毫秒时间戳
@@ -1506,6 +1510,73 @@ export interface components {
             answer?: string;
             /** @description 绑定的工单类型，一键建单时带入 */
             ticketType?: string;
+        };
+        CouponTemplateVO: {
+            /** Format: int64 */
+            templateId?: number;
+            name?: string;
+            /** @enum {string} */
+            type?: "NORMAL" | "NEWBIE";
+            /** @description 使用门槛（分） */
+            thresholdAmount?: number;
+            /** @description 减免金额（分） */
+            discountAmount?: number;
+            perLimit?: number;
+            /** @description 失效时间（毫秒） */
+            endTime?: number;
+            /** @description 剩余库存 */
+            remain?: number;
+            /** @description 当前会员已领数量 */
+            claimed?: number;
+        };
+        CouponUserVO: {
+            /** Format: int64 */
+            couponUserId?: number;
+            /** Format: int64 */
+            templateId?: number;
+            name?: string;
+            /** Format: int64 */
+            thresholdAmount?: number;
+            /** Format: int64 */
+            discountAmount?: number;
+            /** @enum {string} */
+            status?: "UNUSED" | "USED" | "EXPIRED";
+            /** Format: int64 */
+            expireTime?: number;
+            orderNo?: string;
+        };
+        CouponBestVO: {
+            /** Format: int64 */
+            couponUserId?: number;
+            /** Format: int64 */
+            discountAmount?: number;
+        };
+        InsuranceProductVO: {
+            /** Format: int64 */
+            productId?: number;
+            name?: string;
+            /** @description 保费（分） */
+            priceAmount?: number;
+            coverageDesc?: string;
+        };
+        InsurancePolicyVO: {
+            /** Format: int64 */
+            policyId?: number;
+            policyNo?: string;
+            /** Format: int64 */
+            productId?: number;
+            name?: string;
+            /** Format: int64 */
+            vehicleId?: number;
+            orderNo?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "EXPIRED" | "CANCELED";
+            /** Format: int64 */
+            startTime?: number;
+            /** Format: int64 */
+            endTime?: number;
+            /** @description 实付保费（分） */
+            paidAmount?: number;
         };
     };
     responses: never;
