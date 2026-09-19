@@ -228,6 +228,22 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - 实测：event-options 仅返回白名单内事件；PAY_SUCCESS 被拒（B1002）；TAKE_KEY_BACK 未确认被拒、确认后通过；
       空原因被拒（A0001）；前端（carwash-admin）高危事件显示「确认执行」勾选框
     - 白名单（11 允许 / 6 禁止）：禁止 `PAY_SUCCESS`、`APPLY_REFUND`、`REFUND_SUCCESS`、`REVIEW_SUBMIT`、`AUTO_FINISH`、`CANCEL`
+21. **促销模块 C 端（优惠券 / 保险）已完成**（2026-09-19）：
+    - 后端 `wash-promo`：`GET /api/v1/coupons`（我的优惠券，按 UNUSED/USED/EXPIRED 带模板名）、
+      `GET /api/v1/coupons/center`（领券中心，剩余库存=总量-已领）、`POST /api/v1/coupons/templates/{id}/receive`（领取，校验下架/限领/库存）、
+      `GET /api/v1/coupons/best`（按订单金额选最优券）、`POST /api/v1/insurance/apply`（投保，模板 id=1 车损险，仅本人车辆）
+    - 错误码 C1001（已领完/下架）、C1002（超限领）、C2001（保险模板不存在）、C2002（投保车辆必填），契约与 `ErrorCode` 已同步
+    - 小程序新增 `pages/coupons/coupons.vue`（领券中心 + 我的券，UNUSED 显示「去使用」跳首页带 `couponUserId`）、
+      `pages/insurance/insurance.vue`（投保 + 我的保单，按 `vehicleId` 回显车牌·品牌）；新增 `src/api/promo.ts`
+    - bug 修复：新客券显示「无门槛减 X」、满减券「满 X 减 Y」；我的保单补车辆信息行
+22. **下单用券（真正抵扣）已完成**（2026-09-19）：
+    - 契约 `openapi.yaml`：`CreateOrderRequest` 增加 `couponUserId`、`CreateOrderVO` 增加 `couponDiscount`、错误码 **C1003**（优惠券不可用）
+    - `wash-order` 新增对 `wash-promo` 的依赖；`WashOrderCreateService` 下单时调 `WashCouponService.applyToOrder`
+      校验归属/状态/门槛，命中则 `payAmount -= discount` 并 `markUsed(orderNo)`，**同一事务，失败回滚**
+    - `WashCouponUserMapper` 补 `selectById`；`WashCouponService.applyToOrder` 校验并标记 USED（乐观更新，重复核销安全）
+    - 小程序 `pages/index/index.vue`：`onLoad` 读 `couponUserId` 显示横幅，提交订单带上 `couponUserId`
+    - **实测**：领满减券(满3900减300)→ 下单 `WITH-COUPON` 返回 `payAmount=3600 couponDiscount=300`，券状态变 `USED`；无效券返回 C1003 不下单
+    - 单测：`WashCouponServiceTest`(14) + 新增 `WashOrderCreateCouponTest`(3) 全绿
 
 ---
 
