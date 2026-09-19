@@ -3,6 +3,8 @@ package com.ruoyi.wash.goods.service;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.goods.domain.WashService;
+import com.ruoyi.wash.goods.domain.WashServiceCategory;
+import com.ruoyi.wash.goods.dto.ServiceCategoryVO;
 import com.ruoyi.wash.goods.dto.ServiceVO;
 import com.ruoyi.wash.goods.mapper.WashServiceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,10 +40,24 @@ public class WashServiceQueryService {
         for (WashService service : serviceMapper.selectEnabledList()) {
             ServiceVO vo = new ServiceVO();
             vo.setServiceId(service.getServiceId());
+            vo.setCategoryId(service.getCategoryId());
             vo.setName(service.getServiceName());
             vo.setDisplayPrice(service.getPriceAmount());
             vo.setWorkMinutes(service.getWorkMinutes());
             vo.setPickupFee(PICKUP_FEE_FREE);
+            list.add(vo);
+        }
+        return list;
+    }
+
+    /** C 端服务分类 */
+    public List<ServiceCategoryVO> listCategories() {
+        List<ServiceCategoryVO> list = new ArrayList<>();
+        for (WashServiceCategory category : serviceMapper.selectCategories()) {
+            ServiceCategoryVO vo = new ServiceCategoryVO();
+            vo.setCategoryId(category.getCategoryId());
+            vo.setName(category.getCategoryName());
+            vo.setSort(category.getSortNum());
             list.add(vo);
         }
         return list;

@@ -40,6 +40,7 @@ public class WashVehicleQueryService {
             vo.setBrand(vehicle.getBrand());
             vo.setColor(vehicle.getColor());
             vo.setIsNewEnergy(YES.equals(vehicle.getIsNewEnergy()));
+            vo.setIsDefault(YES.equals(vehicle.getIsDefault()));
 
             AddressVO address = new AddressVO();
             address.setCommunityId(vehicle.getCommunityId());

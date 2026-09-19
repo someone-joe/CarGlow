@@ -60,6 +60,26 @@ public class WashOrderDetailService {
     @Autowired
     private WashOrderQueryService queryService;
 
+    @Autowired
+    private com.ruoyi.wash.network.service.WashSiteQueryService siteQuery;
+
+    @Autowired
+    private com.ruoyi.wash.network.service.WashCabinetQueryService cabinetQuery;
+
+    /** 承诺还车小时（次日几点），走配置不硬编码 */
+    @org.springframework.beans.factory.annotation.Value("${wash.order.promise-return-hour:7}")
+    private int promiseReturnHour;
+
+    /** 承诺还车时间 = 预约日次日 promiseReturnHour 点（Asia/Shanghai） */
+    private Long promiseReturnTime(WashOrder order) {
+        if (order.getAppointTime() == null) {
+            return null;
+        }
+        java.time.LocalDate appointDay = java.time.Instant.ofEpochMilli(order.getAppointTime())
+                .atZone(ZONE).toLocalDate();
+        return appointDay.plusDays(1).atTime(promiseReturnHour, 0).atZone(ZONE).toInstant().toEpochMilli();
+    }
+
     /** C 端详情：必须校验归属，防止看到别人的订单 */
     public OrderDetailVO detail(String orderNo, Long memberId) {
         WashOrder order = orderMapper.selectByOrderNo(orderNo);
@@ -95,6 +115,10 @@ public class WashOrderDetailService {
         vo.setDiscountAmount(0L);
         vo.setPayAmount(order.getPayAmount());
         vo.setOverdue(false);
+        // 站点名 / 柜名 / 承诺还车时间：从站点与柜机域补全，查不到为 null 而不是报错
+        vo.setSiteName(siteQuery.siteName(order.getSiteId()));
+        vo.setCabinetName(cabinetQuery.cabinetName(order.getCabinetId()));
+        vo.setPromiseReturnTime(promiseReturnTime(order));
         vo.setTimeline(buildTimeline(logs, currentStatus, order));
         vo.setMedias(List.of());
         vo.setMainAction(queryService.resolveMainAction(order.getStatus()));

@@ -6,6 +6,7 @@ import com.ruoyi.common.core.domain.BaseEntity;
 public class WashService extends BaseEntity {
 
     private Long serviceId;
+    private Long categoryId;
     private String serviceName;
     private Long priceAmount;
     private Integer workMinutes;
@@ -17,6 +18,14 @@ public class WashService extends BaseEntity {
 
     public void setServiceId(Long serviceId) {
         this.serviceId = serviceId;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public String getServiceName() {

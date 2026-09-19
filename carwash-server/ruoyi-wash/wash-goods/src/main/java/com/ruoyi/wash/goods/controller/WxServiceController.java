@@ -1,6 +1,7 @@
 package com.ruoyi.wash.goods.controller;
 
 import com.ruoyi.wash.common.api.ApiResult;
+import com.ruoyi.wash.goods.dto.ServiceCategoryVO;
 import com.ruoyi.wash.goods.dto.ServiceVO;
 import com.ruoyi.wash.goods.service.WashServiceQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,5 +25,11 @@ public class WxServiceController {
     @GetMapping("/api/v1/services")
     public ApiResult<List<ServiceVO>> list() {
         return ApiResult.ok(serviceQuery.listEnabled());
+    }
+
+    /** 契约：openapi.yaml GET /api/v1/service-categories */
+    @GetMapping("/api/v1/service-categories")
+    public ApiResult<List<ServiceCategoryVO>> categories() {
+        return ApiResult.ok(serviceQuery.listCategories());
     }
 }

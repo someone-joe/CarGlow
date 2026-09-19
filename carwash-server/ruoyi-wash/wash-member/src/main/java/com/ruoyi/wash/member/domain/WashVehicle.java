@@ -11,6 +11,8 @@ public class WashVehicle extends BaseEntity {
     private String brand;
     private String color;
     private String isNewEnergy;
+    /** 默认车辆（Y/N），下单页据此预选 */
+    private String isDefault;
     private Long communityId;
     private String parkingNo;
 
@@ -60,6 +62,14 @@ public class WashVehicle extends BaseEntity {
 
     public void setIsNewEnergy(String isNewEnergy) {
         this.isNewEnergy = isNewEnergy;
+    }
+
+    public String getIsDefault() {
+        return isDefault;
+    }
+
+    public void setIsDefault(String isDefault) {
+        this.isDefault = isDefault;
     }
 
     public Long getCommunityId() {

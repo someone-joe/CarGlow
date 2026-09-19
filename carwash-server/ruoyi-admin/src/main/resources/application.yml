@@ -158,6 +158,10 @@ wash:
   order:
     # 下单后支付倒计时（分钟），阈值走配置不硬编码
     pay-timeout-minutes: 15
+    # 承诺还车小时：预约日次日的几点（Asia/Shanghai）
+    promise-return-hour: 7
+  # 当前站点（MVP 只有一个中央站；多站点后改为按定位/小区解析）
+  default-site-id: 1
   customer-service:
     # 客服配置：前端一律走接口取，不得硬编码电话号码
     wecom-qrcode-url:

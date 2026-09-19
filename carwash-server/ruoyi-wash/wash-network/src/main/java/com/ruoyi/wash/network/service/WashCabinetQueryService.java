@@ -31,6 +31,12 @@ public class WashCabinetQueryService {
         return cabinet;
     }
 
+    /** 机柜名：订单详情补全用，查不到返回 null（详情不能因柜子缺数据整个失败） */
+    public String cabinetName(Long cabinetId) {
+        WashCabinet cabinet = cabinetId == null ? null : cabinetMapper.selectById(cabinetId);
+        return cabinet == null ? null : cabinet.getCabinetName();
+    }
+
     /**
      * C 端可选机柜列表：带空闲格口数，让用户下单前就看到哪个柜子还有位置。
      *

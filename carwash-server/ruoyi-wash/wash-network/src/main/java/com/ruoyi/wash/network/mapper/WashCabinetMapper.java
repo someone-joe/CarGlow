@@ -13,6 +13,11 @@ public interface WashCabinetMapper {
             "from wash_cabinet where cabinet_id = #{cabinetId} and enabled = 'Y' and del_flag = '0' limit 1")
     WashCabinet selectEnabledById(@Param("cabinetId") Long cabinetId);
 
+    /** 按主键查（不问启用状态）：订单详情补全柜名时，柜子可能已停用，仍要显示历史名称 */
+    @Select("select cabinet_id, site_id, community_id, cabinet_name, enabled " +
+            "from wash_cabinet where cabinet_id = #{cabinetId} and del_flag = '0' limit 1")
+    WashCabinet selectById(@Param("cabinetId") Long cabinetId);
+
     /** C 端机柜列表：按小区过滤 + 按名称模糊搜（楼栋/单元） */
     @Select("<script>" +
             "select cabinet_id, site_id, community_id, cabinet_name, enabled " +
