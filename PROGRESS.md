@@ -212,13 +212,22 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - 售后 `POST /after-sales`：REWASH / REFUND / CLAIM，生成 AF 工单号，只建单不直接改钱
     - 影像 `POST /media/upload` + `GET /media/{fileId}/raw`：本地磁盘（store-path 可配，阈值走配置），
       对外只暴露 fileId，读取做路径穿越校验；换对象存储只改 `WashMediaService.save/resolve`
-18. **下一步建议**（按价值排序）：
+18. **下一步建议**（仅剩未做的）：
     - **真实微信支付 + 退款**：替换 mock-pay。**当前挂起**——用户尚无微信支付普通商户号（需企业资质 + 备案域名）。
       接入时只填 `WechatPayProvider` + 给 `WxPaymentController.notify` 加验签解密，业务层零改动
     - **柜机硬件对接**：软件侧 `device-callback` 已就绪，缺硬件与协议（当前挂起）
-    - **每日产能初始化任务**：见第 16 条 ⚠️，否则产能数字不准
-    - **后台人工干预收敛**：限制可触发事件白名单 + FINISHED 二次确认（上线前必须）
-    - **取送端 / 作业端小程序**：契约只覆盖 C 端，这两端开工前必须先补 `openapi.yaml`
+    - **取送端 / 作业端小程序**：契约只覆盖 C 端，这两端开工前必须先补 `openapi.yaml`（红线）
+19. **每日产能初始化已完成**（2026-09-19）：
+    - `CapacityInitJob` 每 30 分钟补今天起 7 天（可配 `wash.capacity.days-ahead`）的 `capacity:{siteId}:{date}` key，
+      用 SETNX 幂等，不会把已扣减产能重置；`daily_limit=0` 的不限量站点不建 key
+    - 重启实测：清掉 Redis 后重启后端，自动生成 2026-09-19 ~ 09-26 共 8 个 key，值 = 站点上限（20）
+    - 第 16 条提到的"产能 key 无人初始化"已闭环
+20. **后台干预收敛已完成**（2026-09-19）：
+    - 白名单 + 原因必填 + 高危事件二次确认，全部在 `WashOrderStateService.adminFire` 与 `AdminOrderController` 落实；
+      规则表已同步到《订单状态机规则表.md》3.1 节（SSOT）
+    - 实测：event-options 仅返回白名单内事件；PAY_SUCCESS 被拒（B1002）；TAKE_KEY_BACK 未确认被拒、确认后通过；
+      空原因被拒（A0001）；前端（carwash-admin）高危事件显示「确认执行」勾选框
+    - 白名单（11 允许 / 6 禁止）：禁止 `PAY_SUCCESS`、`APPLY_REFUND`、`REFUND_SUCCESS`、`REVIEW_SUBMIT`、`AUTO_FINISH`、`CANCEL`
 
 ---
 
