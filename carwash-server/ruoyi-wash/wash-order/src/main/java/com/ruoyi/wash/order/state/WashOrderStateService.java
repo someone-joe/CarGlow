@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * 订单状态流转的唯一入口 —— 业务代码只允许调用本服务，禁止直接 update 状态。
@@ -182,13 +184,50 @@ public class WashOrderStateService {
     }
 
     /**
+     * 后台（客服/站长）允许触发的事件白名单 —— 干预收敛，唯一定义处。
+     *
+     * <p>不在名单内的一律拒绝，**即便状态机规则允许**。为什么不直接放开：
+     * <ul>
+     *   <li>PAY_SUCCESS 只能由支付回调触发：后台代付 = 钱没到账却放行订单；</li>
+     *   <li>APPLY_REFUND / REFUND_SUCCESS 属支付域，必须由退款单与渠道结果驱动，
+     *       后台直接标"退款成功"而钱没退 = 财务事故；</li>
+     *   <li>REVIEW_SUBMIT / AUTO_FINISH 是客户与系统的收尾动作，不代表人的操作；</li>
+     *   <li>CANCEL 有独立的后台取消接口（带原因与留痕），不混在推进里。</li>
+     * </ul>
+     */
+    private static final Set<OrderEvent> ADMIN_ALLOWED_EVENTS = EnumSet.of(
+            OrderEvent.DEPOSIT_KEY, OrderEvent.TAKE_KEY, OrderEvent.PICK_CAR_DONE,
+            OrderEvent.ARRIVE_STATION, OrderEvent.SOP_DONE, OrderEvent.QC_FAIL,
+            OrderEvent.QC_PASS, OrderEvent.LEAVE_STATION, OrderEvent.RETURN_DONE,
+            OrderEvent.TAKE_KEY_BACK, OrderEvent.POSTPONE);
+
+    /** 需要二次确认的高危事件：推进后基本不可撤销（订单收尾 / 打回返工） */
+    private static final Set<OrderEvent> ADMIN_CONFIRM_REQUIRED = EnumSet.of(
+            OrderEvent.TAKE_KEY_BACK, OrderEvent.QC_FAIL);
+
+    /** 后台是否可触发该事件（供后台"可推进事件"下拉过滤，前端不另写一份名单） */
+    public static boolean isAdminAllowed(OrderEvent event) {
+        return ADMIN_ALLOWED_EVENTS.contains(event);
+    }
+
+    /** 该事件是否需要二次确认 */
+    public static boolean isConfirmRequired(OrderEvent event) {
+        return ADMIN_CONFIRM_REQUIRED.contains(event);
+    }
+
+    /**
      * 后台人工推进：客服/站长在异常场景下（如柜机故障、司机忘打卡）手动触发事件。
      *
-     * <p>能否流转仍由状态机规则表决定，后台只是"换了个触发方"，
-     * 不能绕过规则（例如不能在 WAIT_PAY 上触发 QC_PASS）。
-     * 每次推进都会写流转日志，操作人留痕，后台可追溯。
+     * <p>三重约束：① 必须在白名单内；② 原因必填（留痕）；③ 能否流转仍由状态机规则表决定，
+     * 后台只是"换了个触发方"，不能绕过规则（例如不能在 WAIT_PAY 上触发 QC_PASS）。
      */
     public OrderStatus adminFire(String orderNo, OrderEvent event, Long operatorId, String reason) {
+        if (!ADMIN_ALLOWED_EVENTS.contains(event)) {
+            throw new ApiException(ErrorCode.B1002, "该事件不允许后台触发：" + event.getLabel());
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new ApiException(ErrorCode.A0001, "后台推进必须填写原因");
+        }
         WashOrder order = orderMapper.selectByOrderNo(orderNo);
         if (order == null) {
             throw new ApiException(ErrorCode.B1001);

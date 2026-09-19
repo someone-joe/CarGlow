@@ -97,11 +97,15 @@ public class AdminOrderController {
         }
         OrderStatus status = OrderStatus.of(current);
         List<Map<String, String>> options = Arrays.stream(OrderEvent.values())
+                // 既有规则表约束，又有后台白名单：客服下拉里看不到不允许触发的事件
                 .filter(e -> OrderStatusTransitions.canFire(status, e, OrderOperatorType.ADMIN))
+                .filter(WashOrderStateService::isAdminAllowed)
                 .map(e -> {
                     Map<String, String> item = new LinkedHashMap<>();
                     item.put("value", e.name());
                     item.put("label", e.getLabel());
+                    // 前端据此决定是否弹二次确认，规则不写死在页面里
+                    item.put("confirmRequired", String.valueOf(WashOrderStateService.isConfirmRequired(e)));
                     return item;
                 })
                 .toList();
@@ -117,6 +121,10 @@ public class AdminOrderController {
             event = OrderEvent.valueOf(request.event());
         } catch (Exception e) {
             return AjaxResult.error("未知事件：" + request.event());
+        }
+        // 高危事件必须二次确认：客服在页面勾选后才会带上 confirm=true
+        if (WashOrderStateService.isConfirmRequired(event) && !Boolean.TRUE.equals(request.confirm())) {
+            return AjaxResult.error("「" + event.getLabel() + "」推进后不可撤销，请勾选二次确认后再提交");
         }
         OrderStatus next = stateService.adminFire(orderNo, event, getUserId(), request.reason());
         return AjaxResult.success("已推进到 " + next.getLabel(), next.name());
@@ -137,7 +145,8 @@ public class AdminOrderController {
         return AjaxResult.success(detailService.adminDetail(orderNo));
     }
 
-    public record AdvanceRequest(String event, String reason) {
+    /** confirm：高危事件（如客户取回钥匙、质检打回）需客服二次勾选 */
+    public record AdvanceRequest(String event, String reason, Boolean confirm) {
     }
 
     public record CancelRequest(String reason) {

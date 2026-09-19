@@ -160,6 +160,11 @@ wash:
     pay-timeout-minutes: 15
     # 承诺还车小时：预约日次日的几点（Asia/Shanghai）
     promise-return-hour: 7
+  capacity:
+    # 是否开启产能初始化（必须开启，否则站点配的日上限形同虚设）
+    init-enabled: true
+    # 提前初始化多少天（含今天）；客户预约的是未来日期，只初始化今天不够
+    days-ahead: 7
   media:
     # 影像存储根目录（本地磁盘实现）；换对象存储时只改 WashMediaService.save/resolve
     store-path: ./upload/media

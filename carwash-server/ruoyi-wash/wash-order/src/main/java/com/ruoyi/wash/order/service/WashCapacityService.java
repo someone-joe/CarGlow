@@ -3,6 +3,8 @@ package com.ruoyi.wash.order.service;
 import com.ruoyi.wash.network.domain.WashSite;
 import com.ruoyi.wash.network.service.WashSiteQueryService;
 import com.ruoyi.wash.order.dto.CapacityVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -23,6 +25,7 @@ import java.time.ZoneId;
 @Service
 public class WashCapacityService {
 
+    private static final Logger log = LoggerFactory.getLogger(WashCapacityService.class);
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final String CAPACITY_PREFIX = "capacity:";
 
@@ -34,6 +37,33 @@ public class WashCapacityService {
 
     @Value("${wash.default-site-id:1}")
     private Long defaultSiteId;
+
+    /**
+     * 初始化未来 N 天的产能（幂等）。
+     *
+     * <p>为什么不能用 SET 覆盖：任务会周期性执行，若直接 SET 会把已经扣掉的产能重置成上限，
+     * 等于凭空放出名额导致超卖。因此一律用 SETNX —— key 已存在说明当天已有订单，保持原值。
+     *
+     * <p>daily_limit = 0（不限量）的站点不建 key：下单侧判定是「key 不存在 = 不限量」，
+     * 建了反而会把它变成限量。
+     */
+    public void init(int daysAhead) {
+        LocalDate today = LocalDate.now(ZONE);
+        for (WashSite site : siteQuery.listSites()) {
+            Integer limit = site.getDailyLimit();
+            if (limit == null || limit <= 0) {
+                continue;
+            }
+            for (int i = 0; i <= daysAhead; i++) {
+                String day = today.plusDays(i).toString();
+                String key = CAPACITY_PREFIX + site.getSiteId() + ":" + day;
+                Boolean created = stringRedisTemplate.opsForValue().setIfAbsent(key, String.valueOf(limit));
+                if (Boolean.TRUE.equals(created)) {
+                    log.info("[产能初始化] siteId={} date={} limit={}", site.getSiteId(), day, limit);
+                }
+            }
+        }
+    }
 
     public CapacityVO capacity(String date) {
         String day = (date == null || date.isBlank()) ? LocalDate.now(ZONE).toString() : date;

@@ -62,6 +62,11 @@ public class WashSiteQueryService {
         return vo;
     }
 
+    /** 全部站点：产能初始化等后台任务用 */
+    public List<WashSite> listSites() {
+        return siteMapper.selectAll();
+    }
+
     public List<CommunityVO> listCommunities() {
         List<CommunityVO> list = new ArrayList<>();
         for (WashCommunity c : communityMapper.selectEnabledList()) {
