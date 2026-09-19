@@ -1,0 +1,51 @@
+支付：curl.exe -X POST "http://localhost:8080/api/v1/payments/SE20260919135655936500/mock-pay"
+
+第 1 步：写入开箱码到 Redis（密码 carglow_dev）
+docker exec carglow-redis redis-cli -a carglow_dev --no-auth-warning SET "slot:code:SE20260919135655936500" "123456" EX 600
+
+
+触发柜机回调：
+$body = '{"orderNo":"SE20260919141557296186","code":"219437","slotNo":"A02"}'
+[System.IO.File]::WriteAllText('d:\CarGlow\deposit.json', $body)
+curl.exe -X POST "http://localhost:8080/device-callback/v1/slot/deposit" -H "Content-Type: application/json" --data-binary "@d:\CarGlow\deposit.json"
+
+
+
+
+$ORDERNO    = "SE20260919141557296186"   # 换成你的订单
+$adminToken = "<从后台DevTools复制的token>"
+$base       = "http://localhost:8080"
+$code       = "219437"                    # 任取6位，写进Redis让回调校验通过
+
+# 0) 模拟支付（仅当订单还是 WAIT_PAY 时执行）
+curl.exe -s -X POST "$base/api/v1/payments/$ORDERNO/mock-pay"; echo ""
+
+# 2) 写开箱码 + 触发存钥匙
+docker exec carglow-redis redis-cli -a carglow_dev --no-auth-warning SET "slot:code:$ORDERNO" "$code" EX 600
+$db = @{orderNo=$ORDERNO; code=$code; slotNo="A02"} | ConvertTo-Json -Compress
+[System.IO.File]::WriteAllText('d.json', $db)
+curl.exe -s -X POST "$base/device-callback/v1/slot/deposit" -H "Content-Type: application/json" --data-binary "@d.json"; echo ""
+
+# 3-10) 后台人工推进员工端事件
+function Advance($event, $reason, $confirm) {
+    $ab = @{event=$event; reason=$reason; confirm=$confirm} | ConvertTo-Json -Compress
+    [System.IO.File]::WriteAllText('a.json', $ab)
+    curl.exe -s -X POST "$base/admin-api/wash/order/$ORDERNO/advance" `
+      -H "Content-Type: application/json" -H "Authorization: Bearer $adminToken" `
+      --data-binary "@a.json"; echo ""
+}
+Advance "TAKE_KEY"        "模拟取钥匙"     $false
+Advance "PICK_CAR_DONE"   "模拟取车拍照"   $false
+Advance "ARRIVE_STATION"  "模拟入场打卡"   $false
+Advance "SOP_DONE"        "模拟SOP完成"    $false
+Advance "QC_PASS"         "模拟质检通过"   $false
+Advance "LEAVE_STATION"   "模拟驶离中央站" $false
+Advance "RETURN_DONE"     "模拟还车归柜"   $false
+Advance "TAKE_KEY_BACK"   "模拟客户取回"   $true   # ⚠️高危，必须 confirm:true
+
+# 11) C 端评价收尾
+$rb = @{rating=5; tags=@("干净"); content="满意"} | ConvertTo-Json -Compress
+[System.IO.File]::WriteAllText('r.json', $rb)
+curl.exe -s -X POST "$base/api/v1/orders/$ORDERNO/reviews" `
+  -H "Content-Type: application/json" -H "Authorization: Bearer $memberToken" `
+  --data-binary "@r.json"; echo ""
