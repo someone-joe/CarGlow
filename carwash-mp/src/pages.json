@@ -23,6 +23,12 @@
 			"style": {
 				"navigationBarTitleText": "我的车辆"
 			}
+		},
+		{
+			"path": "pages/review/review",
+			"style": {
+				"navigationBarTitleText": "服务评价"
+			}
 		}
 	],
 	"globalStyle": {

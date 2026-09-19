@@ -160,9 +160,9 @@ async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<vo
     return
   }
 
-  // 评价：评价页随评价模块（售后域）开工，这里先给出反馈，避免点了没反应
+  // 去评价：星级 + 标签 + 原因（≤4 星必填原因），提交后状态机推进到已完成
   if (action?.action === 'REVIEW') {
-    uni.showToast({ title: '评价功能开发中', icon: 'none' })
+    uni.navigateTo({ url: `/pages/review/review?orderNo=${orderNo}` })
     return
   }
 

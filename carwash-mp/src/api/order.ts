@@ -60,6 +60,36 @@ export function fetchOrderDetail(orderNo: string): Promise<components['schemas']
   })
 }
 
+/** 契约：openapi.yaml POST /api/v1/orders/{orderNo}/reviews（rating 必填 1-5，≤4 星须填 content） */
+export function submitReview(orderNo: string, data: ReviewRequest): Promise<void> {
+  return request<void>({
+    url: `/api/v1/orders/${orderNo}/reviews`,
+    method: 'POST',
+    data
+  })
+}
+
+export interface ReviewRequest {
+  rating: number
+  tags?: string[]
+  content?: string
+}
+
+/** 契约：openapi.yaml POST /api/v1/after-sales（type = REWASH / REFUND / CLAIM），返回工单号 */
+export function createAfterSale(data: AfterSaleRequest): Promise<string> {
+  return request<string>({
+    url: '/api/v1/after-sales',
+    method: 'POST',
+    data
+  })
+}
+
+export interface AfterSaleRequest {
+  orderNo: string
+  type: 'REWASH' | 'REFUND' | 'CLAIM'
+  reason?: string
+}
+
 /**
  * 契约：openapi.yaml POST /api/v1/orders/{orderNo}/open-code。
  * 存钥匙（DEPOSIT_KEY）与取钥匙（TAKE_KEY）走同一接口，后端按订单状态自行判定，前端不传 action。
