@@ -96,6 +96,11 @@ x-error-codes:
   C1003: 优惠券不可用（已使用/已过期/不满足门槛）
   C2001: 保险产品不存在或已下架
   C2002: 投保车辆必填
+  # ---------------- 师傅端（工作人员）错误码（D 段 → 数字前缀 4） ----------------
+  D4001: 工号不存在
+  D4002: 密码或验证码错误
+  D4003: 师傅账号已被禁用
+  D4004: 师傅未绑定站点
 
 # -----------------------------------------------------------------------------
 # 后续模块开工前必须先补契约（防止边写边定，导致漂移）
@@ -140,6 +145,37 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/LoginVO'
+
+  /api/v1/worker/login:
+    post:
+      tags: [worker]
+      summary: 师傅工号登录
+      description: |
+        师傅端入口。工号 + 密码登录（MVP 先密码，后续可换短信码）。
+        返回带 role=WORKER 的访问令牌，与 C 端微信登录令牌隔离。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workerNo, password]
+              properties:
+                workerNo: { type: string, description: 工号 }
+                password: { type: string, description: 登录密码 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/WorkerLoginVO'
 
   /api/v1/auth/agreements:
     get:
@@ -1060,7 +1096,7 @@ paths:
                   code: { type: integer }
                   data:
                     type: array
-                    items: { type: object, description: 待定，字段随任务池页面细化 }
+                    items: { $ref: '#/components/schemas/PickTaskVO' }
 
   /api/v1/pick/orders/{orderNo}/pick-car-done:
     post:
@@ -1143,7 +1179,7 @@ paths:
                   code: { type: integer }
                   data:
                     type: array
-                    items: { type: object, description: 待定，随作业台页面细化 }
+                    items: { $ref: '#/components/schemas/StationQueueVO' }
 
   /api/v1/station/orders/{orderNo}/sop-done:
     post:
@@ -1223,6 +1259,58 @@ paths:
               required: [reason]
               properties:
                 reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/pick/orders/{orderNo}/take-key:
+    post:
+      tags: [master-pick]
+      summary: 取钥匙（触发 TAKE_KEY）
+      description: |
+        触发状态机 TAKE_KEY：KEY_IN → PICKING。师傅从柜中取出客户钥匙、开始取车作业。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/station/orders/{orderNo}/arrive:
+    post:
+      tags: [master-station]
+      summary: 入场打卡（触发 ARRIVE_STATION）
+      description: 触发状态机 ARRIVE_STATION：TO_STATION → WASHING；记录到站点时间。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/station/orders/{orderNo}/leave:
+    post:
+      tags: [master-station]
+      summary: 驶离站点（触发 LEAVE_STATION）
+      description: 触发状态机 LEAVE_STATION：WAIT_RETURN → RETURNING；记录离站时间。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
       responses:
         '200':
           description: 成功
@@ -1387,6 +1475,19 @@ components:
           description: 该节点的照片等证据
           items:
             $ref: '#/components/schemas/MediaVO'
+
+    # ---------------- 师傅端（工作人员） ----------------
+    WorkerLoginVO:
+      type: object
+      properties:
+        token: { type: string }
+        expireAt: { type: integer, format: int64 }
+        workerId: { type: integer, format: int64 }
+        workerNo: { type: string, description: 工号 }
+        name: { type: string }
+        siteId: { type: integer, format: int64 }
+        siteName: { type: string }
+        status: { type: string, enum: [NORMAL, DISABLED], description: 正常 / 禁用 }
 
     # ---------------- 登录 ----------------
     LoginVO:
@@ -1708,6 +1809,57 @@ components:
           type: string
           description: 临时访问地址，带有效期
         uploadTime: { type: integer, format: int64 }
+
+    # ---------------- 师傅端 VO ----------------
+    PickTaskVO:
+      type: object
+      description: 任务池单项（取送端）
+      properties:
+        orderNo: { type: string }
+        bizType: { type: string, enum: [PICKUP, RETURN], description: 待取车 / 待送回 }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        serviceName: { type: string }
+        vehiclePlate: { type: string, description: 车牌 }
+        vehicleBrand: { type: string }
+        vehicleColor: { type: string }
+        customerName: { type: string, description: 客户称呼，脱敏 }
+        customerPhone: { type: string, description: 联系电话，脱敏 }
+        pickupAddr: { type: string }
+        returnAddr: { type: string }
+        appointmentDate: { type: string, format: date, description: 预约服务日 }
+        promiseReturnTime: { type: string, description: 承诺还车时间，如 次日 07:00 }
+        pickupDeadline: { type: string, description: 最晚存钥匙时间 }
+        requiredPhotoCount: { type: integer, description: 取车需拍照片数（≥6） }
+        distanceMeters: { type: integer, description: 距师傅当前位置约多少米；未定位时为空 }
+
+    StationQueueVO:
+      type: object
+      description: 中央站工位队列看板项
+      properties:
+        stationId: { type: integer, format: int64 }
+        stationName: { type: string }
+        washingCount: { type: integer, description: 清洗中数量 }
+        qcCount: { type: integer, description: 待质检数量 }
+        bays:
+          type: array
+          description: 工位列表
+          items:
+            type: object
+            properties:
+              bayNo: { type: string, description: 工位号 }
+              orderNo: { type: string }
+              status: { $ref: '#/components/schemas/OrderStatus' }
+              startedAt: { type: integer, format: int64, description: 进入该工位时间（毫秒） }
+              sopStep: { type: integer, description: 当前 15 步 SOP 进度，WASHING 时有效 }
+        waiting:
+          type: array
+          description: 排队中订单
+          items:
+            type: object
+            properties:
+              orderNo: { type: string }
+              serviceName: { type: string }
+              queuedAt: { type: integer, format: int64 }
 
     FaqVO:
       type: object
