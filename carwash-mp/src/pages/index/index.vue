@@ -1,5 +1,6 @@
 <template>
   <view class="page">
+    <SiteBar />
     <view class="hero">
       <text class="title">夜间代客洗车</text>
       <text class="subtitle">今晚下单，明早干净上路</text>
@@ -71,6 +72,21 @@
         <input class="input" v-model="remark" placeholder="如：停在地库 A 区 23 号" />
       </view>
 
+      <!-- P7 停放照片：选填但强引导，最多 3 张；fileId 待上传接口（openapi 未定义）接入后再随单上报 -->
+      <view class="section">
+        <text class="section-title">车辆停放照片（选填）</text>
+        <text class="section-hint">拍一张停放照片，工作人员更容易找到您的车</text>
+        <view class="photos">
+          <view v-for="(p, i) in photos" :key="i" class="photo">
+            <image class="photo-img" :src="p" mode="aspectFill" />
+            <text class="photo-del" @click="removePhoto(i)">×</text>
+          </view>
+          <view v-if="photos.length < 3" class="photo photo-add" @click="choosePhoto">
+            <text class="photo-plus">＋</text>
+          </view>
+        </view>
+      </view>
+
       <view class="agree" @click="agreed = !agreed">
         <text class="checkbox">{{ agreed ? '☑' : '☐' }}</text>
         <text class="agree-text">我已阅读并同意《代客洗车服务协议》</text>
@@ -85,21 +101,6 @@
       <text class="entry-title">我的订单</text>
       <text class="entry-desc">查看进行中 / 待评价 / 全部订单</text>
     </view>
-
-    <view class="entry" @click="goVehicles">
-      <text class="entry-title">我的车辆</text>
-      <text class="entry-desc">添加或修改车辆信息</text>
-    </view>
-
-    <view class="entry" @click="goCoupons">
-      <text class="entry-title">优惠券</text>
-      <text class="entry-desc">领券中心与我的优惠券</text>
-    </view>
-
-    <view class="entry" @click="goInsurance">
-      <text class="entry-title">我的保单</text>
-      <text class="entry-desc">保障方案与投保记录</text>
-    </view>
   </view>
 </template>
 
@@ -108,6 +109,8 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { createOrder } from '@/api/order'
 import { fetchCabinets, fetchServices, fetchVehicles } from '@/api/catalog'
+import SiteBar from '@/components/SiteBar.vue'
+import { orderDraft } from '@/store/orderDraft'
 import type { CabinetVO, ServiceVO, VehicleVO } from '@/api/catalog'
 
 const services = ref<ServiceVO[]>([])
@@ -121,6 +124,7 @@ const cabinetId = ref<number | undefined>(undefined)
 const appointDate = ref(tomorrow())
 const appointTime = ref('19:00')
 const remark = ref('')
+const photos = ref<string[]>([])
 const agreed = ref(false)
 const submitting = ref(false)
 const loading = ref(true)
@@ -172,6 +176,20 @@ function onTimeChange(e: { detail: { value: string } }): void {
   appointTime.value = e.detail.value
 }
 
+/** 选停放照片，最多 3 张；本地临时路径预览，真正上报待上传接口接入 */
+function choosePhoto(): void {
+  uni.chooseImage({
+    count: 3 - photos.value.length,
+    success: (res) => {
+      photos.value.push(...res.tempFilePaths)
+    },
+  })
+}
+
+function removePhoto(i: number): void {
+  photos.value.splice(i, 1)
+}
+
 /** 三个列表一次性拉齐，失败由 request 层统一提示；缺任一选项就不允许提交 */
 function loadOptions(): void {
   loading.value = true
@@ -181,8 +199,8 @@ function loadOptions(): void {
       vehicles.value = vehicleList || []
       cabinets.value = cabinetList || []
 
-      // 默认选中：服务项与车辆取第一项，机柜取第一个"未满"的
-      serviceId.value = services.value[0]?.serviceId
+      // 默认选中：优先用服务列表/详情带入的预选服务，否则取第一项
+      serviceId.value = orderDraft.serviceId ?? services.value[0]?.serviceId
       vehicleId.value = vehicles.value[0]?.vehicleId
       const usable = cabinets.value.find((item) => !item.full)
       cabinetId.value = usable?.cabinetId ?? cabinets.value[0]?.cabinetId
@@ -227,22 +245,10 @@ function goOrders(): void {
   uni.navigateTo({ url: '/pages/orders/orders' })
 }
 
-function goVehicles(): void {
-  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
-}
-
-function goCoupons(): void {
-  uni.navigateTo({ url: '/pages/coupons/coupons' })
-}
-
-function goInsurance(): void {
-  uni.navigateTo({ url: '/pages/insurance/insurance' })
-}
-
 // 从优惠券页「去使用」带入的券 ID（示例：pages/coupons/coupons.vue 跳转时携带）
 onLoad((opts) => {
   const id = opts?.couponUserId ? Number(opts.couponUserId) : undefined
-  selectedCouponId.value = id && !isNaN(id) ? id : undefined
+  selectedCouponId.value = id && !isNaN(id) ? id : orderDraft.couponUserId
 })
 
 // 用 onShow 而非 onMounted：从车辆页新增车辆返回后，这里的车辆列表要立刻看到新车
@@ -251,7 +257,7 @@ onShow(loadOptions)
 
 <style>
 .page {
-  padding: 32rpx;
+  padding: calc(var(--status-bar-height, 0px) + 24rpx) 32rpx 32rpx;
   background: #f6f7f9;
   min-height: 100vh;
   box-sizing: border-box;
@@ -375,6 +381,59 @@ onShow(loadOptions)
   border-radius: 16rpx;
   padding: 24rpx;
   font-size: 28rpx;
+}
+
+.section-hint {
+  display: block;
+  margin: 8rpx 0 16rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.photo {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #fff;
+  overflow: hidden;
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-del {
+  position: absolute;
+  top: 4rpx;
+  right: 8rpx;
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 32rpx;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 28rpx;
+}
+
+.photo-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #ccc;
+}
+
+.photo-plus {
+  font-size: 56rpx;
+  color: #bbb;
 }
 
 .agree {

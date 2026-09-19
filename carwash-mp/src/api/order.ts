@@ -120,6 +120,23 @@ export function payOrder(orderNo: string): Promise<components['schemas']['PayRes
   })
 }
 
+/** 契约：openapi.yaml POST /api/v1/payments/{orderNo}/prepay（含 expireAt 用于支付倒计时） */
+export interface PrepayVO {
+  timeStamp?: string
+  nonceStr?: string
+  package?: string
+  signType?: string
+  paySign?: string
+  expireAt?: number
+}
+
+export function fetchPrepay(orderNo: string): Promise<PrepayVO> {
+  return request<PrepayVO>({
+    url: `/api/v1/payments/${orderNo}/prepay`,
+    method: 'POST',
+  })
+}
+
 export function fetchOrderList(params: OrderListParams = {}): Promise<OrderPageVO> {
   return request<OrderPageVO>({
     url: '/api/v1/orders',

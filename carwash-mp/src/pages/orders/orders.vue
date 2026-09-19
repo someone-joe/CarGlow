@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { cancelOrder, fetchOpenCode, fetchOrderList, payOrder, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
+import { cancelOrder, fetchOrderList, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 import { fetchCustomerService } from '@/api/config'
 
 const tabs: { key: OrderTab; label: string }[] = [
@@ -94,33 +94,14 @@ function goDetail(item: OrderListItemVO): void {
 async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<void> {
   const orderNo = item.orderNo ?? ''
   if (action?.action === 'PAY') {
-    try {
-      await payOrder(orderNo)
-      uni.showToast({ title: '支付成功，等待存钥匙', icon: 'none' })
-      await loadOrders()
-    } catch {
-      // request 层已统一提示（含 21002 状态不允许）
-    }
+    // P8 支付页：倒计时 + 费用明细 + 微信支付
+    uni.navigateTo({ url: `/pages/pay/pay?orderNo=${orderNo}` })
     return
   }
-  // 存钥匙 / 取钥匙共用 open-code 接口（后端按订单状态判定存还是取），取到码弹窗展示
+  // 存钥匙 / 取钥匙 → P10 开箱页（后端按订单状态判定存还是取）
   if (action?.action === 'DEPOSIT_KEY' || action?.action === 'TAKE_KEY') {
-    try {
-      const data = await fetchOpenCode(orderNo)
-      const lines = [
-        data.cabinetName ? `柜机：${data.cabinetName}${data.slotNo ? ' · ' + data.slotNo + ' 格口' : ''}` : '',
-        `开箱码：${data.code}`,
-        '10 分钟内有效，仅可使用一次',
-      ].filter(Boolean)
-      uni.showModal({
-        title: action.action === 'TAKE_KEY' ? '取钥匙开箱码' : '存钥匙开箱码',
-        content: lines.join('\n'),
-        showCancel: false,
-        confirmText: '知道了',
-      })
-    } catch {
-      // request 层已统一提示（如状态不允许取码）
-    }
+    const mode = action.action === 'TAKE_KEY' ? 'take' : 'deposit'
+    uni.navigateTo({ url: `/pages/open-box/open-box?orderNo=${orderNo}&mode=${mode}` })
     return
   }
   // 看进度 = 跳详情页（时间轴由后端流转日志生成，前端不另算进度）
