@@ -23,6 +23,7 @@
         <module>wash-network</module>
         <module>wash-order</module>
         <module>wash-pay</module>
+        <module>wash-promo</module>
     </modules>
 
     <build>

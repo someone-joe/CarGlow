@@ -80,6 +80,11 @@
             <artifactId>wash-pay</artifactId>
             <version>${ruoyi.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-promo</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
 
     </dependencies>
 

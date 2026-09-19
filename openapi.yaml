@@ -61,9 +61,13 @@ tags:
     description: 评价 / 售后 / 理赔
   - name: misc
     description: 客服 / 条款等配置
+  - name: coupon
+    description: C 端优惠券（领券中心 / 我的券 / 下单最优券）
+  - name: insurance
+    description: C 端保险（产品 / 投保 / 我的保单）
 
 # -----------------------------------------------------------------------------
-# 错误码（分段：A0 通用 / B1 订单 / B2 柜机格口 / B3 支付 / B4 任务 / C0 第三方）
+# 错误码（分段：A0 通用 / B1 订单 / B2 柜机格口 / B3 支付 / B4 任务 / C0 第三方 / C1 营销 / C2 保险）
 # -----------------------------------------------------------------------------
 x-error-codes:
   A0001: 参数错误
@@ -87,6 +91,10 @@ x-error-codes:
   B4001: 任务已被他人接单
   B4002: 照片数量不足
   C0001: 第三方服务异常
+  C1001: 优惠券已领完或已下架
+  C1002: 超过每人领取上限
+  C2001: 保险产品不存在或已下架
+  C2002: 投保车辆必填
 
 # -----------------------------------------------------------------------------
 # 后续模块开工前必须先补契约（防止边写边定，导致漂移）
@@ -870,6 +878,162 @@ paths:
                           stationPhone: { type: string }
                           nightTip: { type: string }
 
+  # ============================ 优惠券（C 端） ============================
+  /api/v1/coupons/center:
+    get:
+      tags: [coupon]
+      summary: 领券中心
+      description: 返回当前可领的券模板，含该会员已领数量与剩余库存。
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CouponTemplateVO' }
+
+  /api/v1/coupons/templates/{templateId}/receive:
+    post:
+      tags: [coupon]
+      summary: 领取优惠券
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/CouponUserVO' }
+
+  /api/v1/coupons:
+    get:
+      tags: [coupon]
+      summary: 我的优惠券
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [UNUSED, USED, EXPIRED] }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CouponUserVO' }
+
+  /api/v1/coupons/best:
+    get:
+      tags: [coupon]
+      summary: 下单页算最优券
+      description: 给定支付金额，返回可用且减免最多的券（可能为空）。
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: amount
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+          description: 待支付金额（分）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/CouponBestVO' }
+
+  # ============================ 保险 / 保单（C 端） ============================
+  /api/v1/insurances/products:
+    get:
+      tags: [insurance]
+      summary: 可投保产品列表
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/InsuranceProductVO' }
+
+  /api/v1/insurances:
+    get:
+      tags: [insurance]
+      summary: 我的保单
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/InsurancePolicyVO' }
+    post:
+      tags: [insurance]
+      summary: 投保（dev 模式直接生效）
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, vehicleId]
+              properties:
+                productId: { type: integer, format: int64 }
+                vehicleId: { type: integer, format: int64 }
+                orderNo: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/InsurancePolicyVO' }
+
 components:
 
   securitySchemes:
@@ -911,6 +1075,59 @@ components:
       schema: { type: string }
 
   schemas:
+
+    CouponTemplateVO:
+      type: object
+      properties:
+        templateId: { type: integer, format: int64 }
+        name: { type: string }
+        type: { type: string, enum: [NORMAL, NEWBIE] }
+        thresholdAmount: { type: integer, format: int64, description: 使用门槛（分） }
+        discountAmount: { type: integer, format: int64, description: 减免金额（分） }
+        perLimit: { type: integer }
+        endTime: { type: integer, format: int64, description: 失效时间（毫秒） }
+        remain: { type: integer, description: 剩余库存 }
+        claimed: { type: integer, description: 当前会员已领数量 }
+
+    CouponUserVO:
+      type: object
+      properties:
+        couponUserId: { type: integer, format: int64 }
+        templateId: { type: integer, format: int64 }
+        name: { type: string }
+        thresholdAmount: { type: integer, format: int64 }
+        discountAmount: { type: integer, format: int64 }
+        status: { type: string, enum: [UNUSED, USED, EXPIRED] }
+        expireTime: { type: integer, format: int64 }
+        orderNo: { type: string }
+
+    CouponBestVO:
+      type: object
+      properties:
+        couponUserId: { type: integer, format: int64 }
+        discountAmount: { type: integer, format: int64 }
+
+    InsuranceProductVO:
+      type: object
+      properties:
+        productId: { type: integer, format: int64 }
+        name: { type: string }
+        priceAmount: { type: integer, format: int64, description: 保费（分） }
+        coverageDesc: { type: string }
+
+    InsurancePolicyVO:
+      type: object
+      properties:
+        policyId: { type: integer, format: int64 }
+        policyNo: { type: string }
+        productId: { type: integer, format: int64 }
+        name: { type: string }
+        vehicleId: { type: integer, format: int64 }
+        orderNo: { type: string }
+        status: { type: string, enum: [ACTIVE, EXPIRED, CANCELED] }
+        startTime: { type: integer, format: int64 }
+        endTime: { type: integer, format: int64 }
+        paidAmount: { type: integer, format: int64, description: 实付保费（分） }
 
     Result:
       type: object

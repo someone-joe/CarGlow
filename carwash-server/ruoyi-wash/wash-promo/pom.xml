@@ -10,11 +10,11 @@
         <version>3.9.2</version>
     </parent>
 
-    <artifactId>wash-member</artifactId>
+    <artifactId>wash-promo</artifactId>
     <packaging>jar</packaging>
 
-    <name>wash-member</name>
-    <description>会员域：微信登录、token、C 端鉴权拦截器</description>
+    <name>wash-promo</name>
+    <description>营销域：C 端优惠券 + 保单/保险</description>
 
     <dependencies>
         <dependency>
@@ -22,17 +22,9 @@
             <artifactId>wash-common</artifactId>
             <version>${ruoyi.version}</version>
         </dependency>
-        <!-- 提供 spring-web / security / redis 基础设施 -->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
         </dependency>
-        <!-- 接入层测试：JUnit5 + Mockito（与 wash-common 一致，脱离 Spring 单测） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
 </project>

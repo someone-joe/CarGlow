@@ -42,6 +42,12 @@
             <artifactId>wash-network</artifactId>
             <version>${ruoyi.version}</version>
         </dependency>
+        <!-- 接入层测试：JUnit5 + Mockito（与 wash-common 一致，脱离 Spring 单测） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
