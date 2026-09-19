@@ -70,6 +70,10 @@
           <el-option v-for="item in eventList" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
         <el-input v-model="advanceForm.reason" placeholder="操作原因（必填）" style="width: 240px; margin-left: 8px" />
+        <!-- 是否要二次确认由后端判定（confirmRequired），前端不维护高危事件名单 -->
+        <el-checkbox v-if="confirmRequired" v-model="advanceForm.confirm" style="margin-left: 8px">
+          确认执行（不可撤销）
+        </el-checkbox>
         <el-button type="primary" style="margin-left: 8px" @click="submitAdvance">推进</el-button>
         <el-button type="danger" @click="submitCancel">取消订单</el-button>
       </div>
@@ -94,7 +98,7 @@ const drawer = ref(false)
 
 const detail = ref({})
 const eventList = ref([])
-const advanceForm = ref({ event: undefined, reason: undefined })
+const advanceForm = ref({ event: undefined, reason: undefined, confirm: false })
 
 const queryParams = ref({
   pageNum: 1,
@@ -159,6 +163,17 @@ function openDetail(orderNo) {
   }
 }
 
+// 当前选中事件是否需要二次确认：取值来自后端 event-options 的 confirmRequired
+const confirmRequired = computed(() => {
+  const hit = eventList.value.find(item => item.value === advanceForm.value.event)
+  return hit && String(hit.confirmRequired) === 'true'
+})
+
+// 换事件就重置确认，避免勾了一次后沿用
+watch(() => advanceForm.value.event, () => {
+  advanceForm.value.confirm = false
+})
+
 function submitAdvance() {
   if (!advanceForm.value.event) {
     proxy.$modal.msgWarning('请选择要触发的事件')
@@ -168,9 +183,13 @@ function submitAdvance() {
     proxy.$modal.msgWarning('请填写操作原因')
     return
   }
-  advanceOrder(detail.value.orderNo, advanceForm.value.event, advanceForm.value.reason).then(res => {
+  if (confirmRequired.value && !advanceForm.value.confirm) {
+    proxy.$modal.msgWarning('该操作不可撤销，请勾选「确认执行」')
+    return
+  }
+  advanceOrder(detail.value.orderNo, advanceForm.value.event, advanceForm.value.reason, advanceForm.value.confirm).then(res => {
     proxy.$modal.msgSuccess(res.msg)
-    advanceForm.value = { event: undefined, reason: undefined }
+    advanceForm.value = { event: undefined, reason: undefined, confirm: false }
     openDetail(detail.value.orderNo)
     getList()
   })

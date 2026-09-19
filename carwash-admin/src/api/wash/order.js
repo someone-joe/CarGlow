@@ -33,12 +33,13 @@ export function eventOptions(orderNo) {
   })
 }
 
-// 人工推进状态（异常补救，会写流转日志留痕）
-export function advanceOrder(orderNo, event, reason) {
+// 人工推进状态（异常补救，会写流转日志留痕）。
+// confirm：高危事件（如客户取回钥匙、质检打回）需二次确认，是否需要由后端判定
+export function advanceOrder(orderNo, event, reason, confirm) {
   return request({
     url: '/admin-api/wash/order/' + orderNo + '/advance',
     method: 'post',
-    data: { event, reason }
+    data: { event, reason, confirm: !!confirm }
   })
 }
 
