@@ -47,7 +47,13 @@ public enum ErrorCode {
 
     /* ---- C2 保险 ---- */
     C2001("保险产品不存在或已下架"),
-    C2002("投保车辆必填");
+    C2002("投保车辆必填"),
+
+    /* ---- D4 师傅端（工作人员） ---- */
+    D4001("工号不存在"),
+    D4002("密码或验证码错误"),
+    D4003("师傅账号已被禁用"),
+    D4004("师傅未绑定站点");
 
     private final String msg;
 
@@ -60,7 +66,7 @@ public enum ErrorCode {
     }
 
     /**
-     * 契约数字码：分段字母转数字前缀（A=1 / B=2 / C=3）+ 4 位数字。
+     * 契约数字码：分段字母转数字前缀（A=1 / B=2 / C=3 / D=4）+ 4 位数字。
      * A0002 → 10002，B1002 → 21002，C0001 → 30001。
      * 直接 parseInt("A0002".substring(1)) 会让 A0001 与 C0001 撞成同一个 1，故必须走本方法。
      */
@@ -69,6 +75,7 @@ public enum ErrorCode {
             case 'A' -> 1;
             case 'B' -> 2;
             case 'C' -> 3;
+            case 'D' -> 4;
             default -> 9;
         };
         return segment * 10000 + Integer.parseInt(name().substring(1));

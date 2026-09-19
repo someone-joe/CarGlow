@@ -21,6 +21,9 @@ public class MemberWebConfig implements WebMvcConfigurer {
         registry.addInterceptor(memberAuthInterceptor)
                 .addPathPatterns("/api/v1/**")
                 // 登录接口与支付回调不需要会员 token（回调是微信服务器调用，无登录态）
-                .excludePathPatterns("/api/v1/auth/**", "/api/v1/payments/wechat/**");
+                // 师傅端路径（worker/pick/station）交给 wash-worker 的 WorkerAuthInterceptor，
+                // C 端拦截器必须放行，否则师傅端请求会被 C 端 token 校验拦下返回 A0002
+                .excludePathPatterns("/api/v1/auth/**", "/api/v1/payments/wechat/**",
+                        "/api/v1/worker/**", "/api/v1/pick/**", "/api/v1/station/**");
     }
 }
