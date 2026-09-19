@@ -775,6 +775,59 @@ paths:
                         properties:
                           ticketNo: { type: string }
 
+  # ============================ 影像证据 ============================
+  /api/v1/media/upload:
+    post:
+      tags: [order]
+      summary: 上传影像证据
+      description: |
+        multipart 上传。大小与类型限制由服务端配置（wash.media），前端不要自行放宽。
+        bizType 决定这张图属于哪个环节（停车 / 取车 / 洗后 / 还车 / 对比 / 视频）。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, bizType]
+              properties:
+                file: { type: string, format: binary }
+                bizType:
+                  type: string
+                  enum: [PARK, PICK, WASHED, RETURN, COMPARE, VIDEO]
+                orderNo: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MediaVO'
+
+  /api/v1/media/{fileId}/raw:
+    get:
+      tags: [order]
+      summary: 读取影像原文件
+      description: 需登录；服务端按 fileId 定位文件，不向前端暴露磁盘路径。
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 文件流
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+            video/*:
+              schema: { type: string, format: binary }
+
   # ============================ 客服 / 配置 ============================
   /api/v1/faqs:
     get:
