@@ -12,7 +12,7 @@ public class WashMedia {
     private String fileName;
     private String storePath;
     private Long fileSize;
-    /** CUSTOMER / PICKER / STATION */
+    /** CUSTOMER / WORKER / ADMIN / DEVICE */
     private String uploadBy;
 
     public Long getMediaId() {

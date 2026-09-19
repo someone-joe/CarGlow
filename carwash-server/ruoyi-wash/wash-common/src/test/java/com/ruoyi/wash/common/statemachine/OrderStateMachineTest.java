@@ -87,13 +87,13 @@ class OrderStateMachineTest {
         machineOf(OrderStatus.WAIT_PAY);
         assertEquals(OrderStatus.WAIT_KEY, machine.fire(ctx(OrderEvent.PAY_SUCCESS, OrderOperatorType.JOB)));
         assertEquals(OrderStatus.KEY_IN, machine.fire(ctx(OrderEvent.DEPOSIT_KEY, OrderOperatorType.DEVICE)));
-        assertEquals(OrderStatus.PICKING, machine.fire(ctx(OrderEvent.TAKE_KEY, OrderOperatorType.PICKER)));
-        assertEquals(OrderStatus.TO_STATION, machine.fire(ctx(OrderEvent.PICK_CAR_DONE, OrderOperatorType.PICKER)));
-        assertEquals(OrderStatus.WASHING, machine.fire(ctx(OrderEvent.ARRIVE_STATION, OrderOperatorType.STATION)));
-        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.STATION)));
-        assertEquals(OrderStatus.WAIT_RETURN, machine.fire(ctx(OrderEvent.QC_PASS, OrderOperatorType.STATION)));
-        assertEquals(OrderStatus.RETURNING, machine.fire(ctx(OrderEvent.LEAVE_STATION, OrderOperatorType.PICKER)));
-        assertEquals(OrderStatus.RETURNED, machine.fire(ctx(OrderEvent.RETURN_DONE, OrderOperatorType.PICKER)));
+        assertEquals(OrderStatus.PICKING, machine.fire(ctx(OrderEvent.TAKE_KEY, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.TO_STATION, machine.fire(ctx(OrderEvent.PICK_CAR_DONE, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.WASHING, machine.fire(ctx(OrderEvent.ARRIVE_STATION, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.WAIT_RETURN, machine.fire(ctx(OrderEvent.QC_PASS, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.RETURNING, machine.fire(ctx(OrderEvent.LEAVE_STATION, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.RETURNED, machine.fire(ctx(OrderEvent.RETURN_DONE, OrderOperatorType.WORKER)));
         assertEquals(OrderStatus.WAIT_REVIEW, machine.fire(ctx(OrderEvent.TAKE_KEY_BACK, OrderOperatorType.CUSTOMER)));
         assertEquals(OrderStatus.FINISHED, machine.fire(ctx(OrderEvent.REVIEW_SUBMIT, OrderOperatorType.CUSTOMER)));
     }
@@ -109,9 +109,9 @@ class OrderStateMachineTest {
     @DisplayName("质检不合格：打回重洗后可再次提交")
     void qcFailRollback() {
         machineOf(OrderStatus.WASHING);
-        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.STATION)));
-        assertEquals(OrderStatus.WASHING, machine.fire(ctx(OrderEvent.QC_FAIL, OrderOperatorType.STATION)));
-        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.STATION)));
+        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.WASHING, machine.fire(ctx(OrderEvent.QC_FAIL, OrderOperatorType.WORKER)));
+        assertEquals(OrderStatus.QC, machine.fire(ctx(OrderEvent.SOP_DONE, OrderOperatorType.WORKER)));
     }
 
     @Test
@@ -169,8 +169,8 @@ class OrderStateMachineTest {
     void illegalTransitionRejected() {
         machineOf(OrderStatus.WAIT_PAY);
         assertThrows(OrderStatusException.class,
-                () -> machine.fire(ctx(OrderEvent.ARRIVE_STATION, OrderOperatorType.STATION)));
-        assertFalse(machine.canFire(OrderStatus.WAIT_PAY, OrderEvent.ARRIVE_STATION, OrderOperatorType.STATION));
+                () -> machine.fire(ctx(OrderEvent.ARRIVE_STATION, OrderOperatorType.WORKER)));
+        assertFalse(machine.canFire(OrderStatus.WAIT_PAY, OrderEvent.ARRIVE_STATION, OrderOperatorType.WORKER));
     }
 
     @Test

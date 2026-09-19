@@ -18,7 +18,7 @@ create table wash_order_status_log (
     from_status   varchar(32)  default null            comment '流转前状态',
     to_status     varchar(32)  not null                comment '流转后状态',
     event         varchar(32)  not null                comment '触发事件（见 OrderEvent）',
-    operator_type varchar(16)  not null                comment '操作者类型 CUSTOMER/PICKER/STATION/ADMIN/JOB/DEVICE',
+    operator_type varchar(16)  not null                comment '操作者类型 CUSTOMER/WORKER/ADMIN/JOB/DEVICE',
     operator_id   bigint(20)   default null            comment '操作者ID（JOB、DEVICE 可为空）',
     source        varchar(16)  not null                comment '来源端，与 operator_type 同源，避免两套枚举漂移',
     reason        varchar(255) default null            comment '原因/备注（取消、质检不合格必填）',

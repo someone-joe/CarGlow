@@ -113,7 +113,7 @@ create table wash_media (
     file_name  varchar(255) default null            comment '原始文件名',
     store_path varchar(255) not null                comment '相对存储路径（不含根目录）',
     file_size  bigint(20)   default 0               comment '文件大小（字节）',
-    upload_by  varchar(16)  default null            comment '上传端 CUSTOMER/PICKER/STATION',
+    upload_by  varchar(16)  default null            comment '上传端 CUSTOMER/WORKER/ADMIN/DEVICE',
     del_flag   char(1)      default '0'             comment '删除标志',
     create_time datetime    not null default current_timestamp comment '创建时间',
     primary key (media_id),
