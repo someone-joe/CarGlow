@@ -243,6 +243,39 @@ public class WashOrderStateService {
     }
 
     /**
+     * 师傅端（取送 + 作业合并后的单一师傅端）允许触发的事件。
+     *
+     * <p>与后台白名单的区别：不含 TAKE_KEY_BACK（客户取回钥匙，属于客户动作）、
+     * 不含 POSTPONE（延期由后台/客服处理）、不含支付退款类（支付域驱动）。
+     */
+    private static final Set<OrderEvent> WORKER_ALLOWED_EVENTS = EnumSet.of(
+            OrderEvent.TAKE_KEY, OrderEvent.PICK_CAR_DONE, OrderEvent.ARRIVE_STATION,
+            OrderEvent.SOP_DONE, OrderEvent.QC_PASS, OrderEvent.QC_FAIL,
+            OrderEvent.LEAVE_STATION, OrderEvent.RETURN_DONE);
+
+    /**
+     * 师傅端推进：与后台推进的区别只是触发方为 WORKER。
+     * 同样受状态机规则表约束 —— 师傅只是换了个触发方，不能绕过规则。
+     */
+    public OrderStatus workerFire(String orderNo, OrderEvent event, Long workerId, String reason) {
+        if (!WORKER_ALLOWED_EVENTS.contains(event)) {
+            throw new ApiException(ErrorCode.B1002, "该事件不允许师傅端触发：" + event.getLabel());
+        }
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order == null) {
+            throw new ApiException(ErrorCode.B1001);
+        }
+        OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
+                .orderNo(order.getOrderNo())
+                .event(event)
+                .operatorType(OrderOperatorType.WORKER)
+                .operatorId(workerId)
+                .reason(reason)
+                .build();
+        return stateMachine.fire(ctx);
+    }
+
+    /**
      * 系统触发（支付回调、退款结果、定时任务）：触发方为 JOB。
      * 与 adminFire 一样受规则表约束，只是换了个操作者标记，便于日志区分是人还是系统。
      */

@@ -52,6 +52,21 @@ public class WashWorkerService {
         return vo;
     }
 
+    /**
+     * 取当前师傅所属站点。任务池必须按站点过滤（师傅只能看本站点单），
+     * 未绑定站点的师傅直接拒绝，避免返回全量订单。
+     */
+    public Long requireSiteId(Long workerId) {
+        WashWorker worker = workerMapper.selectByWorkerId(workerId);
+        if (worker == null) {
+            throw new ApiException(ErrorCode.D4001);
+        }
+        if (worker.getSiteId() == null) {
+            throw new ApiException(ErrorCode.D4004);
+        }
+        return worker.getSiteId();
+    }
+
     /** 明文比对（MVP）。改 BCrypt 时替换本方法即可。 */
     private boolean matches(String stored, String input) {
         return stored != null && stored.equals(input);

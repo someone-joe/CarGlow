@@ -89,6 +89,22 @@ public interface WashOrderMapper {
     int updateCancelReason(@Param("orderNo") String orderNo, @Param("reason") String reason);
 
     /**
+     * 师傅端任务池：按站点 + 状态集合查订单。
+     * 站点是硬约束（师傅只能看到本站点单）；状态集合由师傅端按 PICKUP / RETURN 语义传入。
+     */
+    @Select("<script>" +
+            "select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id, " +
+            "status, service_name, appoint_time, pay_amount, plate_no, create_time " +
+            "from wash_order where del_flag = '0' and site_id = #{siteId} " +
+            "<if test='statuses != null and statuses.size() > 0'> " +
+            "and status in <foreach collection='statuses' item='s' open='(' separator=',' close=')'>#{s}</foreach> " +
+            "</if> " +
+            "order by appoint_time asc, create_time asc" +
+            "</script>")
+    List<WashOrder> selectBySiteAndStatuses(@Param("siteId") Long siteId,
+                                            @Param("statuses") List<String> statuses);
+
+    /**
      * 超时未支付的订单：给支付超时自动取消任务用。
      * 只取 WAIT_PAY 且 pay_expire_at 已过期的，按创建时间正序，避免老单一直排不到。
      */

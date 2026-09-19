@@ -16,4 +16,9 @@ public interface WashWorkerMapper {
     @Select("select worker_id, worker_no, password, name, phone, site_id, status, del_flag " +
             "from wash_worker where worker_no = #{workerNo} and del_flag = '0'")
     WashWorker selectByWorkerNo(@Param("workerNo") String workerNo);
+
+    /** 按 workerId 查师傅：已登录师傅取所属站点（任务池按站点过滤）用。 */
+    @Select("select worker_id, worker_no, password, name, phone, site_id, status, del_flag " +
+            "from wash_worker where worker_id = #{workerId} and del_flag = '0'")
+    WashWorker selectByWorkerId(@Param("workerId") Long workerId);
 }
