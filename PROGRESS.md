@@ -216,7 +216,7 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
     - **真实微信支付 + 退款**：替换 mock-pay。**当前挂起**——用户尚无微信支付普通商户号（需企业资质 + 备案域名）。
       接入时只填 `WechatPayProvider` + 给 `WxPaymentController.notify` 加验签解密，业务层零改动
     - **柜机硬件对接**：软件侧 `device-callback` 已就绪，缺硬件与协议（当前挂起）
-    - **取送端 / 作业端小程序**：契约只覆盖 C 端，这两端开工前必须先补 `openapi.yaml`（红线）
+    - **师傅端小程序（取送+作业合并）**：契约只覆盖 C 端，开工前必须先补 `openapi.yaml`（红线）。架构决策：原取送端/作业端合并为单一师傅端（PRD 第3章角色为 客户/工作人员/管理员 三级，取送与作业为子功能；前期2名合伙人自作业）
 19. **每日产能初始化已完成**（2026-09-19）：
     - `CapacityInitJob` 每 30 分钟补今天起 7 天（可配 `wash.capacity.days-ahead`）的 `capacity:{siteId}:{date}` key，
       用 SETNX 幂等，不会把已扣减产能重置；`daily_limit=0` 的不限量站点不建 key

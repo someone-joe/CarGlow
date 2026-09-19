@@ -6,7 +6,7 @@
 ## 1. 项目上下文
 
 夜间代客洗车平台：**中央站集中洗 + 社区智能钥匙柜**。
-范围：① C 端微信小程序 ② 智能钥匙柜物联 ③ 取送端小程序 ④ 中央站作业端 ⑤ 若依运营后台。
+范围：① C 端微信小程序 ② 智能钥匙柜物联 ③ 师傅端小程序（取送+作业合并） ④ 若依运营后台。
 
 **文档索引（按优先级，冲突时以靠前者为准）**
 
@@ -80,7 +80,7 @@
 
 | 目录 | 端 | 技术栈 | 产物 | 运行端口 |
 | --- | --- | --- | --- | --- |
-| `carwash-mp` | C 端 / 取送端 / 作业端小程序 | uni-app + Vue3 + TS | `dist/build/mp-weixin` | 无（微信开发者工具导入） |
+| `carwash-mp` | C 端 / 师傅端（取送+作业合并）小程序 | uni-app + Vue3 + TS | `dist/build/mp-weixin` | 无（微信开发者工具导入） |
 | `carwash-admin` | **运营后台前端**（尚未建） | RuoYi-Vue3 + Element Plus | `dist/` | 1024 |
 | `carwash-server` | 后端（含若依原生模块 + `ruoyi-wash` 业务模块） | Spring Boot 4.1 + JDK17 | `ruoyi-admin/target/*.jar` | 8080 |
 | `docker` | 本地中间件（MySQL 8 / Redis 7） | Compose | — | 3306 / 6379 |
