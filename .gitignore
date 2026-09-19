@@ -232,6 +232,10 @@ target/
 *.jar
 *.log
 
+# 运行时/临时文件（后台 stderr、curl 脚本临时体）
+backend.err
+m.json
+
 # IDE
 .idea/
 *.iml
