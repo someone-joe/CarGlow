@@ -19,9 +19,13 @@ import java.util.List;
 @Service
 public class WashOrderStationService {
 
-    /** 看板关注的两个状态：清洗中 / 待质检 */
+    /**
+     * 作业台关注的四个状态：待入场（去程）/ 清洗中 / 待质检 / 待还车。
+     * 必须覆盖入场与驶离，否则师傅在看板里看不到单，arrive / leave 就没有入口。
+     */
     private static final List<String> QUEUE_STATUSES =
-            List.of(OrderStatus.WASHING.name(), OrderStatus.QC.name());
+            List.of(OrderStatus.TO_STATION.name(), OrderStatus.WASHING.name(),
+                    OrderStatus.QC.name(), OrderStatus.WAIT_RETURN.name());
 
     @Autowired
     private WashOrderMapper orderMapper;

@@ -29,9 +29,13 @@ public class WashPickService {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    /** 待取车：已取钥匙取车中 / 去程运输中 */
+    /**
+     * 待取车：钥匙已入柜待取 / 已取钥匙取车中 / 去程运输中。
+     * 必须从 KEY_IN 起：师傅先从柜中取走钥匙（take-key）才有后续动作，
+     * 少了 KEY_IN，师傅在任务池里看不到单，取钥匙接口就没有入口。
+     */
     private static final List<String> PICKUP_STATUSES =
-            List.of(OrderStatus.PICKING.name(), OrderStatus.TO_STATION.name());
+            List.of(OrderStatus.KEY_IN.name(), OrderStatus.PICKING.name(), OrderStatus.TO_STATION.name());
 
     /** 待送回：待还车 / 回程运输中 */
     private static final List<String> RETURN_STATUSES =

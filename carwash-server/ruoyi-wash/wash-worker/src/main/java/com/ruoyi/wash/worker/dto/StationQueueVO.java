@@ -115,11 +115,12 @@ public class StationQueueVO {
         }
     }
 
-    /** 排队（待质检）项 */
+    /** 非「在洗」的订单：待入场 / 待质检 / 待还车，status 决定前端给哪个动作 */
     public static class Waiting {
 
         private String orderNo;
         private String serviceName;
+        private String status;
         private Long queuedAt;
 
         public String getOrderNo() {
@@ -136,6 +137,14 @@ public class StationQueueVO {
 
         public void setServiceName(String serviceName) {
             this.serviceName = serviceName;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
         }
 
         public Long getQueuedAt() {

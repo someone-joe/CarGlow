@@ -63,6 +63,8 @@ public class WashStationService {
                 StationQueueVO.Waiting item = new StationQueueVO.Waiting();
                 item.setOrderNo(order.getOrderNo());
                 item.setServiceName(order.getServiceName());
+                // status 必带：前端据此决定给「入场 / 质检 / 驶离」哪个动作
+                item.setStatus(order.getStatus());
                 waiting.add(item);
             }
         }
