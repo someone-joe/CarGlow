@@ -31,6 +31,12 @@ public class WashPickController {
         return ApiResult.ok(pickService.tasks(WorkerContext.require(), stage));
     }
 
+    @PostMapping("/api/v1/pick/orders/{orderNo}/take-key")
+    public ApiResult<Void> takeKey(@PathVariable String orderNo) {
+        pickService.takeKey(orderNo, WorkerContext.require());
+        return ApiResult.<Void>ok(null);
+    }
+
     @PostMapping("/api/v1/pick/orders/{orderNo}/pick-car-done")
     public ApiResult<Void> pickCarDone(@PathVariable String orderNo, @RequestBody PickCarDoneRequest request) {
         if (request == null) {

@@ -74,6 +74,14 @@ public class WashPickService {
     }
 
     /**
+     * 取钥匙：师傅从柜中取出客户钥匙，开始取车作业（KEY_IN → PICKING）。
+     * 物理开箱由柜机回调负责，这里只做作业动作的打卡与状态推进。
+     */
+    public void takeKey(String orderNo, Long workerId) {
+        stateService.workerFire(orderNo, OrderEvent.TAKE_KEY, workerId, null);
+    }
+
+    /**
      * 取车拍照完成。契约要求 ≥6 张（含仪表盘），不足直接拒绝：
      * 少了事后无法界定车损责任，这是取送环节最容易扯皮的地方。
      */

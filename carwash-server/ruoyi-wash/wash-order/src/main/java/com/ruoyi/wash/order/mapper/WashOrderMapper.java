@@ -89,6 +89,13 @@ public interface WashOrderMapper {
     int updateCancelReason(@Param("orderNo") String orderNo, @Param("reason") String reason);
 
     /**
+     * 统计某订单某个事件在流转日志里的发生次数。
+     * 重洗次数 = QC_FAIL 次数：流转日志本就是唯一留痕，再在订单表加一列必然两处漂移。
+     */
+    @Select("select count(*) from wash_order_status_log where order_id = #{orderId} and event = #{event}")
+    long countEventByOrderId(@Param("orderId") Long orderId, @Param("event") String event);
+
+    /**
      * 师傅端任务池：按站点 + 状态集合查订单。
      * 站点是硬约束（师傅只能看到本站点单）；状态集合由师傅端按 PICKUP / RETURN 语义传入。
      */
