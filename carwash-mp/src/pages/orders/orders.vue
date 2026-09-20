@@ -45,13 +45,14 @@
       </view>
     </view>
 
-    <view v-if="!loading && list.length > 0 && list.length >= total" class="tip">没有更多了</view>
+    <view v-if="loadingMore" class="tip">加载中…</view>
+    <view v-else-if="!loading && list.length > 0 && !hasMore" class="tip">没有更多了</view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
 import { cancelOrder, fetchOrderList, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 import { fetchCustomerService } from '@/api/config'
 
@@ -65,6 +66,10 @@ const activeTab = ref<OrderTab>('ONGOING')
 const list = ref<OrderListItemVO[]>([])
 const total = ref(0)
 const loading = ref(false)
+const pageNum = ref(1)
+const loadingMore = ref(false)
+
+const hasMore = computed(() => list.value.length < total.value)
 
 /** 金额：后端存分，只在展示层转元，任何计算都不用元 */
 function formatAmount(amount?: number | null): string {
@@ -77,12 +82,32 @@ async function loadOrders(): Promise<void> {
     const page = await fetchOrderList({ tab: activeTab.value, pageNum: 1, pageSize: 10 })
     list.value = page.list ?? []
     total.value = page.total ?? 0
+    pageNum.value = 1
   } catch {
     // request 层已统一提示，这里只保证页面不白屏
     list.value = []
     total.value = 0
   } finally {
     loading.value = false
+  }
+}
+
+/** 触底加载下一页：追加而不是替换，替换会让翻页丢掉已展示的数据 */
+async function loadMore(): Promise<void> {
+  if (loading.value || loadingMore.value || !hasMore.value) {
+    return
+  }
+  loadingMore.value = true
+  try {
+    const next = pageNum.value + 1
+    const page = await fetchOrderList({ tab: activeTab.value, pageNum: next, pageSize: 10 })
+    list.value = [...list.value, ...(page.list ?? [])]
+    total.value = page.total ?? 0
+    pageNum.value = next
+  } catch {
+    // request 层已统一提示
+  } finally {
+    loadingMore.value = false
   }
 }
 
@@ -184,6 +209,11 @@ function switchTab(key: OrderTab): void {
 
 onShow(() => {
   loadOrders()
+})
+
+// 触底加载下一页（bug 修复：之前固定只取第 1 页，第 11 条起的订单永远看不到）
+onReachBottom(() => {
+  loadMore()
 })
 </script>
 
