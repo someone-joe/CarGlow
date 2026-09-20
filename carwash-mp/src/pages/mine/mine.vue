@@ -26,6 +26,10 @@
     </view>
 
     <view class="list">
+      <!-- 师傅端入口（入口 A）：同一个小程序，工号登录后切换为师傅界面 -->
+      <view class="list-item" @click="go('/pages/worker-login/worker-login')">
+        <text>我是洗车师傅</text><text class="arrow">›</text>
+      </view>
       <view class="list-item" @click="switchTo('/pages/customer-service/customer-service')">
         <text>联系客服</text><text class="arrow">›</text>
       </view>

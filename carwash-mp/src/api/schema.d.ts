@@ -54,6 +54,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/worker/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 师傅工号登录
+         * @description 师傅端入口。工号 + 密码登录（MVP 先密码，后续可换短信码）。
+         *     返回带 role=WORKER 的访问令牌，与 C 端微信登录令牌隔离。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 工号 */
+                        workerNo: string;
+                        /** @description 登录密码 */
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["WorkerLoginVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/agreements": {
         parameters: {
             query?: never;
@@ -1585,6 +1636,465 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pick/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 师傅任务池（待取 / 待送）
+         * @description 返回当前师傅可见的待取车（KEY_IN / PICKING / TO_STATION）与待送回（WAIT_RETURN / RETURNING）订单列表。
+         *     待取车必须从 KEY_IN 起：师傅先从柜中取走钥匙（take-key），才有后续取车动作；
+         *     少了 KEY_IN 师傅在任务池里看不到单，取钥匙就没有入口。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description PICKUP=待取车；RETURN=待送回；ALL=全部（默认） */
+                    stage?: "PICKUP" | "RETURN" | "ALL";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 任务列表 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: number;
+                            data?: components["schemas"]["PickTaskVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pick/orders/{orderNo}/pick-car-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 取车拍照完成（触发 PICK_CAR_DONE）
+         * @description 触发状态机 PICK_CAR_DONE：PICKING → TO_STATION。
+         *     **必填 ≥6 张 360° 照片 + 仪表盘**（bizType=PICK），否则后端拒绝。详见《订单状态机规则表.md》。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 上传后的 fileId 列表，bizType=PICK */
+                        fileIds: string[];
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pick/orders/{orderNo}/return-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 送回停放完成 + 钥匙归柜（触发 RETURN_DONE）
+         * @description 触发状态机 RETURN_DONE：RETURNING → RETURNED。
+         *     **必填停放照（含车位号）**（bizType=RETURN），否则后端拒绝。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 停放照 fileId 列表，bizType=RETURN */
+                        fileIds: string[];
+                        /** @description 车位号 */
+                        parkingNo: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 中央站工位队列看板
+         * @description 返回中央站作业台：待入场（TO_STATION）、清洗中（WASHING）、待质检（QC）、待还车（WAIT_RETURN）订单。
+         *     WASHING 进 bays，其余进 waiting，前端按 status 分栏渲染并给出对应动作（入场 / SOP / 质检 / 驶离）。
+         *     只返回 WASHING / QC 会让 arrive 与 leave 没有入口。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 工位队列 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: number;
+                            data?: components["schemas"]["StationQueueVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/orders/{orderNo}/sop-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * SOP 全部完成（触发 SOP_DONE）
+         * @description 触发状态机 SOP_DONE：WASHING → QC；15 步打卡明细后端按 step 记录，这里汇总提交
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 已完成的 15 步 SOP 步骤标识 */
+                        steps?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/orders/{orderNo}/qc-pass": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 质检通过（触发 QC_PASS）
+         * @description 触发状态机 QC_PASS：QC → WAIT_RETURN。
+         *     **必填洗后照**（bizType=WASHED，前后对比图由后端自动拼），否则后端拒绝。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 洗后照 fileId 列表，bizType=WASHED */
+                        fileIds: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/orders/{orderNo}/qc-fail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 质检不合格（触发 QC_FAIL）
+         * @description 触发状态机 QC_FAIL：QC → WASHING；必填原因，重洗次数 +1，≥2 次自动生成复盘工单
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pick/orders/{orderNo}/take-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 取钥匙（触发 TAKE_KEY）
+         * @description 触发状态机 TAKE_KEY：KEY_IN → PICKING。师傅从柜中取出客户钥匙、开始取车作业。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/orders/{orderNo}/arrive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 入场打卡（触发 ARRIVE_STATION）
+         * @description 触发状态机 ARRIVE_STATION：TO_STATION → WASHING；记录到站点时间。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/orders/{orderNo}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 驶离站点（触发 LEAVE_STATION）
+         * @description 触发状态机 LEAVE_STATION：WAIT_RETURN → RETURNING；记录离站时间。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1707,6 +2217,24 @@ export interface components {
             current?: boolean;
             /** @description 该节点的照片等证据 */
             evidences?: components["schemas"]["MediaVO"][];
+        };
+        WorkerLoginVO: {
+            token?: string;
+            /** Format: int64 */
+            expireAt?: number;
+            /** Format: int64 */
+            workerId?: number;
+            /** @description 工号 */
+            workerNo?: string;
+            name?: string;
+            /** Format: int64 */
+            siteId?: number;
+            siteName?: string;
+            /**
+             * @description 正常 / 禁用
+             * @enum {string}
+             */
+            status?: "NORMAL" | "DISABLED";
         };
         LoginVO: {
             token?: string;
@@ -1956,6 +2484,75 @@ export interface components {
             url?: string;
             /** Format: int64 */
             uploadTime?: number;
+        };
+        /** @description 任务池单项（取送端） */
+        PickTaskVO: {
+            orderNo?: string;
+            /**
+             * @description 待取车 / 待送回
+             * @enum {string}
+             */
+            bizType?: "PICKUP" | "RETURN";
+            status?: components["schemas"]["OrderStatus"];
+            serviceName?: string;
+            /** @description 车牌 */
+            vehiclePlate?: string;
+            vehicleBrand?: string;
+            vehicleColor?: string;
+            /** @description 客户称呼，脱敏 */
+            customerName?: string;
+            /** @description 联系电话，脱敏 */
+            customerPhone?: string;
+            pickupAddr?: string;
+            returnAddr?: string;
+            /**
+             * Format: date
+             * @description 预约服务日
+             */
+            appointmentDate?: string;
+            /** @description 承诺还车时间，如 次日 07:00 */
+            promiseReturnTime?: string;
+            /** @description 最晚存钥匙时间 */
+            pickupDeadline?: string;
+            /** @description 取车需拍照片数（≥6） */
+            requiredPhotoCount?: number;
+            /** @description 距师傅当前位置约多少米；未定位时为空 */
+            distanceMeters?: number;
+        };
+        /** @description 中央站工位队列看板项 */
+        StationQueueVO: {
+            /** Format: int64 */
+            stationId?: number;
+            stationName?: string;
+            /** @description 清洗中数量 */
+            washingCount?: number;
+            /** @description 待质检数量 */
+            qcCount?: number;
+            /** @description 工位列表 */
+            bays?: {
+                /** @description 工位号 */
+                bayNo?: string;
+                orderNo?: string;
+                status?: components["schemas"]["OrderStatus"];
+                /**
+                 * Format: int64
+                 * @description 进入该工位时间（毫秒）
+                 */
+                startedAt?: number;
+                /** @description 当前 15 步 SOP 进度，WASHING 时有效 */
+                sopStep?: number;
+            }[];
+            /**
+             * @description 非「在洗」的订单，含待入场（TO_STATION）/ 待质检（QC）/ 待还车（WAIT_RETURN）。
+             *     status 必带：前端据此决定给出「入场 / 质检 / 驶离」哪个动作。
+             */
+            waiting?: {
+                orderNo?: string;
+                serviceName?: string;
+                status?: components["schemas"]["OrderStatus"];
+                /** Format: int64 */
+                queuedAt?: number;
+            }[];
         };
         FaqVO: {
             /** Format: int64 */

@@ -84,6 +84,24 @@
 			"style": {
 				"navigationBarTitleText": "客服中心"
 			}
+		},
+		{
+			"path": "pages/worker-login/worker-login",
+			"style": {
+				"navigationBarTitleText": "师傅登录"
+			}
+		},
+		{
+			"path": "pages/worker-tasks/worker-tasks",
+			"style": {
+				"navigationBarTitleText": "任务池"
+			}
+		},
+		{
+			"path": "pages/worker-station/worker-station",
+			"style": {
+				"navigationBarTitleText": "作业台"
+			}
 		}
 	],
 	"tabBar": {

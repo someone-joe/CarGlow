@@ -56,6 +56,32 @@ export function clearToken(): void {
   uni.removeStorageSync(TOKEN_KEY)
 }
 
+/**
+ * 师傅端 token 与 C 端 token 分开存：同一小程序两套登录态（顾客 / 师傅），
+ * 共用一个 key 会互相覆盖——师傅登录后顾客身份丢失，反之亦然。
+ */
+export const WORKER_TOKEN_KEY = 'carglow_worker_token'
+export const WORKER_LOGIN_PAGE = '/pages/worker-login/worker-login'
+
+/** 师傅端接口前缀：这些接口必须带师傅 token，不是会员 token */
+export function isWorkerApi(url: string): boolean {
+  return url.startsWith('/api/v1/worker')
+    || url.startsWith('/api/v1/pick')
+    || url.startsWith('/api/v1/station')
+}
+
+export function getWorkerToken(): string {
+  return (uni.getStorageSync(WORKER_TOKEN_KEY) as string) || ''
+}
+
+export function setWorkerToken(token: string): void {
+  uni.setStorageSync(WORKER_TOKEN_KEY, token)
+}
+
+export function clearWorkerToken(): void {
+  uni.removeStorageSync(WORKER_TOKEN_KEY)
+}
+
 export function request<T>(options: RequestOptions): Promise<T> {
   return doRequest<T>(options, false)
 }
@@ -72,8 +98,9 @@ function uuid(): string {
 function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const header: Record<string, string> = { 'Content-Type': 'application/json' }
+    const workerApi = isWorkerApi(options.url)
     if (options.auth !== false) {
-      const token = getToken()
+      const token = workerApi ? getWorkerToken() : getToken()
       if (token) {
         header.Authorization = `Bearer ${token}`
       }
@@ -100,6 +127,13 @@ function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
         }
         if (body.code === 0) {
           resolve(body.data)
+          return
+        }
+        // 师傅端登录态失效：工号密码无法静默获取，只能跳登录页，不做自动续登
+        if (body.code === 10002 && workerApi) {
+          clearWorkerToken()
+          uni.navigateTo({ url: WORKER_LOGIN_PAGE })
+          reject(new ApiError(body.code, body.msg))
           return
         }
         // 未登录：静默续登后重试一次，页面无感知
