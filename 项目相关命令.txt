@@ -5,7 +5,7 @@ docker exec carglow-redis redis-cli -a carglow_dev --no-auth-warning SET "slot:c
 
 
 触发柜机回调：
-$body = '{"orderNo":"SE20260919141557296186","code":"219437","slotNo":"A02"}'
+$body = '{"orderNo":"SE20260921115500411526","code":"429935","slotNo":"A02"}'
 [System.IO.File]::WriteAllText('d:\CarGlow\deposit.json', $body)
 curl.exe -X POST "http://localhost:8080/device-callback/v1/slot/deposit" -H "Content-Type: application/json" --data-binary "@d:\CarGlow\deposit.json"
 
@@ -49,3 +49,31 @@ $rb = @{rating=5; tags=@("干净"); content="满意"} | ConvertTo-Json -Compress
 curl.exe -s -X POST "$base/api/v1/orders/$ORDERNO/reviews" `
   -H "Content-Type: application/json" -H "Authorization: Bearer $memberToken" `
   --data-binary "@r.json"; echo ""
+
+
+
+
+启动指令：
+中间件：MySQL 8 + Redis 7
+docker compose -f docker/docker-compose.dev.yml up -d
+docker ps    # 应看到 carglow-mysql / carglow-redis 且 healthy
+
+后端 carwash-server（8080）
+java -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar
+
+运营后台 carwash-admin（1024）
+cd d:/CarGlow/carwash-admin; npm run dev
+
+
+
+C端操作取钥匙时，生成的key存在redis的哪怎么看
+slot:code:{订单号}，如 slot:code:SE20260919135655936500
+GET "<key>"查值、TTL "<key>"查剩余过期秒数（-1 永不过期，-2 已不存在）
+
+
+
+uni-app 打包
+cd d:\CarGlow\carwash-mp; npm run dev:mp-weixin
+
+查看uni-app 编译时间
+Get-Item d:\CarGlow\carwash-mp\dist\dev\mp-weixin | Select-Object LastWriteTime

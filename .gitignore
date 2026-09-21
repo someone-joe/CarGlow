@@ -235,6 +235,22 @@ target/
 # 运行时/临时文件（后台 stderr、curl 脚本临时体）
 backend.err
 m.json
+req.json
+deposit.json
+rq*.json
+w1.json
+w2.json
+w3.json
+w4.json
+s1.json
+s2.json
+s3.json
+s4.json
+s5.json
+s6.json
+
+# 影像存储目录：后端运行时生成（wash.media.store-path 默认 ./upload/media），绝不入库
+upload/
 
 # IDE
 .idea/
