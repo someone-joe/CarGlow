@@ -36,6 +36,8 @@ public class WashMediaService {
 
     private static final Logger log = LoggerFactory.getLogger(WashMediaService.class);
     private static final Set<String> BIZ_TYPES = Set.of("PARK", "PICK", "WASHED", "RETURN", "COMPARE", "VIDEO");
+    /** 影像访问地址前缀，只允许在这里定义一处 */
+    private static final String MEDIA_RAW_PREFIX = "/api/v1/media/";
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     @Autowired
@@ -83,7 +85,7 @@ public class WashMediaService {
         MediaVO vo = new MediaVO();
         vo.setFileId(fileId);
         vo.setBizType(bizType);
-        vo.setUrl("/api/v1/media/" + fileId + "/raw");
+        vo.setUrl(MEDIA_RAW_PREFIX + fileId + "/raw");
         vo.setUploadTime(System.currentTimeMillis());
         return vo;
     }
@@ -106,6 +108,28 @@ public class WashMediaService {
 
     public List<WashMedia> listByOrder(String orderNo) {
         return mediaMapper.selectByOrderNo(orderNo);
+    }
+
+    /**
+     * 按订单 + 业务类型查影像，返回带访问地址的 VO（师傅端查看用户停车照等场景复用）。
+     * 放在本域而不是让调用方自己拼 URL：访问路径的生成规则只允许有一处。
+     */
+    public List<MediaVO> listVosByOrder(String orderNo, String bizType) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return List.of();
+        }
+        return mediaMapper.selectByOrderNo(orderNo).stream()
+                .filter(m -> bizType == null || bizType.equals(m.getBizType()))
+                .map(m -> {
+                    MediaVO vo = new MediaVO();
+                    vo.setFileId(m.getFileId());
+                    vo.setBizType(m.getBizType());
+                    vo.setUrl(MEDIA_RAW_PREFIX + m.getFileId() + "/raw");
+                    // WashMedia 未映射 create_time，上传时间对找车无用，留空（不臆造字段）
+                    vo.setUploadTime(null);
+                    return vo;
+                })
+                .toList();
     }
 
     private void save(MultipartFile file, String relative) {

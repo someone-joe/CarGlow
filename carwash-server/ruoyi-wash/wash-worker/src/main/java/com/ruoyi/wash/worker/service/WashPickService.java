@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.statemachine.OrderEvent;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.order.service.WashMediaService;
 import com.ruoyi.wash.order.service.WashOrderPickService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.worker.dto.PickTaskVO;
@@ -45,6 +46,9 @@ public class WashPickService {
     @Value("${wash.pick.photo-min:6}")
     private int photoMin;
 
+    /** 用户停车照的业务类型：师傅找车看的就是这批照片 */
+    private static final String BIZ_TYPE_PARK = "PARK";
+
     @Autowired
     private WashWorkerService workerService;
 
@@ -53,6 +57,9 @@ public class WashPickService {
 
     @Autowired
     private WashOrderStateService stateService;
+
+    @Autowired
+    private WashMediaService mediaService;
 
     /**
      * 任务池。站点是硬过滤（师傅只看本站点单），stage 决定看待取还是待送。
@@ -66,6 +73,10 @@ public class WashPickService {
             PickTaskVO vo = new PickTaskVO();
             vo.setOrderNo(order.getOrderNo());
             vo.setStatus(order.getStatus());
+            // 中文状态名由后端枚举给出，前端只展示不翻译，避免两处漂移
+            vo.setStatusLabel(OrderStatus.of(order.getStatus()).getLabel());
+            // 用户停车照：师傅找车用（PARK，下单/存钥匙时上传）
+            vo.setParkPhotos(mediaService.listVosByOrder(order.getOrderNo(), BIZ_TYPE_PARK));
             vo.setServiceName(order.getServiceName());
             vo.setVehiclePlate(order.getPlateNo());
             vo.setBizType(PICKUP_STATUSES.contains(order.getStatus()) ? "PICKUP" : "RETURN");

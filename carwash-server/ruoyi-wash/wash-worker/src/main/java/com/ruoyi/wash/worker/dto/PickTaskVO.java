@@ -1,5 +1,9 @@
 package com.ruoyi.wash.worker.dto;
 
+import com.ruoyi.wash.order.dto.MediaVO;
+
+import java.util.List;
+
 /**
  * 师傅任务池单项 —— 与 openapi.yaml 的 PickTaskVO 逐字段一致，禁止另立字段名。
  *
@@ -12,6 +16,10 @@ public class PickTaskVO {
     /** PICKUP 待取车 / RETURN 待送回 */
     private String bizType;
     private String status;
+    /** 状态中文名，由后端 OrderStatus 枚举给出，前端不自行翻译 */
+    private String statusLabel;
+    /** 用户停车照（PARK），师傅找车用 */
+    private List<MediaVO> parkPhotos;
     private String serviceName;
     private String vehiclePlate;
     private String vehicleBrand;
@@ -48,6 +56,22 @@ public class PickTaskVO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getStatusLabel() {
+        return statusLabel;
+    }
+
+    public void setStatusLabel(String statusLabel) {
+        this.statusLabel = statusLabel;
+    }
+
+    public List<MediaVO> getParkPhotos() {
+        return parkPhotos;
+    }
+
+    public void setParkPhotos(List<MediaVO> parkPhotos) {
+        this.parkPhotos = parkPhotos;
     }
 
     public String getServiceName() {
