@@ -39,9 +39,30 @@
         </view>
       </view>
 
+      <!-- 已拍取车照：分批上传后可预览、可长按删除 -->
+      <view v-if="t.status === 'PICKING'" class="photos">
+        <text class="photos-title">
+          已拍取车照 {{ draftList(t.orderNo).length }}/{{ t.requiredPhotoCount ?? 6 }}（点开看大图，长按删除）
+        </text>
+        <view class="photos-row">
+          <image
+            v-for="(p, i) in draftList(t.orderNo)"
+            :key="p.fileId"
+            class="photo"
+            :src="photoUrl(p.url)"
+            mode="aspectFill"
+            @click.stop="preview(draftList(t.orderNo), i)"
+            @longpress.stop="removeDraft(t.orderNo, i)"
+          />
+        </view>
+      </view>
+
       <view class="ops">
         <text v-if="t.status === 'KEY_IN'" class="op" @click="doTakeKey(t.orderNo)">取钥匙</text>
-        <text v-if="t.status === 'PICKING'" class="op" @click="doPickCarDone(t.orderNo, t.requiredPhotoCount ?? 6)">取车拍照</text>
+        <template v-if="t.status === 'PICKING'">
+          <text class="op" @click="addPhotos(t.orderNo)">拍照/选图</text>
+          <text class="op" @click="submitPickCarDone(t.orderNo, t.requiredPhotoCount ?? 6)">完成取车</text>
+        </template>
         <text v-if="t.status === 'RETURNING'" class="op" @click="doReturnDone(t.orderNo)">送回归柜</text>
       </view>
     </view>
@@ -92,12 +113,59 @@ async function doTakeKey(orderNo?: string): Promise<void> {
   })
 }
 
-async function doPickCarDone(orderNo?: string, min: number = 6): Promise<void> {
+/**
+ * 已拍摄并上传成功、但还未提交的取车照（按订单分组）。
+ *
+ * 为什么要分批：契约只要求「提交时 ≥6 张」（minItems: 6，是业务红线），
+ * 上传接口本身没有数量限制。若强制一次选满 6 张，师傅现场拍到一半退出就前功尽弃，
+ * 也拿不到预览。故改为「随时拍随时传，凑够再提交」。
+ */
+const drafts = ref<Record<string, MediaVO[]>>({})
+
+function draftList(orderNo?: string): MediaVO[] {
+  return orderNo ? drafts.value[orderNo] ?? [] : []
+}
+
+/** 选图（可只选 1 张）并立即上传；上传后即可在卡片里预览 */
+async function addPhotos(orderNo?: string): Promise<void> {
   if (!orderNo) return
   await guard(async () => {
-    const fileIds = await choosePhotos(min)
-    if (!fileIds) return
-    await pickCarDone(orderNo, fileIds)
+    const res = await new Promise<UniApp.ChooseMediaSuccessCallbackResult>((resolve, reject) => {
+      // count 是「最多可选」而非「必须选满」，用户选 1 张也可以
+      uni.chooseMedia({ count: 9, mediaType: ['image'], sizeType: ['compressed'], success: resolve, fail: reject })
+    }).catch(() => null)
+    if (!res || !res.tempFiles?.length) return
+    const list = draftList(orderNo).slice()
+    for (const f of res.tempFiles) {
+      const media = await uploadMedia(f.tempFilePath, 'PICK', orderNo)
+      if (media.fileId) list.push(media)
+    }
+    drafts.value = { ...drafts.value, [orderNo]: list }
+  })
+}
+
+function removeDraft(orderNo?: string, index: number = 0): void {
+  if (!orderNo) return
+  const list = draftList(orderNo).slice()
+  list.splice(index, 1)
+  drafts.value = { ...drafts.value, [orderNo]: list }
+}
+
+/** 提交取车完成：不足时前端先拦并提示还差几张，不让用户白跑一趟后端 */
+async function submitPickCarDone(orderNo?: string, required: number = 6): Promise<void> {
+  if (!orderNo) return
+  await guard(async () => {
+    const ids = draftList(orderNo)
+      .map((p) => p.fileId)
+      .filter((id): id is string => !!id)
+    if (ids.length < required) {
+      uni.showToast({ title: `还需 ${required - ids.length} 张照片`, icon: 'none' })
+      return
+    }
+    await pickCarDone(orderNo, ids)
+    const next = { ...drafts.value }
+    delete next[orderNo]
+    drafts.value = next
     uni.showToast({ title: '取车拍照已提交', icon: 'none' })
     await load()
   })
