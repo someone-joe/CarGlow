@@ -2494,6 +2494,10 @@ export interface components {
              */
             bizType?: "PICKUP" | "RETURN";
             status?: components["schemas"]["OrderStatus"];
+            /** @description 状态中文名，由后端 OrderStatus 枚举给出；前端禁止自行翻译状态码 */
+            statusLabel?: string;
+            /** @description 用户上传的停车照（bizType=PARK），师傅找车用；无照片时为空数组 */
+            parkPhotos?: components["schemas"]["MediaVO"][];
             serviceName?: string;
             /** @description 车牌 */
             vehiclePlate?: string;

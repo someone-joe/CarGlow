@@ -19,11 +19,25 @@
     <view v-for="t in tasks" :key="t.orderNo" class="card">
       <view class="row">
         <text class="plate">{{ t.vehiclePlate || '—' }}</text>
-        <text class="status">{{ t.status }}</text>
+        <text class="status">{{ t.statusLabel || t.status }}</text>
       </view>
       <view class="line">{{ t.serviceName || '洗车服务' }} · 预约 {{ t.appointmentDate || '—' }}</view>
       <view class="line sub">单号 {{ t.orderNo }}</view>
       <view class="line sub" v-if="t.requiredPhotoCount">取车需拍 ≥{{ t.requiredPhotoCount }} 张</view>
+
+      <view v-if="photoList(t).length" class="photos">
+        <text class="photos-title">用户停车照（找车用）</text>
+        <view class="photos-row">
+          <image
+            v-for="(p, i) in photoList(t)"
+            :key="p.fileId"
+            class="photo"
+            :src="photoUrl(p.url)"
+            mode="aspectFill"
+            @click.stop="preview(photoList(t), i)"
+          />
+        </view>
+      </view>
 
       <view class="ops">
         <text v-if="t.status === 'KEY_IN'" class="op" @click="doTakeKey(t.orderNo)">取钥匙</text>
@@ -40,9 +54,10 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
-import { uploadMedia } from '@/api/media'
+import { uploadMedia, type MediaVO } from '@/api/media'
 import { fetchPickTasks, pickCarDone, returnDone, takeKey, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
+import { BASE_URL } from '@/utils/request'
 
 const stage = ref<PickStage>('ALL')
 const tasks = ref<PickTaskVO[]>([])
@@ -99,6 +114,22 @@ async function doReturnDone(orderNo?: string): Promise<void> {
     uni.showToast({ title: '已送回归柜', icon: 'none' })
     await load()
   })
+}
+
+/** 用户停车照（后端已按 PARK 过滤好），无照片返回空数组，模板据此不渲染 */
+function photoList(task: PickTaskVO): MediaVO[] {
+  return task.parkPhotos ?? []
+}
+
+/** 影像 url 是相对路径，需拼后端基址；已是绝对地址则不重复拼 */
+function photoUrl(url?: string): string {
+  if (!url) return ''
+  return url.startsWith('http') ? url : BASE_URL + url
+}
+
+/** 点图放大预览：师傅在车位现场看停车照找车 */
+function preview(photos: MediaVO[], index: number): void {
+  uni.previewImage({ urls: photos.map((p) => photoUrl(p.url)), current: index })
 }
 
 /** 选图并上传，返回 fileId 列表；用户取消返回 null */
@@ -239,6 +270,28 @@ function doLogout(): void {
 .line.sub {
   color: #999;
   font-size: 24rpx;
+}
+
+.photos {
+  margin-top: 18rpx;
+}
+
+.photos-title {
+  font-size: 24rpx;
+  color: #888;
+}
+
+.photos-row {
+  display: flex;
+  margin-top: 12rpx;
+}
+
+.photo {
+  width: 140rpx;
+  height: 140rpx;
+  margin-right: 12rpx;
+  border-radius: 10rpx;
+  background: #f0f0f0;
 }
 
 .ops {
