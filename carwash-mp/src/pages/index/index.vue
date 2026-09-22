@@ -1,10 +1,6 @@
 <template>
   <view class="page">
     <SiteBar />
-    <view class="hero">
-      <text class="title">夜间代客洗车</text>
-      <text class="subtitle">今晚下单，明早干净上路</text>
-    </view>
 
     <view v-if="loading" class="tip">加载中…</view>
 
@@ -14,72 +10,95 @@
         <text class="coupon-banner-clear" @click="clearCoupon">清除</text>
       </view>
 
-      <view class="section">
-        <text class="section-title">选择服务</text>
-        <view v-for="item in services" :key="item.serviceId" class="option"
-              :class="{ active: serviceId === item.serviceId }" @click="serviceId = item.serviceId">
-          <view class="option-main">
-            <text class="option-name">{{ item.name }}</text>
-            <text class="option-sub">约 {{ item.workMinutes }} 分钟 · 取送费 ¥{{ fen2yuan(item.pickupFee) }}</text>
+      <!-- STEP 1 选择服务时间 -->
+      <view class="step">
+        <view class="step-head">
+          <text class="step-no">STEP 1</text>
+          <text class="step-title">选择服务时间</text>
+        </view>
+        <view class="step-body" @click="openTimeSheet">
+          <text class="step-value">{{ appointDate }} {{ appointTime }}</text>
+          <text class="step-action">选择 ›</text>
+        </view>
+      </view>
+
+      <!-- STEP 2 选择服务方式（取送车 + 钥匙柜） -->
+      <view class="step">
+        <view class="step-head">
+          <text class="step-no">STEP 2</text>
+          <text class="step-title">选择服务方式</text>
+        </view>
+        <view class="switch-row">
+          <view>
+            <text class="switch-label">是否需要取送车服务</text>
+            <text class="switch-sub">师傅上门取车，洗完送回</text>
           </view>
-          <text class="option-price">¥{{ fen2yuan(item.displayPrice) }}</text>
+          <switch :checked="pickupRequired" @change="onPickupChange" color="#00aeb5" />
+        </view>
+        <view class="step-body" @click="goCabinet">
+          <view class="step-body-main">
+            <text class="step-value" :class="{ placeholder: !selectedCabinetName }">
+              {{ selectedCabinetName || '请选择就近钥匙柜' }}
+            </text>
+            <text class="step-hint">{{ cabinetSub }}</text>
+          </view>
+          <text class="step-action">选择 ›</text>
+        </view>
+      </view>
+
+      <!-- STEP 3 选择服务 -->
+      <view class="step">
+        <view class="step-head">
+          <text class="step-no">STEP 3</text>
+          <text class="step-title">选择服务</text>
+        </view>
+        <view v-for="item in services" :key="item.serviceId" class="svc"
+              :class="{ active: serviceId === item.serviceId }" @click="serviceId = item.serviceId">
+          <view class="svc-main">
+            <text class="svc-name">{{ item.name }}</text>
+            <text class="svc-sub">约 {{ item.workMinutes }} 分钟</text>
+          </view>
+          <view class="svc-price">
+            <text class="price-now">¥{{ fen2yuan(item.displayPrice) }}</text>
+            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="price-old">
+              ¥{{ fen2yuan(item.originPrice) }}
+            </text>
+          </view>
         </view>
         <view v-if="!services.length" class="empty">暂无可预约的服务</view>
       </view>
 
-      <view class="section">
-        <text class="section-title">选择车辆</text>
-        <view v-for="item in vehicles" :key="item.vehicleId" class="option"
-              :class="{ active: vehicleId === item.vehicleId }" @click="vehicleId = item.vehicleId">
-          <view class="option-main">
-            <text class="option-name">{{ item.plateNo }}</text>
-            <text class="option-sub">{{ item.brand || '未填品牌' }}<text v-if="item.color"> · {{ item.color }}</text></text>
-          </view>
+      <!-- STEP 4 填写车辆信息 -->
+      <view class="step">
+        <view class="step-head">
+          <text class="step-no">STEP 4</text>
+          <text class="step-title">填写车辆信息</text>
         </view>
-        <view v-if="!vehicles.length" class="empty">还没有车辆，请先添加车辆</view>
-      </view>
-
-      <!-- P4 钥匙柜选择：独立页面，点击进入列表选柜 -->
-      <view class="section">
-        <text class="section-title">选择钥匙柜</text>
-        <view class="cabinet-entry" @click="goCabinet">
-          <view class="option-main">
-            <text class="option-name">{{ selectedCabinetName || '请选择就近钥匙柜' }}</text>
-            <text class="option-sub">{{ cabinetSub }}</text>
-          </view>
-          <text class="arrow">›</text>
+        <view class="step-body" @click="goVehicles">
+          <text class="step-value" :class="{ placeholder: !selectedPlate }">
+            {{ selectedPlate || '请选择车辆' }}
+          </text>
+          <text class="step-action">选择 ›</text>
         </view>
+        <input class="input" v-model="remark" placeholder="车辆停放位置，如：地库 A 区 23 号" />
       </view>
 
-      <view class="section">
-        <text class="section-title">预约取车时间</text>
-        <view class="row">
-          <picker mode="date" :value="appointDate" :start="todayStr" @change="onDateChange">
-            <view class="picker">{{ appointDate }}</view>
-          </picker>
-          <picker mode="time" :value="appointTime" @change="onTimeChange">
-            <view class="picker">{{ appointTime }}</view>
-          </picker>
+      <!-- STEP 5 拍照留言 -->
+      <view class="step">
+        <view class="step-head">
+          <text class="step-no">STEP 5</text>
+          <text class="step-title">拍照留言</text>
         </view>
-      </view>
-
-      <view class="section">
-        <text class="section-title">停车备注</text>
-        <input class="input" v-model="remark" placeholder="如：停在地库 A 区 23 号" />
-      </view>
-
-      <view class="section">
-        <text class="section-title">车辆停放照片（选填）</text>
-        <text class="section-hint">拍一张停放照片，工作人员更容易找到您的车</text>
         <view class="photos">
           <view v-for="(p, i) in photos" :key="i" class="photo">
             <image class="photo-img" :src="p" mode="aspectFill" />
             <text class="photo-del" @click="removePhoto(i)">×</text>
           </view>
-          <view v-if="photos.length < 6" class="photo photo-add" @click="choosePhoto">
+          <view v-if="photos.length < MAX_PHOTOS" class="photo photo-add" @click="choosePhoto">
             <text class="photo-plus">＋</text>
           </view>
         </view>
+        <text class="step-hint">拍一张停放照片，师傅更容易找到您的车（最多 {{ MAX_PHOTOS }} 张）</text>
       </view>
 
       <view class="agree" @click="agreed = !agreed">
@@ -87,14 +106,39 @@
         <text class="agree-text">我已阅读并同意《代客洗车服务协议》</text>
       </view>
 
-      <view class="primary-btn" :class="{ disabled: !canSubmit }" @click="submitOrder">
-        {{ submitting ? '提交中…' : '立即下单' }}
+      <view class="submit" :class="{ disabled: !canSubmit }" @click="submitOrder">
+        {{ submitting ? '提交中…' : '确定下单' }}
       </view>
     </block>
 
-    <view class="entry" @click="goOrders">
-      <text class="entry-title">我的订单</text>
-      <text class="entry-desc">查看进行中 / 待评价 / 全部订单</text>
+    <!-- 时间浮层 -->
+    <view v-if="showTimeSheet" class="sheet-mask" @click="showTimeSheet = false">
+      <view class="sheet" @click.stop>
+        <view class="sheet-head">
+          <text class="sheet-title">选择服务时间</text>
+          <text class="sheet-close" @click="showTimeSheet = false">×</text>
+        </view>
+
+        <scroll-view class="days" scroll-x>
+          <view v-for="d in dayTabs" :key="d.date" class="day" :class="{ active: appointDate === d.date }"
+                @click="pickDay(d.date)">
+            <text class="day-label">{{ d.label }}</text>
+            <text class="day-date">{{ d.md }}</text>
+          </view>
+        </scroll-view>
+
+        <view class="slots">
+          <view v-for="t in timeSlots" :key="t" class="slot" :class="{ active: appointTime === t }" @click="pickTime(t)">
+            {{ t }}
+          </view>
+        </view>
+
+        <view v-if="capacity" class="sheet-tip">
+          最晚存钥匙 {{ capacity.depositDeadline || '—' }} · 承诺还车 {{ capacity.promiseReturnTime || '—' }}
+        </view>
+
+        <view class="sheet-confirm" :class="{ disabled: !appointTime }" @click="confirmTime">确定</view>
+      </view>
     </view>
   </view>
 </template>
@@ -112,6 +156,7 @@ import {
   type VehicleVO,
 } from '@/api/catalog'
 import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
+import { fetchCapacity, type CapacityVO } from '@/api/home'
 import SiteBar from '@/components/SiteBar.vue'
 import { orderDraft } from '@/store/orderDraft'
 
@@ -131,6 +176,17 @@ const agreed = ref(false)
 const submitting = ref(false)
 const loading = ref(true)
 const selectedCouponId = ref<number | undefined>(undefined)
+const pickupRequired = ref(true)
+
+/** 时间浮层 */
+const showTimeSheet = ref(false)
+const capacity = ref<CapacityVO | null>(null)
+
+/**
+ * 可选时间段（夜间服务：19:00-23:00 整点）。
+ * TODO：营业时间应来自站点配置，当前后端未下发，先用固定时段并在浮层提示最晚存钥匙时间。
+ */
+const timeSlots = ['19:00', '20:00', '21:00', '22:00', '23:00']
 
 const todayStr = today()
 const canSubmit = computed(
@@ -144,6 +200,23 @@ const cabinetSub = computed(() => {
   const c = cabinets.value.find((x) => x.cabinetId === cabinetId.value)
   if (!c) return '点击选择就近的自助钥匙柜'
   return `空闲格口 ${c.slotFree} / ${c.slotTotal}`
+})
+const selectedPlate = computed(() => vehicles.value.find((v) => v.vehicleId === vehicleId.value)?.plateNo || '')
+
+/** 近 7 天，横向日期 tab */
+const dayTabs = computed(() => {
+  const list: { date: string; label: string; md: string }[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    list.push({
+      date,
+      label: i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '后天' : `${d.getMonth() + 1}/${d.getDate()}`,
+      md: `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    })
+  }
+  return list
 })
 
 function clearCoupon(): void {
@@ -171,12 +244,40 @@ function tomorrow(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-function onDateChange(e: { detail: { value: string } }): void {
-  appointDate.value = e.detail.value
+/** switch 的 change 在 vue-tsc 下推断为 Event，取值需要按 uni 的结构断言 */
+function onPickupChange(e: Event): void {
+  const detail = (e as unknown as { detail?: { value?: boolean } }).detail
+  pickupRequired.value = detail?.value ?? false
 }
 
-function onTimeChange(e: { detail: { value: string } }): void {
-  appointTime.value = e.detail.value
+function openTimeSheet(): void {
+  showTimeSheet.value = true
+  if (!capacity.value) {
+    fetchCapacity()
+      .then((c) => (capacity.value = c))
+      .catch(() => null)
+  }
+}
+
+function pickDay(date: string): void {
+  appointDate.value = date
+}
+
+function pickTime(t: string): void {
+  appointTime.value = t
+}
+
+function confirmTime(): void {
+  if (!appointTime.value) return
+  showTimeSheet.value = false
+}
+
+function goCabinet(): void {
+  uni.navigateTo({ url: '/pages/cabinet/cabinet' })
+}
+
+function goVehicles(): void {
+  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
 
 /** 停放照片上限：与契约 parkPhotoFileIds maxItems、后端校验同值 */
@@ -214,14 +315,6 @@ function choosePhoto(): void {
 
 function removePhoto(i: number): void {
   photos.value.splice(i, 1)
-}
-
-function goCabinet(): void {
-  uni.navigateTo({ url: '/pages/cabinet/cabinet' })
-}
-
-function goOrders(): void {
-  uni.navigateTo({ url: '/pages/orders/orders' })
 }
 
 /** 三个列表一次性拉齐，失败由 request 层统一提示；缺任一选项就不允许提交 */
@@ -276,7 +369,7 @@ async function submitOrder(): Promise<void> {
       cabinetId: cabinetId.value as number,
       appointDate: appointDate.value,
       appointTime: appointTime.value,
-      pickupRequired: true,
+      pickupRequired: pickupRequired.value,
       remark: remark.value || undefined,
       parkPhotoFileIds,
       agreed: true,
@@ -305,171 +398,193 @@ onShow(loadOptions)
 
 <style>
 .page {
-  padding: calc(var(--status-bar-height, 0px) + 24rpx) 32rpx 32rpx;
-  background: #f6f7f9;
+  padding: 24rpx 24rpx 60rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-.hero {
-  padding: 32rpx 0 40rpx;
-}
-
-.title {
-  display: block;
-  font-size: 44rpx;
-  font-weight: 600;
-  color: #222;
-}
-
-.subtitle {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 28rpx;
-  color: #888;
-}
-
 .tip {
-  padding: 60rpx 0;
   text-align: center;
-  color: #999;
-  font-size: 28rpx;
+  color: #8a9a98;
+  font-size: 26rpx;
+  padding: 60rpx 0;
 }
 
-.section {
-  margin-bottom: 32rpx;
-}
-
-.section-title {
-  display: block;
-  margin-bottom: 16rpx;
-  font-size: 28rpx;
-  color: #666;
-}
-
-.option {
+.coupon-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border: 2rpx solid transparent;
+  background: #fff6e5;
   border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+  font-size: 25rpx;
+  color: #a06a1b;
+}
+
+.coupon-banner-clear {
+  color: #ff5b4a;
+}
+
+/* ---- STEP 卡片 ---- */
+.step {
+  background: #fff;
+  border-radius: 20rpx;
   padding: 28rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
-.option.active {
-  border-color: #1a73e8;
-  background: #f2f7ff;
+.step-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
 }
 
-.option.disabled {
-  opacity: 0.5;
+.step-no {
+  font-size: 22rpx;
+  color: #00aeb5;
+  background: #e6f7f7;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  margin-right: 12rpx;
 }
 
-.option-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.option-name {
-  display: block;
+.step-title {
   font-size: 30rpx;
-  color: #222;
+  font-weight: 600;
+  color: #1b2b2a;
 }
 
-.option-sub {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #999;
-}
-
-.option-price {
-  font-size: 32rpx;
-  color: #e8700a;
-  margin-left: 16rpx;
-}
-
-.option-tag {
-  font-size: 24rpx;
-  color: #1a73e8;
-  margin-left: 16rpx;
-}
-
-.tag-full {
-  color: #d93025;
-}
-
-.arrow {
-  font-size: 40rpx;
-  color: #ccc;
-  margin-left: 16rpx;
-}
-
-.cabinet-entry {
+.step-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border: 2rpx solid transparent;
+  background: #f6faf9;
   border-radius: 16rpx;
-  padding: 28rpx;
+  padding: 26rpx 24rpx;
 }
 
-.cabinet-entry:active {
-  background: #f2f7ff;
+.step-body-main {
+  flex: 1;
+}
+
+.step-value {
+  font-size: 30rpx;
+  color: #1b2b2a;
+  font-weight: 500;
+}
+
+.step-value.placeholder {
+  color: #8a9a98;
+}
+
+.step-hint {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
+}
+
+.step-action {
+  font-size: 26rpx;
+  color: #00aeb5;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 0 24rpx;
+}
+
+.switch-label {
+  font-size: 28rpx;
+  color: #1b2b2a;
+}
+
+.switch-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
+}
+
+/* ---- 服务列表 ---- */
+.svc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2rpx solid #eaf1f0;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.svc.active {
+  border-color: #00aeb5;
+  background: #f3fbfb;
+}
+
+.svc-name {
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.svc-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
+}
+
+.svc-price {
+  text-align: right;
+}
+
+.price-now {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #ff5b4a;
+}
+
+.price-old {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #b6c2c0;
+  text-decoration: line-through;
 }
 
 .empty {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 28rpx;
+  color: #8a9a98;
   font-size: 26rpx;
-  color: #999;
+  padding: 20rpx 0;
 }
 
-.row {
-  display: flex;
-  gap: 16rpx;
-}
-
-.picker {
-  flex: 1;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  font-size: 30rpx;
-  color: #222;
-  text-align: center;
-}
-
+/* ---- 输入 ---- */
 .input {
-  background: #fff;
+  margin-top: 16rpx;
+  background: #f6faf9;
   border-radius: 16rpx;
   padding: 24rpx;
   font-size: 28rpx;
+  color: #1b2b2a;
 }
 
-.section-hint {
-  display: block;
-  margin: 8rpx 0 16rpx;
-  font-size: 24rpx;
-  color: #999;
-}
-
+/* ---- 照片 ---- */
 .photos {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
 }
 
 .photo {
   position: relative;
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 12rpx;
-  background: #fff;
+  width: 150rpx;
+  height: 150rpx;
+  margin: 0 16rpx 16rpx 0;
+  border-radius: 14rpx;
   overflow: hidden;
 }
 
@@ -480,98 +595,176 @@ onShow(loadOptions)
 
 .photo-del {
   position: absolute;
-  top: 4rpx;
-  right: 8rpx;
-  width: 36rpx;
-  height: 36rpx;
-  line-height: 32rpx;
+  top: 0;
+  right: 0;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 36rpx;
   text-align: center;
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
-  border-radius: 50%;
   font-size: 28rpx;
+  border-bottom-left-radius: 12rpx;
 }
 
 .photo-add {
+  background: #f6faf9;
+  border: 2rpx dashed #cfe0de;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2rpx dashed #ccc;
 }
 
 .photo-plus {
   font-size: 56rpx;
-  color: #bbb;
+  color: #00aeb5;
 }
 
+/* ---- 协议与提交 ---- */
 .agree {
   display: flex;
   align-items: center;
-  margin-bottom: 32rpx;
+  padding: 16rpx 8rpx 32rpx;
 }
 
 .checkbox {
   font-size: 32rpx;
-  color: #1a73e8;
+  color: #00aeb5;
+  margin-right: 12rpx;
 }
 
 .agree-text {
-  margin-left: 12rpx;
-  font-size: 26rpx;
-  color: #666;
+  font-size: 25rpx;
+  color: #6b7b79;
 }
 
-.primary-btn {
-  background: #1a73e8;
+.submit {
+  background: #00aeb5;
   color: #fff;
   text-align: center;
-  padding: 28rpx 0;
-  border-radius: 16rpx;
+  padding: 30rpx 0;
+  border-radius: 44rpx;
   font-size: 32rpx;
-  margin-bottom: 32rpx;
+  font-weight: 600;
 }
 
-.primary-btn.disabled {
-  background: #b8c6da;
+.submit.disabled {
+  background: #cfe0de;
 }
 
-.entry {
+/* ---- 时间浮层 ---- */
+.sheet-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sheet {
+  width: 100%;
   background: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 28rpx 28rpx 40rpx;
+  box-sizing: border-box;
 }
 
-.entry-title {
-  display: block;
-  font-size: 32rpx;
-  color: #222;
-}
-
-.entry-desc {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #999;
-}
-
-.coupon-banner {
+.sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff3e0;
+  margin-bottom: 20rpx;
+}
+
+.sheet-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.sheet-close {
+  font-size: 40rpx;
+  color: #8a9a98;
+}
+
+.days {
+  white-space: nowrap;
+  margin-bottom: 20rpx;
+}
+
+.day {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 26rpx;
+  margin-right: 16rpx;
   border-radius: 16rpx;
-  padding: 20rpx 24rpx;
-  margin-bottom: 24rpx;
+  background: #f2f7f7;
 }
 
-.coupon-banner-text {
-  font-size: 26rpx;
-  color: #e8700a;
+.day.active {
+  background: #00aeb5;
 }
 
-.coupon-banner-clear {
+.day-label {
+  font-size: 24rpx;
+  color: #6b7b79;
+}
+
+.day-date {
+  margin-top: 4rpx;
   font-size: 26rpx;
-  color: #1a73e8;
-  margin-left: 16rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.day.active .day-label,
+.day.active .day-date {
+  color: #fff;
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.slot {
+  width: 22%;
+  margin: 0 3% 18rpx 0;
+  text-align: center;
+  padding: 22rpx 0;
+  border-radius: 14rpx;
+  background: #f2f7f7;
+  font-size: 27rpx;
+  color: #1b2b2a;
+}
+
+.slot.active {
+  background: #14342f;
+  color: #fff;
+}
+
+.sheet-tip {
+  font-size: 24rpx;
+  color: #8a9a98;
+  padding: 8rpx 0 24rpx;
+}
+
+.sheet-confirm {
+  background: #14342f;
+  color: #fff;
+  text-align: center;
+  padding: 28rpx 0;
+  border-radius: 44rpx;
+  font-size: 31rpx;
+  font-weight: 600;
+}
+
+.sheet-confirm.disabled {
+  background: #cfe0de;
 }
 </style>

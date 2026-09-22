@@ -1,6 +1,13 @@
 {
 	"pages": [
 		{
+			"path": "pages/home/home",
+			"style": {
+				"navigationBarTitleText": "CarGlow",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "CarGlow",
@@ -111,7 +118,7 @@
 		"borderStyle": "black",
 		"list": [
 			{
-				"pagePath": "pages/index/index",
+				"pagePath": "pages/home/home",
 				"text": "首页"
 			},
 			{

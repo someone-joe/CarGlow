@@ -20,27 +20,35 @@
     </view>
 
     <view v-for="item in list" :key="item.orderNo" class="card" @click="goDetail(item)">
-      <view class="card-row">
-        <text class="service">{{ item.serviceName }}</text>
-        <text class="status">{{ item.statusLabel }}</text>
-      </view>
-      <view class="card-row sub">
-        <text>{{ item.plateNo || '未填车牌' }}</text>
-        <text>¥{{ formatAmount(item.payAmount) }}</text>
+      <view class="card-top">
+        <text class="svc">{{ item.serviceName }}</text>
+        <text class="badge">{{ item.statusLabel }}</text>
       </view>
 
-      <!-- 按钮由后端 mainAction / subActions 返回，前端不自行判断该显示什么按钮 -->
-      <view class="actions">
-        <view v-if="item.mainAction?.enabled" class="action" @click.stop="onAction(item, item.mainAction)">
-          {{ item.mainAction.label }}
-        </view>
-        <view
-          v-for="sub in item.subActions ?? []"
-          :key="sub.action"
-          class="action action-plain"
-          @click.stop="onAction(item, sub)"
-        >
-          {{ sub.label }}
+      <view class="meta">
+        <text class="meta-line">订单号 {{ item.orderNo }}</text>
+        <text class="meta-line">
+          {{ item.serviceName }} · 约 {{ item.workMinutes || 40 }} 分钟
+        </text>
+        <text v-if="item.appointTime" class="meta-line">预计服务开始 {{ formatTime(item.appointTime) }}</text>
+        <text v-if="item.communityName" class="meta-line">服务小区 {{ item.communityName }}</text>
+        <text v-if="item.plateNo" class="meta-line">车牌 {{ item.plateNo }}</text>
+      </view>
+
+      <view class="card-bottom">
+        <text class="amount">¥{{ formatAmount(item.payAmount) }}</text>
+        <view class="ops">
+          <view v-if="item.mainAction?.enabled" class="op op-primary" @click.stop="onAction(item, item.mainAction)">
+            {{ item.mainAction.label }}
+          </view>
+          <view
+            v-for="sub in item.subActions ?? []"
+            :key="sub.action"
+            class="op"
+            @click.stop="onAction(item, sub)"
+          >
+            {{ sub.label }}
+          </view>
         </view>
       </view>
     </view>
@@ -74,6 +82,14 @@ const hasMore = computed(() => list.value.length < total.value)
 /** 金额：后端存分，只在展示层转元，任何计算都不用元 */
 function formatAmount(amount?: number | null): string {
   return ((amount ?? 0) / 100).toFixed(2)
+}
+
+/** 预约时间（毫秒）转「MM-DD HH:mm」 */
+function formatTime(millis?: number | null): string {
+  if (!millis) return ''
+  const d = new Date(millis)
+  const p = (n: number) => `${n}`.padStart(2, '0')
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 async function loadOrders(): Promise<void> {
@@ -119,7 +135,6 @@ function goDetail(item: OrderListItemVO): void {
 async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<void> {
   const orderNo = item.orderNo ?? ''
   if (action?.action === 'PAY') {
-    // P8 支付页：倒计时 + 费用明细 + 微信支付
     uni.navigateTo({ url: `/pages/pay/pay?orderNo=${orderNo}` })
     return
   }
@@ -220,7 +235,7 @@ onReachBottom(() => {
 <style>
 .page {
   padding: 24rpx;
-  background: #f6f7f9;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
@@ -228,7 +243,7 @@ onReachBottom(() => {
 .tabs {
   display: flex;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 8rpx;
   margin-bottom: 24rpx;
 }
@@ -236,20 +251,21 @@ onReachBottom(() => {
 .tab {
   flex: 1;
   text-align: center;
-  padding: 20rpx 0;
+  padding: 22rpx 0;
   font-size: 28rpx;
-  color: #666;
-  border-radius: 12rpx;
+  color: #6b7b79;
+  border-radius: 14rpx;
 }
 
 .tab-active {
-  background: #1a73e8;
+  background: #00aeb5;
   color: #fff;
+  font-weight: 600;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
   font-size: 26rpx;
   padding: 40rpx 0;
 }
@@ -270,64 +286,85 @@ onReachBottom(() => {
 
 .empty-title {
   font-size: 32rpx;
-  color: #333;
+  color: #1b2b2a;
 }
 
 .empty-sub {
   font-size: 26rpx;
-  color: #999;
+  color: #8a9a98;
   margin-top: 12rpx;
 }
 
 .card {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 28rpx;
   margin-bottom: 20rpx;
 }
 
-.card-row {
+.card-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #eaf1f0;
 }
 
-.card-row.sub {
-  margin-top: 16rpx;
-  font-size: 26rpx;
-  color: #888;
-}
-
-.service {
+.svc {
   font-size: 32rpx;
-  color: #222;
-  font-weight: 500;
+  font-weight: 600;
+  color: #1b2b2a;
 }
 
-.status {
-  font-size: 26rpx;
-  color: #1a73e8;
+.badge {
+  font-size: 23rpx;
+  color: #00aeb5;
+  background: #e6f7f7;
+  border-radius: 20rpx;
+  padding: 6rpx 18rpx;
 }
 
-.actions {
+.meta {
+  padding: 18rpx 0;
+}
+
+.meta-line {
+  display: block;
+  font-size: 25rpx;
+  color: #8a9a98;
+  line-height: 1.8;
+}
+
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18rpx;
+  border-top: 2rpx solid #eaf1f0;
+}
+
+.amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ff5b4a;
+}
+
+.ops {
   display: flex;
   gap: 16rpx;
-  margin-top: 24rpx;
 }
 
-.action {
-  flex: 1;
-  background: #1a73e8;
+.op {
+  border: 2rpx solid #cfe0de;
+  color: #6b7b79;
+  font-size: 26rpx;
+  padding: 12rpx 26rpx;
+  border-radius: 32rpx;
+}
+
+.op-primary {
+  background: #14342f;
+  border-color: #14342f;
   color: #fff;
-  text-align: center;
-  padding: 18rpx 0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-}
-
-.action-plain {
-  background: #fff;
-  color: #666;
-  border: 2rpx solid #ddd;
 }
 </style>
