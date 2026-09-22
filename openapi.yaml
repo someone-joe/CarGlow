@@ -858,11 +858,20 @@ paths:
     get:
       tags: [order]
       summary: 读取影像原文件
-      description: 需登录；服务端按 fileId 定位文件，不向前端暴露磁盘路径。
+      description: |
+        需登录；服务端按 fileId 定位文件，不向前端暴露磁盘路径。
+        小程序 image / previewImage 组件无法携带 Authorization 头，故支持 query 参数 token
+        （与 header 二选一）。token 进 URL 有被日志记录的风险，只用于图片读取这个低敏场景，
+        其余接口一律走 header。
       parameters:
         - name: fileId
           in: path
           required: true
+          schema: { type: string }
+        - name: token
+          in: query
+          required: false
+          description: 访问令牌；供 image / previewImage 等无法带 header 的场景使用
           schema: { type: string }
       responses:
         '200':
