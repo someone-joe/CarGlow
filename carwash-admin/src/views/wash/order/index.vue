@@ -65,21 +65,27 @@
       </el-timeline>
 
       <div class="timeline-title">过程影像</div>
-      <div v-if="!(detail.medias || []).length" class="no-media">暂无影像</div>
-      <div v-for="group in mediaGroups" :key="group.type" class="media-group">
-        <div class="media-type">{{ group.label }}（{{ group.items.length }}）</div>
-        <div class="media-list">
-          <el-image
-            v-for="m in group.items"
-            :key="m.fileId"
-            class="media-thumb"
-            :src="mediaUrl(m.url)"
-            :preview-src-list="group.items.map(i => mediaUrl(i.url))"
-            fit="cover"
-            preview-teleported
-          />
-        </div>
+      <!-- 懒加载：打开详情不自动拉图，点确认才渲染 el-image（此时才发请求，省流量） -->
+      <div v-if="!showMedia" class="no-media">
+        <el-button type="primary" link @click="showMedia = true">查看过程影像</el-button>
       </div>
+      <template v-else>
+        <div v-if="!(detail.medias || []).length" class="no-media">暂无影像</div>
+        <div v-for="group in mediaGroups" :key="group.type" class="media-group">
+          <div class="media-type">{{ group.label }}（{{ group.items.length }}）</div>
+          <div class="media-list">
+            <el-image
+              v-for="m in group.items"
+              :key="m.fileId"
+              class="media-thumb"
+              :src="mediaUrl(m.url)"
+              :preview-src-list="group.items.map(i => mediaUrl(i.url))"
+              fit="cover"
+              preview-teleported
+            />
+          </div>
+        </div>
+      </template>
 
       <div v-if="hasEditPermi" class="ops">
         <div class="timeline-title">人工干预（会留痕）</div>
@@ -115,6 +121,7 @@ const total = ref(0)
 const drawer = ref(false)
 
 const detail = ref({})
+const showMedia = ref(false)
 
 const MEDIA_TYPE_LABELS = { PARK: '停车照', PICK: '取车照', WASHED: '洗后照', RETURN: '送回照', COMPARE: '对比图', VIDEO: '视频' }
 
@@ -135,7 +142,7 @@ const mediaGroups = computed(() => {
 
 function mediaUrl(url) {
   if (!url) return ''
-  const full = url.startsWith('http') ? url : import.meta.env.VUE_APP_BASE_API + url
+  const full = url.startsWith('http') ? url : import.meta.env.VITE_APP_BASE_API + url
   const token = getToken()
   return token ? full + (full.includes('?') ? '&' : '?') + 'token=' + token : full
 }
@@ -194,6 +201,7 @@ function resetQuery() {
 function openDetail(orderNo) {
   drawer.value = true
   detail.value = {}
+  showMedia.value = false
   eventList.value = []
   getOrder(orderNo).then(res => {
     detail.value = res.data
