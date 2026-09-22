@@ -5,6 +5,13 @@ export type MediaVO = components['schemas']['MediaVO']
 export type MediaBizType = 'PARK' | 'PICK' | 'WASHED' | 'RETURN' | 'COMPARE' | 'VIDEO'
 
 /**
+ * 上传大小上限（MB）：与后端 wash.media.max-size-mb 保持一致。
+ * 选图时就地预检，避免整张传完才被后端拒（14MB 图的事故：接口 200 但 body 是错误 JSON，
+ * 用户侧看起来像"没反应"）。
+ */
+export const MAX_UPLOAD_MB = 10
+
+/**
  * 影像上传。契约：openapi.yaml POST /api/v1/media/upload（multipart/form-data）。
  * 二进制走 wx.uploadFile 而非统一 request，但同样拆 {code,msg,data} 信封，失败统一抛 ApiError。
  */

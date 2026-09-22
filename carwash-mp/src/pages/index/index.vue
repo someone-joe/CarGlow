@@ -111,7 +111,7 @@ import {
   type ServiceVO,
   type VehicleVO,
 } from '@/api/catalog'
-import { uploadMedia } from '@/api/media'
+import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import SiteBar from '@/components/SiteBar.vue'
 import { orderDraft } from '@/store/orderDraft'
 
@@ -195,7 +195,19 @@ function choosePhoto(): void {
   uni.chooseImage({
     count: remain,
     success: (res) => {
-      photos.value.push(...res.tempFilePaths)
+      // 大小预检：超限图直接跳过并提示，不等上传后被拒（后端限 10MB）
+      const files = (Array.isArray(res.tempFiles) ? res.tempFiles : [res.tempFiles]) as {
+        path: string
+        size?: number
+      }[]
+      const ok = files.filter((f) => {
+        if ((f.size ?? 0) > MAX_UPLOAD_MB * 1024 * 1024) {
+          uni.showToast({ title: `图片不能超过 ${MAX_UPLOAD_MB}MB，已跳过`, icon: 'none' })
+          return false
+        }
+        return true
+      })
+      photos.value.push(...ok.map((f) => f.path))
     },
   })
 }
@@ -239,8 +251,9 @@ async function uploadParkPhotos(): Promise<string[]> {
     try {
       const m = await uploadMedia(p, 'PARK')
       if (m.fileId) ids.push(m.fileId)
-    } catch {
-      uni.showToast({ title: '照片上传失败，请重试', icon: 'none' })
+    } catch (e) {
+      // 把后端拒绝原因亮出来（如"文件超过 10MB 上限"），不说含糊的"失败"
+      uni.showToast({ title: (e as { msg?: string }).msg || '照片上传失败，请重试', icon: 'none' })
       throw new Error('upload failed')
     }
   }

@@ -36,7 +36,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
-import { uploadMedia } from '@/api/media'
+import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import {
   arriveStation,
   fetchStationQueue,
@@ -120,9 +120,18 @@ async function doQcPass(orderNo: string): Promise<void> {
     if (!res || !res.tempFiles?.length) return
     const ids: string[] = []
     for (const f of res.tempFiles) {
-      const media = await uploadMedia(f.tempFilePath, 'WASHED')
-      if (media.fileId) ids.push(media.fileId)
+      if ((f.size ?? 0) > MAX_UPLOAD_MB * 1024 * 1024) {
+        uni.showToast({ title: `图片不能超过 ${MAX_UPLOAD_MB}MB，已跳过`, icon: 'none' })
+        continue
+      }
+      try {
+        const media = await uploadMedia(f.tempFilePath, 'WASHED')
+        if (media.fileId) ids.push(media.fileId)
+      } catch (e) {
+        uni.showToast({ title: (e as { msg?: string }).msg || '上传失败', icon: 'none' })
+      }
     }
+    if (!ids.length) return
     await qcPass(orderNo, ids)
     toast('质检通过')
   })

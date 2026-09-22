@@ -78,7 +78,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
-import { uploadMedia, type MediaVO } from '@/api/media'
+import { uploadMedia, type MediaVO, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchPickTasks, pickCarDone, returnDone, takeKey, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
 import { BASE_URL, getToken } from '@/utils/request'
@@ -153,8 +153,17 @@ async function addPhotos(orderNo?: string, required: number = 6): Promise<void> 
     }
     const next = existing.slice()
     for (const f of res.tempFiles) {
-      const media = await uploadMedia(f.tempFilePath, 'PICK', orderNo)
-      if (media.fileId) next.push(media)
+      if ((f.size ?? 0) > MAX_UPLOAD_MB * 1024 * 1024) {
+        uni.showToast({ title: `图片不能超过 ${MAX_UPLOAD_MB}MB，已跳过`, icon: 'none' })
+        continue
+      }
+      try {
+        const media = await uploadMedia(f.tempFilePath, 'PICK', orderNo)
+        if (media.fileId) next.push(media)
+      } catch (e) {
+        // 被后端拒绝（如超限）必须把原因亮出来，否则用户以为"没反应"
+        uni.showToast({ title: (e as { msg?: string }).msg || '上传失败', icon: 'none' })
+      }
     }
     drafts.value = { ...drafts.value, [orderNo]: next }
   })
