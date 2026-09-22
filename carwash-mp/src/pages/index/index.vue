@@ -76,7 +76,7 @@
             <image class="photo-img" :src="p" mode="aspectFill" />
             <text class="photo-del" @click="removePhoto(i)">×</text>
           </view>
-          <view v-if="photos.length < 3" class="photo photo-add" @click="choosePhoto">
+          <view v-if="photos.length < 6" class="photo photo-add" @click="choosePhoto">
             <text class="photo-plus">＋</text>
           </view>
         </view>
@@ -179,10 +179,21 @@ function onTimeChange(e: { detail: { value: string } }): void {
   appointTime.value = e.detail.value
 }
 
-/** 选停放照片，最多 3 张；本地临时路径预览 */
+/** 停放照片上限：与契约 parkPhotoFileIds maxItems、后端校验同值 */
+const MAX_PHOTOS = 6
+
+/**
+ * 选停放照片；本地临时路径预览。
+ * count 必须先拦非正数：微信 chooseImage 对 0/负数不限张数（bug092204 的根因）。
+ */
 function choosePhoto(): void {
+  const remain = MAX_PHOTOS - photos.value.length
+  if (remain <= 0) {
+    uni.showToast({ title: `最多上传 ${MAX_PHOTOS} 张`, icon: 'none' })
+    return
+  }
   uni.chooseImage({
-    count: 3 - photos.value.length,
+    count: remain,
     success: (res) => {
       photos.value.push(...res.tempFilePaths)
     },

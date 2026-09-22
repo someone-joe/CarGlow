@@ -1250,10 +1250,16 @@ export interface paths {
         /**
          * 读取影像原文件
          * @description 需登录；服务端按 fileId 定位文件，不向前端暴露磁盘路径。
+         *     小程序 image / previewImage 组件无法携带 Authorization 头，故支持 query 参数 token
+         *     （与 header 二选一）。token 进 URL 有被日志记录的风险，只用于图片读取这个低敏场景，
+         *     其余接口一律走 header。
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description 访问令牌；供 image / previewImage 等无法带 header 的场景使用 */
+                    token?: string;
+                };
                 header?: never;
                 path: {
                     fileId: string;
@@ -1327,7 +1333,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 客服配置（企微二维码、双电话、夜间提示） */
+        /**
+         * 客服配置（企微二维码、双电话、夜间提示）
+         * @description 取值优先级：后台「系统管理 → 参数设置」（key：wash.cs.platform-phone / wash.cs.station-phone /
+         *     wash.cs.night-tip / wash.cs.wecom-qrcode-url）→ application.yml 兜底 → 代码默认。
+         *     platformPhone 默认 10086：客服入口任何时候都必须能拨通（bug092203）。
+         */
         get: {
             parameters: {
                 query?: never;
@@ -2389,6 +2400,7 @@ export interface components {
              */
             pickupRequired: boolean;
             remark?: string;
+            /** @description 停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId */
             parkPhotoFileIds?: string[];
             /** @description 已同意《服务条款与钥匙寄存协议》 */
             agreed: boolean;
