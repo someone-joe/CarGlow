@@ -64,6 +64,23 @@
         </el-timeline-item>
       </el-timeline>
 
+      <div class="timeline-title">过程影像</div>
+      <div v-if="!(detail.medias || []).length" class="no-media">暂无影像</div>
+      <div v-for="group in mediaGroups" :key="group.type" class="media-group">
+        <div class="media-type">{{ group.label }}（{{ group.items.length }}）</div>
+        <div class="media-list">
+          <el-image
+            v-for="m in group.items"
+            :key="m.fileId"
+            class="media-thumb"
+            :src="mediaUrl(m.url)"
+            :preview-src-list="group.items.map(i => mediaUrl(i.url))"
+            fit="cover"
+            preview-teleported
+          />
+        </div>
+      </div>
+
       <div v-if="hasEditPermi" class="ops">
         <div class="timeline-title">人工干预（会留痕）</div>
         <el-select v-model="advanceForm.event" placeholder="选择要触发的事件" style="width: 240px">
@@ -84,6 +101,7 @@
 <script setup name="Order">
 import { listOrder, statusOptions, getOrder, eventOptions, advanceOrder, cancelOrder } from '@/api/wash/order'
 import useUserStore from '@/store/modules/user'
+import { getToken } from '@/utils/auth'
 import { useRoute } from 'vue-router'
 
 const { proxy } = getCurrentInstance()
@@ -97,6 +115,30 @@ const total = ref(0)
 const drawer = ref(false)
 
 const detail = ref({})
+
+const MEDIA_TYPE_LABELS = { PARK: '停车照', PICK: '取车照', WASHED: '洗后照', RETURN: '送回照', COMPARE: '对比图', VIDEO: '视频' }
+
+// 影像按业务类型分组；url 是相对路径，el-image 带不了请求头，鉴权走 query token（后端已支持）
+const mediaGroups = computed(() => {
+  const groups = []
+  const byType = {}
+  for (const m of (detail.value.medias || [])) {
+    const type = m.bizType || 'OTHER'
+    if (!byType[type]) {
+      byType[type] = { type, label: MEDIA_TYPE_LABELS[type] || type, items: [] }
+      groups.push(byType[type])
+    }
+    byType[type].items.push(m)
+  }
+  return groups
+})
+
+function mediaUrl(url) {
+  if (!url) return ''
+  const full = url.startsWith('http') ? url : import.meta.env.VUE_APP_BASE_API + url
+  const token = getToken()
+  return token ? full + (full.includes('?') ? '&' : '?') + 'token=' + token : full
+}
 const eventList = ref([])
 const advanceForm = ref({ event: undefined, reason: undefined, confirm: false })
 
@@ -224,6 +266,34 @@ getList()
 .timeline-title {
   margin: 20px 0 12px;
   font-weight: 600;
+}
+
+.media-group {
+  margin-top: 12px;
+}
+
+.media-type {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.media-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.media-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.no-media {
+  color: #909399;
+  font-size: 13px;
 }
 
 .node-time {
