@@ -60,7 +60,10 @@
       <view class="ops">
         <text v-if="t.status === 'KEY_IN'" class="op" @click="doTakeKey(t.orderNo)">取钥匙</text>
         <template v-if="t.status === 'PICKING'">
-          <text class="op" @click="addPhotos(t.orderNo)">拍照/选图</text>
+          <text
+            :class="['op', draftList(t.orderNo).length >= (t.requiredPhotoCount ?? 6) && 'op-disabled']"
+            @click="addPhotos(t.orderNo, t.requiredPhotoCount ?? 6)"
+          >拍照/选图</text>
           <text class="op" @click="submitPickCarDone(t.orderNo, t.requiredPhotoCount ?? 6)">完成取车</text>
         </template>
         <text v-if="t.status === 'RETURNING'" class="op" @click="doReturnDone(t.orderNo)">送回归柜</text>
@@ -78,7 +81,7 @@ import WorkerTabBar from '@/components/WorkerTabBar.vue'
 import { uploadMedia, type MediaVO } from '@/api/media'
 import { fetchPickTasks, pickCarDone, returnDone, takeKey, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
-import { BASE_URL } from '@/utils/request'
+import { BASE_URL, getToken } from '@/utils/request'
 
 const stage = ref<PickStage>('ALL')
 const tasks = ref<PickTaskVO[]>([])
@@ -126,21 +129,34 @@ function draftList(orderNo?: string): MediaVO[] {
   return orderNo ? drafts.value[orderNo] ?? [] : []
 }
 
-/** 选图（可只选 1 张）并立即上传；上传后即可在卡片里预览 */
-async function addPhotos(orderNo?: string): Promise<void> {
+/**
+ * 选图（可只选 1 张）并立即上传；上传后即可在卡片里预览。
+ * 数量闸门（bug092202）：count 设为剩余可拍数，从源头选不了超量；
+ * 选中数超剩余时拦截提示；已拍满时入口置灰（见模板）。
+ */
+async function addPhotos(orderNo?: string, required: number = 6): Promise<void> {
   if (!orderNo) return
   await guard(async () => {
+    const existing = draftList(orderNo)
+    const remain = required - existing.length
+    if (remain <= 0) {
+      uni.showToast({ title: `已拍满 ${required} 张，长按照片可删除重拍`, icon: 'none' })
+      return
+    }
     const res = await new Promise<UniApp.ChooseMediaSuccessCallbackResult>((resolve, reject) => {
-      // count 是「最多可选」而非「必须选满」，用户选 1 张也可以
-      uni.chooseMedia({ count: 9, mediaType: ['image'], sizeType: ['compressed'], success: resolve, fail: reject })
+      uni.chooseMedia({ count: remain, mediaType: ['image'], sizeType: ['compressed'], success: resolve, fail: reject })
     }).catch(() => null)
     if (!res || !res.tempFiles?.length) return
-    const list = draftList(orderNo).slice()
+    if (existing.length + res.tempFiles.length > required) {
+      uni.showToast({ title: `最多还能拍 ${remain} 张`, icon: 'none' })
+      return
+    }
+    const next = existing.slice()
     for (const f of res.tempFiles) {
       const media = await uploadMedia(f.tempFilePath, 'PICK', orderNo)
-      if (media.fileId) list.push(media)
+      if (media.fileId) next.push(media)
     }
-    drafts.value = { ...drafts.value, [orderNo]: list }
+    drafts.value = { ...drafts.value, [orderNo]: next }
   })
 }
 
@@ -189,10 +205,16 @@ function photoList(task: PickTaskVO): MediaVO[] {
   return task.parkPhotos ?? []
 }
 
-/** 影像 url 是相对路径，需拼后端基址；已是绝对地址则不重复拼 */
+/**
+ * 影像 url 是相对路径，需拼后端基址；已是绝对地址则不重复拼。
+ * image / previewImage 组件带不了 Authorization 头，鉴权走 query token
+ * （后端 MediaAuthInterceptor 支持，bug092201）。
+ */
 function photoUrl(url?: string): string {
   if (!url) return ''
-  return url.startsWith('http') ? url : BASE_URL + url
+  const full = url.startsWith('http') ? url : BASE_URL + url
+  const token = getToken()
+  return token ? `${full}${full.includes('?') ? '&' : '?'}token=${token}` : full
 }
 
 /** 点图放大预览：师傅在车位现场看停车照找车 */
@@ -373,5 +395,9 @@ function doLogout(): void {
   padding: 14rpx 32rpx;
   border-radius: 10rpx;
   font-size: 28rpx;
+}
+
+.op-disabled {
+  opacity: 0.5;
 }
 </style>
