@@ -7,6 +7,8 @@ import com.ruoyi.wash.order.service.WashMediaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +44,10 @@ public class WxMediaController {
         if (path == null || !Files.exists(path)) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(new FileSystemResource(path.toFile()));
+        // Content-Type 必须显式按扩展名给：默认协商会被安全过滤器预置的 application/json 顶掉，
+        // 严格客户端（部分 webview）遇到 json 头不渲染图片（bug092201）
+        MediaType type = MediaTypeFactory.getMediaType(path.getFileName().toString())
+                .orElse(MediaType.APPLICATION_OCTET_STREAM);
+        return ResponseEntity.ok().contentType(type).body(new FileSystemResource(path.toFile()));
     }
 }

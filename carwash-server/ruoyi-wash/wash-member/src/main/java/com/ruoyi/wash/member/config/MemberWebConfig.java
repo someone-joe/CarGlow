@@ -24,6 +24,8 @@ public class MemberWebConfig implements WebMvcConfigurer {
                 // 师傅端路径（worker/pick/station）交给 wash-worker 的 WorkerAuthInterceptor，
                 // C 端拦截器必须放行，否则师傅端请求会被 C 端 token 校验拦下返回 A0002
                 .excludePathPatterns("/api/v1/auth/**", "/api/v1/payments/wechat/**",
-                        "/api/v1/worker/**", "/api/v1/pick/**", "/api/v1/station/**");
+                        "/api/v1/worker/**", "/api/v1/pick/**", "/api/v1/station/**",
+                        // 影像读取由 MediaAuthInterceptor 接管（支持 query token，供 image 组件使用）
+                        "/api/v1/media/**");
     }
 }
