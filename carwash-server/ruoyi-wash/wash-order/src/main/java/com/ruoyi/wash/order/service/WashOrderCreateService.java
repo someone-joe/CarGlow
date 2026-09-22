@@ -77,6 +77,10 @@ public class WashOrderCreateService {
     @Value("${wash.order.pay-timeout-minutes:15}")
     private int payTimeoutMinutes;
 
+    /** 停放照片上限：契约 parkPhotoFileIds maxItems 与前端保持同值 */
+    @Value("${wash.order.park-photo-max:6}")
+    private int parkPhotoMax;
+
     @Transactional(rollbackFor = Exception.class)
     public CreateOrderVO create(Long memberId, CreateOrderRequest request, String idempotencyKey) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
@@ -95,6 +99,11 @@ public class WashOrderCreateService {
 
         if (!Boolean.TRUE.equals(request.agreed())) {
             throw new ApiException(ErrorCode.A0001, "请先同意《服务条款与钥匙寄存协议》");
+        }
+
+        // 契约 maxItems: 6 的服务端落点：前端拦截不是防线，绕过端点直调也不能超（bug092204）
+        if (request.parkPhotoFileIds() != null && request.parkPhotoFileIds().size() > parkPhotoMax) {
+            throw new ApiException(ErrorCode.A0001, "停放照片最多 " + parkPhotoMax + " 张");
         }
 
         WashService service = serviceQueryService.requireEnabled(request.serviceId());
