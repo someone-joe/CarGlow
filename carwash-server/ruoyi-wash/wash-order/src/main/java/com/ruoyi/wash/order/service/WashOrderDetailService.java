@@ -66,6 +66,9 @@ public class WashOrderDetailService {
     @Autowired
     private com.ruoyi.wash.network.service.WashCabinetQueryService cabinetQuery;
 
+    @Autowired
+    private WashMediaService mediaService;
+
     /** 承诺还车小时（次日几点），走配置不硬编码 */
     @org.springframework.beans.factory.annotation.Value("${wash.order.promise-return-hour:7}")
     private int promiseReturnHour;
@@ -120,7 +123,8 @@ public class WashOrderDetailService {
         vo.setCabinetName(cabinetQuery.cabinetName(order.getCabinetId()));
         vo.setPromiseReturnTime(promiseReturnTime(order));
         vo.setTimeline(buildTimeline(logs, currentStatus, order));
-        vo.setMedias(List.of());
+        // 过程影像：停车照/取车照/洗后照/送回照等，C 端与后台详情共用（后台要求可查过程数据）
+        vo.setMedias(mediaService.listVosByOrder(order.getOrderNo(), null));
         vo.setMainAction(queryService.resolveMainAction(order.getStatus()));
         vo.setSubActions(List.of());
         return vo;
