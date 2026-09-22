@@ -3,33 +3,33 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else>
+      <!-- 专属管家（企微二维码由后台配置下发，未配置不显示） -->
       <view v-if="cfg.wecomQrcodeUrl" class="card">
         <text class="card-title">专属管家</text>
         <image class="qr" :src="cfg.wecomQrcodeUrl" mode="aspectFit" @longpress="saveQr" />
-        <text class="qr-tip">长按二维码添加洗悦管家企业微信</text>
+        <text class="qr-tip">长按二维码添加管家企业微信</text>
       </view>
 
+      <!-- 常见问题：标签网格 -->
       <view class="card">
-        <text class="card-title">常见问题</text>
+        <text class="card-title">您可能会遇到的问题</text>
         <view class="faq">
           <view v-for="(f, i) in faqs" :key="i" class="faq-item" @click="ask(f)">{{ f }}</view>
         </view>
       </view>
 
+      <!-- 服务电话：平台 + 本站点（号码全部后台配置，前端不硬编码） -->
       <view class="card">
         <text class="card-title">服务电话</text>
         <view v-if="cfg.nightTip" class="night">{{ cfg.nightTip }}</view>
-        <view class="phone" v-for="(p, i) in phones" :key="i" @click="call(p)">
-          <text>{{ p }}</text><text class="dial">拨打 ›</text>
+        <view v-for="(p, i) in phones" :key="i" class="phone" @click="call(p)">
+          <view class="phone-main">
+            <text class="phone-num">{{ p }}</text>
+            <text class="phone-label">{{ i === 0 ? '平台客服' : '本站点专属' }}</text>
+          </view>
+          <text class="dial">拨打</text>
         </view>
         <view v-if="!phones.length" class="muted">暂无客服电话</view>
-      </view>
-
-      <view class="card">
-        <text class="card-title">在线客服</text>
-        <view class="online" @click="online">
-          <text>微信客服会话（机器人优先 + 人工兜底）</text><text class="dial">进入 ›</text>
-        </view>
       </view>
     </block>
   </view>
@@ -97,49 +97,46 @@ function saveQr(): void {
   })
 }
 
-function online(): void {
-  // 微信客服会话：需后端在下单配置中提供 corpid + 客服链接，V1.0 暂未接入
-  uni.showToast({ title: '在线客服接入中（需后台配置微信客服）', icon: 'none' })
-}
-
 onShow(load)
 </script>
 
 <style>
 .page {
   padding: 24rpx;
-  background: #f6f7f9;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
+  font-size: 26rpx;
   padding: 80rpx 0;
 }
 
 .card {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 28rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
 }
 
 .card-title {
   display: block;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #222;
+  color: #1b2b2a;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #eaf1f0;
   margin-bottom: 20rpx;
 }
 
 .qr {
-  width: 320rpx;
-  height: 320rpx;
+  width: 260rpx;
+  height: 260rpx;
   margin: 0 auto;
   display: block;
-  background: #f2f2f2;
 }
 
 .qr-tip {
@@ -147,9 +144,10 @@ onShow(load)
   text-align: center;
   margin-top: 16rpx;
   font-size: 24rpx;
-  color: #888;
+  color: #8a9a98;
 }
 
+/* 问题标签网格 */
 .faq {
   display: flex;
   flex-wrap: wrap;
@@ -157,41 +155,55 @@ onShow(load)
 }
 
 .faq-item {
-  background: #f2f7ff;
-  color: #1a73e8;
-  font-size: 24rpx;
-  padding: 12rpx 20rpx;
-  border-radius: 24rpx;
+  padding: 14rpx 24rpx;
+  border-radius: 32rpx;
+  background: #f2f7f7;
+  font-size: 25rpx;
+  color: #4a5a58;
 }
 
 .night {
   font-size: 24rpx;
-  color: #9a6b00;
-  background: #fff7e6;
-  border-radius: 8rpx;
-  padding: 12rpx 16rpx;
-  margin-bottom: 16rpx;
+  color: #8a9a98;
+  padding-bottom: 16rpx;
 }
 
-.phone,
-.online {
+.phone {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
-  font-size: 28rpx;
-  color: #222;
-  border-top: 1rpx solid #f2f2f2;
+  padding: 22rpx 0;
+  border-bottom: 2rpx solid #f2f7f7;
+}
+
+.phone:last-of-type {
+  border-bottom: none;
+}
+
+.phone-num {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.phone-label {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
 }
 
 .dial {
-  color: #1a73e8;
-  font-size: 28rpx;
+  background: #14342f;
+  color: #fff;
+  font-size: 25rpx;
+  padding: 12rpx 32rpx;
+  border-radius: 32rpx;
 }
 
 .muted {
-  font-size: 26rpx;
-  color: #999;
-  padding: 12rpx 0;
+  color: #8a9a98;
+  font-size: 25rpx;
+  padding: 16rpx 0;
 }
 </style>

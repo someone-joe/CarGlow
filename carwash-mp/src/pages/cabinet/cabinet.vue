@@ -10,25 +10,22 @@
         <text class="empty-sub">可联系客服申请在您的小区布柜</text>
       </view>
 
-      <!-- 柜机列表：名称/空闲格口/在线状态/距离，全部后端下发；distance 未授权定位时为 null -->
-      <view
-        v-for="item in cabinets"
-        :key="item.cabinetId"
-        class="card"
-        :class="{ disabled: item.full || !item.online, active: item.cabinetId === currentId }"
-        @click="pick(item)"
-      >
-        <view class="card-main">
-          <text class="name">{{ item.name }}</text>
-          <text class="sub">
-            空闲格口 {{ item.slotFree }} / {{ item.slotTotal }}
-            <text v-if="item.distance != null"> · 距您约 {{ item.distance }} 米</text>
-          </text>
-          <text class="status" :class="{ off: !item.online, full: item.full }">
-            {{ !item.online ? '离线' : item.full ? '已满 · 不可选' : '在线 · 可预约' }}
-          </text>
+      <!-- 柜机九宫格：名称/空闲格口/在线状态，全部后端下发 -->
+      <view class="grid">
+        <view
+          v-for="item in cabinets"
+          :key="item.cabinetId"
+          class="slot"
+          :class="{
+            disabled: item.full || !item.online,
+            active: item.cabinetId === currentId
+          }"
+          @click="pick(item)"
+        >
+          <text class="slot-name">{{ item.name }}</text>
+          <text class="slot-free">空闲 {{ item.slotFree }}/{{ item.slotTotal }}</text>
+          <text v-if="item.cabinetId === currentId" class="slot-check">✓</text>
         </view>
-        <text v-if="item.cabinetId === currentId" class="check">✓</text>
       </view>
     </block>
   </view>
@@ -72,92 +69,82 @@ onShow(load)
 <style>
 .page {
   padding: 24rpx;
-  background: #f6f7f9;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tip {
   text-align: center;
-  color: #999;
-  padding: 60rpx 0;
+  color: #8a9a98;
+  font-size: 26rpx;
+  padding: 80rpx 0;
 }
 
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 100rpx 0;
+  padding: 120rpx 0;
 }
 
 .empty-title {
   font-size: 30rpx;
-  color: #333;
+  color: #1b2b2a;
 }
 
 .empty-sub {
-  font-size: 26rpx;
-  color: #999;
   margin-top: 12rpx;
+  font-size: 25rpx;
+  color: #8a9a98;
 }
 
-.card {
+.grid {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18rpx;
+}
+
+.slot {
+  position: relative;
+  width: calc((100% - 36rpx) / 3);
   background: #fff;
-  border: 2rpx solid transparent;
-  border-radius: 16rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  border-radius: 18rpx;
+  border: 2rpx solid #eaf1f0;
+  padding: 26rpx 18rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.card.active {
-  border-color: #1a73e8;
-  background: #f2f7ff;
+.slot.active {
+  border-color: #00aeb5;
+  background: #f3fbfb;
 }
 
-.card.disabled {
-  opacity: 0.5;
+.slot.disabled {
+  opacity: 0.55;
 }
 
-.card-main {
-  flex: 1;
-  min-width: 0;
+.slot-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+  text-align: center;
 }
 
-.name {
-  display: block;
-  font-size: 30rpx;
-  color: #222;
-  font-weight: 500;
+.slot-free {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8a9a98;
 }
 
-.sub {
-  display: block;
-  margin-top: 10rpx;
+.slot-check {
+  position: absolute;
+  top: 8rpx;
+  right: 12rpx;
   font-size: 24rpx;
-  color: #999;
-}
-
-.status {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #1a73e8;
-}
-
-.status.off {
-  color: #999;
-}
-
-.status.full {
-  color: #d93025;
-}
-
-.check {
-  font-size: 40rpx;
-  color: #1a73e8;
-  margin-left: 16rpx;
+  color: #00aeb5;
 }
 </style>
