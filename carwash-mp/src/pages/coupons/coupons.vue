@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <!-- 顶部切换：领券中心 / 我的优惠券 -->
+    <!-- 顶部切换：领券中心 / 我的优惠券（激活码与卡包无后端支撑，按约定不展示） -->
     <view class="tabs">
       <view class="tab" :class="{ active: tab === 'center' }" @click="tab = 'center'">领券中心</view>
       <view class="tab" :class="{ active: tab === 'mine' }" @click="switchToMine">我的优惠券</view>
@@ -11,18 +11,19 @@
     <!-- 领券中心 -->
     <block v-else-if="tab === 'center'">
       <view v-if="!center.length" class="empty">暂无可领取的优惠券</view>
-      <view v-for="t in center" :key="t.templateId" class="card">
-        <view class="card-main">
-          <text class="card-name">{{ t.name }}</text>
-          <text class="card-sub">
-            {{ couponDesc(t.thresholdAmount, t.discountAmount) }}
-            <text v-if="t.type === 'NEWBIE'" class="tag">新人</text>
-          </text>
-          <text class="card-meta">剩余 {{ t.remain }} · 已领 {{ t.claimed }}</text>
+      <view v-for="t in center" :key="t.templateId" class="coupon">
+        <view class="coupon-left">
+          <text class="amount">{{ discountText(t.discountAmount) }}</text>
+          <text class="cond">{{ couponDesc(t.thresholdAmount, t.discountAmount) }}</text>
         </view>
-        <view class="card-action">
-          <view v-if="canReceive(t)" class="mini-btn" @click="onReceive(t)">领取</view>
-          <view v-else class="mini-btn disabled">{{ receiveLabel(t) }}</view>
+        <view class="coupon-right">
+          <view class="coupon-main">
+            <text class="name">{{ t.name }}</text>
+            <text v-if="t.type === 'NEWBIE'" class="tag">新人专享</text>
+            <text class="meta">剩余 {{ t.remain }} · 已领 {{ t.claimed }}</text>
+          </view>
+          <view v-if="canReceive(t)" class="btn" @click="onReceive(t)">领取</view>
+          <view v-else class="btn btn-disabled">{{ receiveLabel(t) }}</view>
         </view>
       </view>
     </block>
@@ -35,18 +36,23 @@
           {{ s.label }}
         </view>
       </view>
+
       <view v-if="!mine.length" class="empty">
         {{ mineStatus === '' ? '还没有优惠券，去领券中心看看吧' : '该分类下暂无优惠券' }}
       </view>
-      <view v-for="c in mine" :key="c.couponUserId" class="card">
-        <view class="card-main">
-          <text class="card-name">{{ c.name }}</text>
-          <text class="card-sub">{{ couponDesc(c.thresholdAmount, c.discountAmount) }}</text>
-          <text class="card-meta">{{ couponStatusLabel(c.status) }}</text>
+
+      <view v-for="c in mine" :key="c.couponUserId" class="coupon" :class="{ invalid: c.status !== 'UNUSED' }">
+        <view class="coupon-left">
+          <text class="amount">{{ discountText(c.discountAmount) }}</text>
+          <text class="cond">{{ couponDesc(c.thresholdAmount, c.discountAmount) }}</text>
         </view>
-        <view class="card-action">
-          <view v-if="c.status === 'UNUSED'" class="mini-btn" @click="goUse(c)">去使用</view>
-          <text v-else class="status-text" :class="statusClass(c.status)">{{ couponStatusLabel(c.status) }}</text>
+        <view class="coupon-right">
+          <view class="coupon-main">
+            <text class="name">{{ c.name }}</text>
+            <text class="meta">{{ couponStatusLabel(c.status) }}</text>
+          </view>
+          <view v-if="c.status === 'UNUSED'" class="btn" @click="goUse(c)">去使用</view>
+          <text v-else class="status-text">{{ couponStatusLabel(c.status) }}</text>
         </view>
       </view>
     </block>
@@ -83,6 +89,12 @@ function fen2yuan(fen?: number): string {
   return ((fen ?? 0) / 100).toFixed(2)
 }
 
+/** 券面额展示：取整更醒目（分转元后去掉小数尾 0） */
+function discountText(discount?: number): string {
+  const yuan = (discount ?? 0) / 100
+  return yuan % 1 === 0 ? `${yuan}` : yuan.toFixed(2)
+}
+
 /** 券文案：无门槛券显示「无门槛减 X.00」，满减券显示「满 X 减 Y」 */
 function couponDesc(threshold?: number, discount?: number): string {
   const d = fen2yuan(discount)
@@ -92,10 +104,6 @@ function couponDesc(threshold?: number, discount?: number): string {
 
 function couponStatusLabel(status?: string): string {
   return status === 'UNUSED' ? '未使用' : status === 'USED' ? '已使用' : status === 'EXPIRED' ? '已过期' : '未知'
-}
-
-function statusClass(status?: string): string {
-  return status === 'UNUSED' ? 'st-unused' : status === 'USED' ? 'st-used' : 'st-expired'
 }
 
 /** 是否可领取：未达每人限领且仍有库存 */
@@ -141,7 +149,7 @@ async function onReceive(t: CouponTemplateVO): Promise<void> {
   }
 }
 
-/** 未使用券点击「去使用」：回到首页，由下单页选择服务/车辆/机柜 */
+/** 未使用券点击「去使用」：回下单页并带上券 ID */
 function goUse(c: CouponUserVO): void {
   if (c.couponUserId == null) return
   uni.navigateTo({ url: `/pages/index/index?couponUserId=${c.couponUserId}` })
@@ -156,21 +164,22 @@ function loadAll(): void {
     })
 }
 
-// 从其他页返回时刷新（领券后状态会变）
 onShow(loadAll)
 </script>
 
 <style>
 .page {
-  padding: 24rpx 32rpx 60rpx;
-  background: #f6f7f9;
+  padding: 24rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tabs {
   display: flex;
-  gap: 16rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 8rpx;
   margin-bottom: 24rpx;
 }
 
@@ -178,126 +187,140 @@ onShow(loadAll)
   flex: 1;
   text-align: center;
   padding: 22rpx 0;
-  background: #fff;
-  border-radius: 16rpx;
-  font-size: 30rpx;
-  color: #666;
+  font-size: 28rpx;
+  color: #6b7b79;
+  border-radius: 14rpx;
 }
 
 .tab.active {
-  color: #1a73e8;
+  background: #00aeb5;
+  color: #fff;
   font-weight: 600;
-  background: #f2f7ff;
 }
 
 .sub-tabs {
   display: flex;
-  gap: 12rpx;
-  margin-bottom: 24rpx;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 
 .sub-tab {
-  flex: 1;
-  text-align: center;
-  padding: 16rpx 0;
+  padding: 12rpx 28rpx;
+  border-radius: 30rpx;
   background: #fff;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #888;
+  font-size: 25rpx;
+  color: #6b7b79;
 }
 
 .sub-tab.active {
-  color: #1a73e8;
-  background: #f2f7ff;
+  background: #14342f;
+  color: #fff;
 }
 
-.tip,
-.empty {
-  padding: 60rpx 0;
+.tip {
   text-align: center;
-  color: #999;
-  font-size: 28rpx;
+  color: #8a9a98;
+  font-size: 26rpx;
+  padding: 60rpx 0;
 }
 
 .empty {
-  background: #fff;
-  border-radius: 16rpx;
+  text-align: center;
+  color: #8a9a98;
+  font-size: 26rpx;
+  padding: 80rpx 0;
 }
 
-.card {
+/* ---- 券卡 ---- */
+.coupon {
+  display: flex;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+
+.coupon.invalid {
+  opacity: 0.55;
+}
+
+.coupon-left {
+  width: 220rpx;
+  background: linear-gradient(135deg, #00aeb5, #0e8f94);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30rpx 10rpx;
+}
+
+.amount {
+  font-size: 52rpx;
+  font-weight: 700;
+}
+
+.amount::before {
+  content: '¥';
+  font-size: 28rpx;
+  margin-right: 4rpx;
+}
+
+.cond {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  opacity: 0.9;
+}
+
+.coupon-right {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 28rpx;
-  margin-bottom: 16rpx;
+  padding: 26rpx 24rpx;
 }
 
-.card-main {
+.coupon-main {
   flex: 1;
-  min-width: 0;
 }
 
-.card-name {
-  display: block;
-  font-size: 30rpx;
-  color: #222;
-}
-
-.card-sub {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #e8700a;
-}
-
-.card-meta {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  color: #999;
+.name {
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1b2b2a;
 }
 
 .tag {
-  display: inline-block;
-  margin-left: 12rpx;
-  padding: 2rpx 10rpx;
-  background: #fff3e0;
-  color: #e8700a;
-  border-radius: 8rpx;
-  font-size: 20rpx;
+  margin-left: 10rpx;
+  font-size: 21rpx;
+  color: #ff5b4a;
+  background: #ffeeeb;
+  border-radius: 18rpx;
+  padding: 3rpx 12rpx;
 }
 
-.card-action {
-  margin-left: 16rpx;
+.meta {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
 }
 
-.mini-btn {
-  padding: 14rpx 32rpx;
-  background: #1a73e8;
+.btn {
+  background: #14342f;
   color: #fff;
-  border-radius: 30rpx;
-  font-size: 26rpx;
+  font-size: 25rpx;
+  padding: 12rpx 30rpx;
+  border-radius: 32rpx;
 }
 
-.mini-btn.disabled {
-  background: #c8c8c8;
+.btn-disabled {
+  background: #cfe0de;
+  color: #fff;
 }
 
 .status-text {
-  font-size: 26rpx;
-}
-
-.st-unused {
-  color: #1a73e8;
-}
-
-.st-used {
-  color: #999;
-}
-
-.st-expired {
-  color: #d93025;
+  font-size: 24rpx;
+  color: #8a9a98;
 }
 </style>
