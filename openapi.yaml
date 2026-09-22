@@ -906,6 +906,10 @@ paths:
     get:
       tags: [misc]
       summary: 客服配置（企微二维码、双电话、夜间提示）
+      description: |
+        取值优先级：后台「系统管理 → 参数设置」（key：wash.cs.platform-phone / wash.cs.station-phone /
+        wash.cs.night-tip / wash.cs.wecom-qrcode-url）→ application.yml 兜底 → 代码默认。
+        platformPhone 默认 10086：客服入口任何时候都必须能拨通（bug092203）。
       responses:
         '200':
           description: 成功
@@ -1695,7 +1699,8 @@ components:
         remark: { type: string, maxLength: 100 }
         parkPhotoFileIds:
           type: array
-          maxItems: 3
+          maxItems: 6
+          description: 停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId
           items: { type: string }
         agreed:
           type: boolean
