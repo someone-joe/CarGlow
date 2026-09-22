@@ -77,7 +77,8 @@ function preview(url: string): void {
 
 function book(): void {
   setOrderDraft({ serviceId: serviceId.value })
-  uni.switchTab({ url: '/pages/index/index' })
+  // 下单页不是 tabBar 页面（tabBar 首页是 home），必须用 navigateTo，switchTab 会失败
+  uni.navigateTo({ url: '/pages/index/index' })
 }
 
 onLoad((opts) => {

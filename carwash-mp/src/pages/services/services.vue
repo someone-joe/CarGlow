@@ -38,12 +38,11 @@
             <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="origin">
               ¥{{ fen2yuan(item.originPrice) }}
             </text>
-            <text class="pickup">¥0 取送车 · 免代驾费</text>
           </view>
 
           <view class="meta">
-            <text>预计工时 {{ item.workMinutes || '—' }} 分钟</text>
-            <text class="quality">为保障质量，时长视车况而定</text>
+            <text class="work">约 {{ item.workMinutes || '—' }} 分钟</text>
+            <text class="pickup">¥0 取送车 · 免代驾费</text>
           </view>
 
           <view class="card-actions">
@@ -54,8 +53,6 @@
         </view>
       </view>
     </block>
-
-    <!-- 底部悬浮下单条：随选中服务出现（这里简化为点击卡片直接下单） -->
   </view>
 </template>
 
@@ -99,10 +96,14 @@ function goDetail(serviceId?: number): void {
   uni.navigateTo({ url: `/pages/service-detail/service-detail?serviceId=${serviceId}` })
 }
 
+/**
+ * 下单页不是 tabBar 页面（tabBar 首页是 home，下单页是普通页面），
+ * 必须用 navigateTo 而不是 switchTab，否则跳转会失败。
+ */
 function book(serviceId?: number): void {
   if (!serviceId) return
   setOrderDraft({ serviceId })
-  uni.switchTab({ url: '/pages/index/index' })
+  uni.navigateTo({ url: '/pages/index/index' })
 }
 
 onShow(load)
@@ -111,21 +112,22 @@ onShow(load)
 <style>
 .page {
   padding: 24rpx;
-  background: #f6f7f9;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
+  font-size: 26rpx;
   padding: 60rpx 0;
 }
 
 .tabs {
   display: flex;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 8rpx;
   margin-bottom: 24rpx;
 }
@@ -133,15 +135,16 @@ onShow(load)
 .tab {
   flex: 1;
   text-align: center;
-  padding: 20rpx 0;
+  padding: 22rpx 0;
   font-size: 28rpx;
-  color: #666;
-  border-radius: 12rpx;
+  color: #6b7b79;
+  border-radius: 14rpx;
 }
 
 .tab-active {
-  background: #1a73e8;
+  background: #00aeb5;
   color: #fff;
+  font-weight: 600;
 }
 
 .empty {
@@ -153,20 +156,20 @@ onShow(load)
 
 .empty-title {
   font-size: 30rpx;
-  color: #333;
+  color: #1b2b2a;
 }
 
 .empty-sub {
   font-size: 26rpx;
-  color: #999;
+  color: #8a9a98;
   margin-top: 12rpx;
 }
 
 .card {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
 }
 
 .card.disabled {
@@ -175,12 +178,12 @@ onShow(load)
 
 .cover {
   width: 100%;
-  height: 260rpx;
-  background: #eef1f5;
+  height: 240rpx;
+  background: #eef3f2;
 }
 
 .card-body {
-  padding: 24rpx;
+  padding: 26rpx;
 }
 
 .card-top {
@@ -191,83 +194,79 @@ onShow(load)
 
 .name {
   font-size: 32rpx;
-  color: #222;
+  color: #1b2b2a;
   font-weight: 600;
 }
 
 .badge {
   font-size: 22rpx;
-  color: #d93025;
-  background: #fdecec;
-  border-radius: 8rpx;
-  padding: 4rpx 12rpx;
+  color: #ff5b4a;
+  background: #ffeeeb;
+  border-radius: 20rpx;
+  padding: 6rpx 16rpx;
 }
 
 .subtitle {
   display: block;
   margin-top: 8rpx;
-  font-size: 26rpx;
-  color: #888;
+  font-size: 25rpx;
+  color: #8a9a98;
 }
 
 .price-row {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  margin-top: 16rpx;
+  gap: 14rpx;
+  margin-top: 18rpx;
 }
 
 .price {
-  font-size: 38rpx;
-  color: #e8700a;
-  font-weight: 600;
+  font-size: 40rpx;
+  color: #ff5b4a;
+  font-weight: 700;
 }
 
 .origin {
-  font-size: 26rpx;
-  color: #aaa;
+  font-size: 24rpx;
+  color: #b6c2c0;
   text-decoration: line-through;
 }
 
-.pickup {
-  font-size: 24rpx;
-  color: #1a73e8;
-}
-
 .meta {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
   margin-top: 12rpx;
   font-size: 24rpx;
-  color: #999;
+  color: #8a9a98;
 }
 
-.quality {
-  display: block;
-  margin-top: 6rpx;
-  color: #bbb;
+.pickup {
+  color: #00aeb5;
 }
 
 .card-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 20rpx;
+  margin-top: 22rpx;
 }
 
 .detail {
-  font-size: 28rpx;
-  color: #666;
+  font-size: 27rpx;
+  color: #8a9a98;
 }
 
 .book {
-  background: #1a73e8;
+  background: #14342f;
   color: #fff;
-  font-size: 28rpx;
-  padding: 14rpx 36rpx;
-  border-radius: 12rpx;
+  font-size: 27rpx;
+  padding: 14rpx 38rpx;
+  border-radius: 34rpx;
 }
 
 .book-disabled {
-  background: #b8c6da;
+  background: #cfe0de;
+  color: #fff;
 }
 </style>
