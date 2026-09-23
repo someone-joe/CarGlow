@@ -197,10 +197,23 @@ const capacity = ref<CapacityVO | null>(null)
 const needRefresh = ref(false)
 
 /**
- * 可选时间段（夜间服务：19:00-23:00 整点）。
- * TODO：营业时间应来自站点配置，当前后端未下发，先用固定时段并在浮层提示最晚存钥匙时间。
+ * 可选时间段：由站点营业时间生成整点（capacity 下发的 businessStart/businessEnd）。
+ * 后端未下发或数据异常时兜底夜间时段 19:00-23:00，不再写死。
  */
-const timeSlots = ['19:00', '20:00', '21:00', '22:00', '23:00']
+const timeSlots = computed<string[]>(() => {
+  const start = capacity.value?.businessStart || '19:00'
+  const end = capacity.value?.businessEnd || '23:00'
+  const s = Number(start.split(':')[0])
+  const e = Number(end.split(':')[0])
+  if (!Number.isFinite(s) || !Number.isFinite(e) || e < s || e > 23) {
+    return ['19:00', '20:00', '21:00', '22:00', '23:00']
+  }
+  const out: string[] = []
+  for (let h = s; h <= e; h++) {
+    out.push(`${String(h).padStart(2, '0')}:00`)
+  }
+  return out
+})
 
 const todayStr = today()
 const canSubmit = computed(

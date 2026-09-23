@@ -64,13 +64,14 @@ import { computed, ref } from 'vue'
 import { cancelOrder, fetchOrderList, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 import { fetchCustomerService } from '@/api/config'
 
+// 分组由后端唯一定义（契约 tab 枚举），前端只负责展示文案
 const tabs: { key: OrderTab; label: string }[] = [
-  { key: 'ONGOING', label: '进行中' },
-  { key: 'WAIT_REVIEW', label: '待评价' },
-  { key: 'ALL', label: '全部' },
+  { key: 'PENDING', label: '待处理' },
+  { key: 'SERVING', label: '服务中' },
+  { key: 'DONE', label: '已完成' },
 ]
 
-const activeTab = ref<OrderTab>('ONGOING')
+const activeTab = ref<OrderTab>('PENDING')
 const list = ref<OrderListItemVO[]>([])
 const total = ref(0)
 const loading = ref(false)

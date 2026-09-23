@@ -15,7 +15,7 @@ export interface OrderPageVO {
 }
 
 /** Tab 取值由契约 enum 限定，前端不得新增取值 */
-export type OrderTab = 'ONGOING' | 'WAIT_REVIEW' | 'ALL'
+export type OrderTab = 'PENDING' | 'SERVING' | 'DONE'
 
 export interface OrderListParams {
   tab?: OrderTab

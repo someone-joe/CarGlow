@@ -653,7 +653,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    tab?: "ONGOING" | "WAIT_REVIEW" | "ALL";
+                    tab?: "PENDING" | "SERVING" | "DONE";
                     pageNum?: components["parameters"]["PageNum"];
                     pageSize?: components["parameters"]["PageSize"];
                 };
@@ -2342,6 +2342,10 @@ export interface components {
             depositDeadline?: string;
             /** @description 承诺还车时间，如 次日 07:00 */
             promiseReturnTime?: string;
+            /** @description 营业开始时间（整点，如 19:00）；站点可配置，下单页据此生成可选时段 */
+            businessStart?: string;
+            /** @description 营业结束时间（整点，如 23:00） */
+            businessEnd?: string;
             soldOut?: boolean;
         };
         ServiceCategoryVO: {
