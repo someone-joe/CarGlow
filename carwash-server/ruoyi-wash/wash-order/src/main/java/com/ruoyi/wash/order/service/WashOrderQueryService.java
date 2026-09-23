@@ -19,8 +19,22 @@ import java.util.List;
 @Service
 public class WashOrderQueryService {
 
-    /** 「进行中」= 从待支付到已还车（不含待评价及之后） */
-    private static final List<OrderStatus> ONGOING_STATUSES = List.of(
+    /** 「待处理」= 客户还差一步动作：去支付 / 去存钥匙 */
+    private static final List<OrderStatus> PENDING_STATUSES = List.of(
+            OrderStatus.WAIT_PAY, OrderStatus.WAIT_KEY);
+
+    /** 「服务中」= 钥匙已入柜起：取车 → 运输 → 清洗 → 质检 → 还车 → 待客户取回钥匙 */
+    private static final List<OrderStatus> SERVING_STATUSES = List.of(
+            OrderStatus.KEY_IN, OrderStatus.PICKING, OrderStatus.TO_STATION, OrderStatus.WASHING,
+            OrderStatus.QC, OrderStatus.WAIT_RETURN, OrderStatus.RETURNING, OrderStatus.RETURNED);
+
+    /** 「已完成」= 收尾与终态：待评价、已完成、已取消、退款中、已退款 */
+    private static final List<OrderStatus> DONE_STATUSES = List.of(
+            OrderStatus.WAIT_REVIEW, OrderStatus.FINISHED, OrderStatus.CANCELED,
+            OrderStatus.REFUNDING, OrderStatus.REFUNDED);
+
+    /** 旧分组「进行中」的完整状态集，仅用于兼容老版本小程序传来的 ONGOING */
+    private static final List<OrderStatus> LEGACY_ONGOING_STATUSES = List.of(
             OrderStatus.WAIT_PAY, OrderStatus.WAIT_KEY, OrderStatus.KEY_IN, OrderStatus.PICKING,
             OrderStatus.TO_STATION, OrderStatus.WASHING, OrderStatus.QC,
             OrderStatus.WAIT_RETURN, OrderStatus.RETURNING, OrderStatus.RETURNED);
@@ -37,8 +51,12 @@ public class WashOrderQueryService {
     private WashOrderMapper orderMapper;
 
     public OrderPageVO page(Long memberId, String tab, int pageNum, int pageSize) {
-        List<String> statuses = switch (tab == null ? "ONGOING" : tab) {
-            case "ONGOING" -> ONGOING_STATUSES.stream().map(Enum::name).toList();
+        List<String> statuses = switch (tab == null ? "PENDING" : tab) {
+            case "PENDING" -> nameOf(PENDING_STATUSES);
+            case "SERVING" -> nameOf(SERVING_STATUSES);
+            case "DONE" -> nameOf(DONE_STATUSES);
+            // 旧取值兼容：改版前的小程序包仍在传，按语义归到新分组（不抛未知 tab）
+            case "ONGOING" -> nameOf(LEGACY_ONGOING_STATUSES);
             case "WAIT_REVIEW" -> List.of(OrderStatus.WAIT_REVIEW.name());
             case "ALL" -> null;
             default -> throw new ApiException(ErrorCode.A0001, "未知 tab：" + tab);
@@ -60,6 +78,10 @@ public class WashOrderQueryService {
         vo.setPageNum(num);
         vo.setPageSize(size);
         return vo;
+    }
+
+    private static List<String> nameOf(List<OrderStatus> statuses) {
+        return statuses.stream().map(Enum::name).toList();
     }
 
     private OrderPageVO.OrderListItemVO toVO(WashOrder order) {

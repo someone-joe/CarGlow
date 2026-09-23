@@ -10,6 +10,9 @@ public class CapacityVO {
     private Integer remaining;
     private String depositDeadline;
     private String promiseReturnTime;
+    /** 营业时段起止（整点），下单页据此生成可选时段，站点可配置 */
+    private String businessStart;
+    private String businessEnd;
     private Boolean soldOut;
 
     public String getDate() {
@@ -58,6 +61,22 @@ public class CapacityVO {
 
     public void setPromiseReturnTime(String promiseReturnTime) {
         this.promiseReturnTime = promiseReturnTime;
+    }
+
+    public String getBusinessStart() {
+        return businessStart;
+    }
+
+    public void setBusinessStart(String businessStart) {
+        this.businessStart = businessStart;
+    }
+
+    public String getBusinessEnd() {
+        return businessEnd;
+    }
+
+    public void setBusinessEnd(String businessEnd) {
+        this.businessEnd = businessEnd;
     }
 
     public Boolean getSoldOut() {

@@ -81,6 +81,9 @@ public class WashCapacityService {
         vo.setSoldOut(total > 0 && remaining <= 0);
         vo.setDepositDeadline(site.getDepositDeadline());
         vo.setPromiseReturnTime(site.getPromiseReturnTime());
+        // 营业时段来自站点配置：改营业时间只改库，不改代码
+        vo.setBusinessStart(site.getBusinessStart());
+        vo.setBusinessEnd(site.getBusinessEnd());
         return vo;
     }
 }

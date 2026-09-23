@@ -9,6 +9,9 @@ public class WashSite {
     private Integer dailyLimit;
     private String depositDeadline;
     private String promiseReturnTime;
+    /** 夜间服务营业时段起止（整点，如 19:00 / 23:00），下单页可选时段由此生成 */
+    private String businessStart;
+    private String businessEnd;
     private String serviceStatus;
     private String closedNotice;
 
@@ -50,6 +53,22 @@ public class WashSite {
 
     public void setPromiseReturnTime(String promiseReturnTime) {
         this.promiseReturnTime = promiseReturnTime;
+    }
+
+    public String getBusinessStart() {
+        return businessStart;
+    }
+
+    public void setBusinessStart(String businessStart) {
+        this.businessStart = businessStart;
+    }
+
+    public String getBusinessEnd() {
+        return businessEnd;
+    }
+
+    public void setBusinessEnd(String businessEnd) {
+        this.businessEnd = businessEnd;
     }
 
     public String getServiceStatus() {
