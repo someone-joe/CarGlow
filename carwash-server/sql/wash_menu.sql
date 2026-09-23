@@ -45,3 +45,22 @@ values (2020, '数据看板', 2000, 0, 'dashboard', 'wash/dashboard/index', 1, 0
 delete from sys_menu where menu_id = 2021;
 insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
 values (2021, '看板查询', 2020, 1, '', null, 1, 0, 'F', '0', '0', 'wash:dashboard:list', '#', 'admin', sysdate(), '查看经营数据看板');
+
+-- ----------------------------
+-- 服务项管理（2026-09-23 新增，商品可配置）
+-- ----------------------------
+delete from sys_menu where menu_id in (2030, 2031, 2032, 2033, 2034);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2030, '服务项管理', 2000, 3, 'service', 'wash/service/index', 1, 0, 'C', '0', '0', 'wash:service:list', 'shopping', 'admin', sysdate(), '洗车服务项配置（名称/价格/工时/上下架）');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2031, '服务项查询', 2030, 1, '', null, 1, 0, 'F', '0', '0', 'wash:service:list', '#', 'admin', sysdate(), '查看服务项列表');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2032, '服务项新增', 2030, 2, '', null, 1, 0, 'F', '0', '0', 'wash:service:add', '#', 'admin', sysdate(), '新增服务项');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2033, '服务项修改', 2030, 3, '', null, 1, 0, 'F', '0', '0', 'wash:service:edit', '#', 'admin', sysdate(), '修改服务项 / 上下架 / 改价');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2034, '服务项删除', 2030, 4, '', null, 1, 0, 'F', '0', '0', 'wash:service:remove', '#', 'admin', sysdate(), '删除服务项（逻辑删除）');
