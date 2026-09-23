@@ -519,9 +519,13 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ONGOING, WAIT_REVIEW, ALL]
-            default: ONGOING
-            description: 进行中 / 待评价 / 全部
+            enum: [PENDING, SERVING, DONE]
+            description: |
+              待处理 PENDING：客户还差一步动作（待支付 / 待存钥匙）；
+              服务中 SERVING：钥匙已入柜起，取车→运输→清洗→质检→还车→待客户取回钥匙；
+              已完成 DONE：待评价 / 已完成 / 已取消 / 退款中 / 已退款。
+              分组映射由后端唯一定义（WashOrderQueryService），前端不得自行推断状态集合。
+            default: PENDING
         - $ref: '#/components/parameters/PageNum'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -1588,6 +1592,12 @@ components:
         promiseReturnTime:
           type: string
           description: 承诺还车时间，如 次日 07:00
+        businessStart:
+          type: string
+          description: 营业开始时间（整点，如 19:00）；站点可配置，下单页据此生成可选时段
+        businessEnd:
+          type: string
+          description: 营业结束时间（整点，如 23:00）
         soldOut: { type: boolean }
 
     # ---------------- 商品 ----------------
