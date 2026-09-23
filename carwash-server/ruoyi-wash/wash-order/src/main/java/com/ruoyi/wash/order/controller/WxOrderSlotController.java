@@ -72,6 +72,10 @@ public class WxOrderSlotController {
         vo.setCode(code);
         vo.setCabinetName(cabinet.getCabinetName());
         vo.setSlotNo(slot.getSlotNo());
+        // 前端用 expireAt 做倒计时；取 Redis 剩余 TTL，重复取码时不会重置成完整 10 分钟（bug092406）
+        long ttlSec = stringRedisTemplate.getExpire(CODE_PREFIX + orderNo);
+        long remainMs = ttlSec > 0 ? ttlSec * 1000 : Duration.ofMinutes(10).toMillis();
+        vo.setExpireAt(System.currentTimeMillis() + remainMs);
         return ApiResult.ok(vo);
     }
 

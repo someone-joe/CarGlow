@@ -7,6 +7,16 @@ public class OpenCodeVO {
     private String qrcodeUrl;
     private String cabinetName;
     private String slotNo;
+    /** 开箱码失效时间（毫秒时间戳），前端据此倒计时 */
+    private Long expireAt;
+
+    public Long getExpireAt() {
+        return expireAt;
+    }
+
+    public void setExpireAt(Long expireAt) {
+        this.expireAt = expireAt;
+    }
 
     public String getCode() {
         return code;
