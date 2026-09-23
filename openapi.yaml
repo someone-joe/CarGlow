@@ -596,6 +596,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
 
+  /api/v1/orders/{orderNo}/take-key-back:
+    post:
+      tags: [order]
+      summary: 客户确认已取回钥匙（TAKE_KEY_BACK）
+      description: |
+        取钥匙是物理动作，正式环境应由柜机回调驱动；MVP 无真柜机，由客户在取钥匙
+        开箱码页点击确认。后端释放格口 + 状态机 RETURNED → WAIT_REVIEW。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
   /api/v1/orders/{orderNo}/open-code:
     post:
       tags: [order]
