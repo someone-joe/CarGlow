@@ -100,6 +100,23 @@ public class WxOrderSlotController {
         return ApiResult.ok(Map.of("orderNo", request.orderNo()));
     }
 
+    /**
+     * 客户确认已取回钥匙（bug092410）。
+     *
+     * <p>取钥匙是物理动作，正式环境应由柜机回调（同 deposit）驱动；MVP 无真柜机，
+     * 模拟走小程序点击。释放格口（钥匙已取走，格口必须腾出）+ 状态机
+     * TAKE_KEY_BACK（RETURNED → WAIT_REVIEW），非法状态由状态机规则表拒绝。
+     */
+    @PostMapping("/api/v1/orders/{orderNo}/take-key-back")
+    public ApiResult<Void> takeKeyBack(@PathVariable String orderNo) {
+        Long memberId = MemberContext.require();
+        orderSupport.requireOwned(orderNo, memberId);
+        // 先释放格口再推状态：若反过来，释放失败会出现"状态已走但格子还占着"
+        slotService.release(orderNo);
+        stateService.systemFire(orderNo, OrderEvent.TAKE_KEY_BACK, "客户确认已取回钥匙");
+        return ApiResult.ok(null);
+    }
+
     public record DepositRequest(String orderNo, String code, String slotNo) {
     }
 }

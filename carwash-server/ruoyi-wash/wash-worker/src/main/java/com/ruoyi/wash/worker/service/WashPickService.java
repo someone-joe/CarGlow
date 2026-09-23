@@ -7,6 +7,7 @@ import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.service.WashMediaService;
 import com.ruoyi.wash.order.service.WashOrderPickService;
+import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.worker.dto.PickTaskVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,10 @@ public class WashPickService {
     @Autowired
     private WashMediaService mediaService;
 
+    /** 师傅取走钥匙后释放格口用（经 wash-order 传递依赖 wash-network，不新增直接依赖） */
+    @Autowired
+    private WashSlotService slotService;
+
     /**
      * 任务池。站点是硬过滤（师傅只看本站点单），stage 决定看待取还是待送。
      */
@@ -94,6 +99,8 @@ public class WashPickService {
      */
     public void takeKey(String orderNo, Long workerId) {
         stateService.workerFire(orderNo, OrderEvent.TAKE_KEY, workerId, null);
+        // 钥匙已被师傅取走，格口必须腾出，否则该格永远占用（bug092410）
+        slotService.release(orderNo);
     }
 
     /**

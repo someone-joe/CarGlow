@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.goods.domain.WashService;
 import com.ruoyi.wash.goods.domain.WashServiceCategory;
 import com.ruoyi.wash.goods.dto.ServiceCategoryVO;
+import com.ruoyi.wash.goods.dto.ServiceDetailVO;
 import com.ruoyi.wash.goods.dto.ServiceVO;
 import com.ruoyi.wash.goods.mapper.WashServiceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,20 @@ public class WashServiceQueryService {
             list.add(vo);
         }
         return list;
+    }
+
+    /** C 端服务详情（bug092408：此前接口未实现，详情页直接 404）。
+     *  明细类字段（items/notices/样图等）待后台配置能力落地后返回，当前为空，前端有空态。 */
+    public ServiceDetailVO detail(Long serviceId) {
+        WashService service = requireEnabled(serviceId);
+        ServiceDetailVO vo = new ServiceDetailVO();
+        vo.setServiceId(service.getServiceId());
+        vo.setCategoryId(service.getCategoryId());
+        vo.setName(service.getServiceName());
+        vo.setDisplayPrice(service.getPriceAmount());
+        vo.setWorkMinutes(service.getWorkMinutes());
+        vo.setPickupFee(PICKUP_FEE_FREE);
+        return vo;
     }
 
     /** C 端服务分类 */
