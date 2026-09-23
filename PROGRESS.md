@@ -386,6 +386,7 @@ git clone <仓库地址>      # 或 git pull
 - 下单页缺返回键：`pages.json` 去掉 `navigationStyle: custom`。
 
 ### 10.6 剩余待办
+- **后台「服务详情配置」**（用户明确要求）：详情页的 items/不包含项/注意事项/样图/封面等明细字段，需 `wash_service` 加列 + 后台表单。当前后端详情接口已通（`GET /api/v1/services/{serviceId}`）但明细返回空，前端有空态兜底。
 - C 端订单 tab 改「待处理/服务中/已完成」需后端 `OrderTab` 新增取值（跨端小改）。
 - 时间浮层时段目前固定 19:00–23:00（后端未下发站点营业时间，代码已标 TODO）。
 - D（后台运营补全：师傅管理/站点小区/优惠券管理/工位与 SOP/复盘工单）与 E（`admin-api` 契约入 `openapi.yaml`、fileId 真实性校验、影像鉴权收敛）尚未开始。
