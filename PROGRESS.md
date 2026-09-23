@@ -385,7 +385,28 @@ git clone <仓库地址>      # 或 git pull
 - 下单页 `onShow` 无条件重载 → 从相册返回会滚到顶部且重置已选，改为 `onLoad` 加载 + `onShow` 仅在从子页返回时刷新，且只补全未选项。
 - 下单页缺返回键：`pages.json` 去掉 `navigationStyle: custom`。
 
-### 10.6 剩余待办
+### 10.6 后续计划（E / D）与已完成项
+
+**已完成（2026-09-24 夜间，bug 修复后继续推进）**
+- ✅ **订单 tab 三分组**：契约 tab 枚举 `PENDING / SERVING / DONE`（待处理=待支付+待存钥匙；服务中=钥匙已入柜→还车；已完成=待评价/已完成/已取消/退款中/已退款）。后端 `WashOrderQueryService` 是映射唯一真源，**保留旧取值 ONGOING/WAIT_REVIEW/ALL 兼容老包**。实测：`PENDING=0 / SERVING=5 / DONE=37`。
+- ✅ **时间浮层接站点营业时间**：`wash_site` 加 `business_start` / `business_end`（默认 19:00/23:00，SQL `wash_20260924_site_hours.sql`），经 `CapacityVO` 下发，前端 `timeSlots` 改 computed 按整点生成（异常值兜底 19:00-23:00），不再写死。
+
+**E（正确性收口，下一步做）**
+1. `admin-api` 契约入 `openapi.yaml`：目前后台接口是裸 Spring MVC（无契约），需按 PRD 6.7.3 的 `wash:*:*` 权限逐个补（`/admin-api/wash/order|member|vehicle|dashboard|service`）。量大，纯文档活，可单独一轮。
+2. `fileId` 真实性校验：M2 已知简化——`pick-car-done` / `return-done` / 下单 `parkPhotoFileIds` 只校验数量，**未校验 fileId 是否存在、是否属于本单、是否被复用**（传任意字符串都能推进状态）。
+   - 落点：`WashMediaService` 加统一 `requireBelongToOrder(fileIds, orderNo, bizType)`，三个入口调用。
+   - ⚠️ **前置依赖（已探明）**：师傅端上传走 `uploadMedia(path, bizType)`，**没有传 orderNo**，导致影像记录的 `order_no` 为空，`selectByOrderNo` 查不到 → 直接加归属校验会让师傅端拍照全部失败。
+   - 因此正确顺序：**先让上传链路带 orderNo**（前端 `uploadMedia` 加订单号参数 + 后端上传接口接收并落库），**再**加归属校验。
+3. 影像鉴权收敛：前端 `photoUrl()` 用 query token（`?token=`，因 `image` 组件带不了 header，`MediaAuthInterceptor` 已支持）。待定：统一为 query token 唯一方式，还是限制有效期/加签。
+
+**D（后台运营补全，最后做，量大）**
+- 师傅管理（`wash_worker` CRUD + 菜单）
+- 站点/小区管理（含本次新增的营业时间字段）
+- 优惠券管理（券模板 + 发放 + 核销记录）
+- 工位（bay）与 SOP 15 步明细（当前无工位表，`station/queue` 的 bayNo/sopStep 为 null）
+- 复盘工单（`qc-fail` 达阈值目前只 WARN，未自动建单）
+
+### 10.7 原剩余待办（未开始）
 - **后台「服务详情配置」**（用户明确要求）：详情页的 items/不包含项/注意事项/样图/封面等明细字段，需 `wash_service` 加列 + 后台表单。当前后端详情接口已通（`GET /api/v1/services/{serviceId}`）但明细返回空，前端有空态兜底。
 - C 端订单 tab 改「待处理/服务中/已完成」需后端 `OrderTab` 新增取值（跨端小改）。
 - 时间浮层时段目前固定 19:00–23:00（后端未下发站点营业时间，代码已标 TODO）。
