@@ -3,9 +3,10 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else-if="code">
-      <view class="hero">
-        <text class="hero-title">{{ mode === 'take' ? '取钥匙开箱码' : '存钥匙开箱码' }}</text>
-        <text class="hero-sub">{{ cabinetText }}</text>
+      <!-- 状态头 -->
+      <view class="status-bar">
+        <text class="status">{{ mode === 'take' ? '取钥匙开箱码' : '存钥匙开箱码' }}</text>
+        <text class="cabinet">{{ cabinetText }}</text>
       </view>
 
       <view class="code-card">
@@ -15,8 +16,11 @@
           <text class="code-label">开箱码</text>
           <text class="code-value">{{ code.code }}</text>
         </view>
-        <text class="expire">10 分钟内有效，仅可使用一次（剩余 {{ countdown }}）</text>
-        <text class="copy" @click="copy">复制开箱码</text>
+        <view class="expire-row">
+          <text class="expire">10 分钟内有效，仅可使用一次</text>
+          <text class="countdown">剩余 {{ countdown }}</text>
+        </view>
+        <view class="copy" @click="copy">复制开箱码</view>
       </view>
 
       <view class="warn">
@@ -92,56 +96,59 @@ onUnload(() => {
 
 <style>
 .page {
-  padding: 32rpx;
-  background: #f6f7f9;
+  padding: 24rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
+  font-size: 26rpx;
   padding: 80rpx 0;
 }
 
-.hero {
-  text-align: center;
-  padding: 24rpx 0 40rpx;
+.status-bar {
+  background: linear-gradient(135deg, #00aeb5, #0e8f94);
+  border-radius: 20rpx;
+  padding: 34rpx 30rpx;
+  margin-bottom: 20rpx;
 }
 
-.hero-title {
+.status {
   display: block;
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #222;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #fff;
 }
 
-.hero-sub {
+.cabinet {
   display: block;
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #888;
+  margin-top: 8rpx;
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .code-card {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 40rpx;
+  border-radius: 20rpx;
+  padding: 40rpx 30rpx;
   text-align: center;
 }
 
 .qr-tip {
   display: block;
   font-size: 26rpx;
-  color: #888;
+  color: #8a9a98;
   margin-bottom: 20rpx;
 }
 
 .qr {
-  width: 360rpx;
-  height: 360rpx;
+  width: 340rpx;
+  height: 340rpx;
   margin: 0 auto 32rpx;
-  background: #f2f2f2;
+  background: #eef3f2;
 }
 
 .code-box {
@@ -151,40 +158,52 @@ onUnload(() => {
 }
 
 .code-label {
-  font-size: 26rpx;
-  color: #999;
+  font-size: 25rpx;
+  color: #8a9a98;
 }
 
 .code-value {
   font-size: 72rpx;
   font-weight: 700;
-  color: #1a73e8;
-  letter-spacing: 12rpx;
+  color: #14342f;
+  letter-spacing: 10rpx;
   margin-top: 8rpx;
 }
 
-.expire {
-  display: block;
+.expire-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
   margin-top: 24rpx;
+}
+
+.expire {
   font-size: 24rpx;
-  color: #999;
+  color: #8a9a98;
+}
+
+.countdown {
+  font-size: 24rpx;
+  color: #ff5b4a;
+  font-weight: 600;
 }
 
 .copy {
   display: inline-block;
-  margin-top: 24rpx;
+  margin-top: 28rpx;
   font-size: 28rpx;
-  color: #1a73e8;
-  border: 2rpx solid #1a73e8;
-  border-radius: 12rpx;
-  padding: 12rpx 48rpx;
+  color: #00aeb5;
+  border: 2rpx solid #00aeb5;
+  border-radius: 36rpx;
+  padding: 14rpx 52rpx;
 }
 
 .warn {
-  margin-top: 32rpx;
+  margin-top: 24rpx;
   background: #fff7e6;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  border-radius: 20rpx;
+  padding: 26rpx;
   font-size: 24rpx;
   color: #9a6b00;
   line-height: 1.7;

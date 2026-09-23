@@ -3,37 +3,77 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else-if="detail">
-      <view class="countdown">
-        <text class="cd-label">剩余支付时间</text>
-        <text class="cd-time">{{ countdown }}</text>
+      <!-- 状态头：待支付 + 倒计时 -->
+      <view class="status-bar">
+        <text class="status">订单待支付</text>
+        <view class="countdown">
+          <text class="cd-label">剩余支付时间</text>
+          <text class="cd-time">{{ countdown }}</text>
+        </view>
       </view>
 
+      <!-- 服务卡 -->
       <view class="panel">
-        <view class="row"><text class="label">服务项</text><text class="value">{{ detail.serviceName || '—' }}</text></view>
+        <view class="svc-row">
+          <view class="svc-main">
+            <text class="svc-name">{{ detail.serviceName || '—' }}</text>
+            <text class="svc-sub">{{ detail.plateNo || '未填车牌' }}</text>
+          </view>
+          <text class="svc-price">¥{{ fen2yuan(detail.payAmount) }}</text>
+        </view>
+      </view>
+
+      <!-- 费用明细 -->
+      <view class="panel">
+        <view class="panel-title">费用明细</view>
+        <view class="row">
+          <text class="label">服务费</text>
+          <text class="value">¥{{ fen2yuan(detail.originAmount) }}</text>
+        </view>
+        <view v-if="detail.discountAmount" class="row">
+          <text class="label">已优惠</text>
+          <text class="value discount">-¥{{ fen2yuan(detail.discountAmount) }}</text>
+        </view>
+        <view class="row total">
+          <text class="label">应付金额</text>
+          <text class="value price">¥{{ fen2yuan(detail.payAmount) }}</text>
+        </view>
+      </view>
+
+      <!-- 订单信息 -->
+      <view class="panel">
+        <view class="panel-title">订单信息</view>
+        <view class="row"><text class="label">订单号</text><text class="value">{{ detail.orderNo }}</text></view>
+        <view v-if="detail.siteName" class="row">
+          <text class="label">洗车站点</text><text class="value">{{ detail.siteName }}</text>
+        </view>
         <view class="row"><text class="label">钥匙柜</text><text class="value">{{ detail.cabinetName || '—' }}</text></view>
         <view class="row"><text class="label">车辆</text><text class="value">{{ detail.plateNo || '—' }}</text></view>
       </view>
 
-      <view class="panel">
-        <view class="row"><text class="label">服务费</text><text class="value">¥{{ fen2yuan(detail.originAmount) }}</text></view>
-        <view v-if="detail.discountAmount" class="row">
-          <text class="label">已优惠</text><text class="value discount">-¥{{ fen2yuan(detail.discountAmount) }}</text>
+      <!-- 支付方式 -->
+      <view class="panel pay-type">
+        <view class="pt-main">
+          <text class="pt-ico">💚</text>
+          <text class="pt-name">微信支付</text>
         </view>
-        <view class="row total"><text class="label">应付金额</text><text class="value total-val">¥{{ fen2yuan(detail.payAmount) }}</text></view>
-      </view>
-
-      <view class="pay-type">
-        <text class="pt-name">微信支付</text>
         <text class="pt-check">✓</text>
-      </view>
-
-      <view class="bottom">
-        <text class="cancel" @click="cancel">取消订单</text>
-        <text class="pay-btn" :class="{ disabled: paying }" @click="pay">{{ paying ? '支付中…' : '立即支付' }}</text>
       </view>
     </block>
 
     <view v-else class="tip">订单不存在或已支付</view>
+
+    <!-- 底部支付条 -->
+    <view v-if="detail" class="bottom">
+      <view class="bottom-left">
+        <text class="bl-label">待支付</text>
+        <text class="bl-price">¥{{ fen2yuan(detail.payAmount) }}</text>
+      </view>
+      <text class="cancel" @click="cancel">取消订单</text>
+      <text class="pay-btn" :class="{ disabled: paying }" @click="pay">
+        {{ paying ? '支付中…' : '立即支付' }}
+      </text>
+    </view>
   </view>
 </template>
 
@@ -139,101 +179,155 @@ onUnload(() => {
 
 <style>
 .page {
-  padding: 24rpx;
-  background: #f6f7f9;
+  padding: 24rpx 24rpx 200rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
-  padding-bottom: 160rpx;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
+  font-size: 26rpx;
   padding: 80rpx 0;
 }
 
-.countdown {
-  background: #1a73e8;
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #00aeb5, #0e8f94);
+  border-radius: 20rpx;
+  padding: 32rpx 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.status {
+  font-size: 34rpx;
+  font-weight: 700;
   color: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
-  text-align: center;
-  margin-bottom: 24rpx;
+}
+
+.countdown {
+  text-align: right;
 }
 
 .cd-label {
   display: block;
-  font-size: 26rpx;
-  opacity: 0.9;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .cd-time {
   display: block;
-  font-size: 56rpx;
-  font-weight: 600;
-  margin-top: 8rpx;
+  margin-top: 4rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #fff;
   letter-spacing: 2rpx;
 }
 
 .panel {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 28rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.panel-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #eaf1f0;
+  margin-bottom: 18rpx;
+}
+
+.svc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.svc-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.svc-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8a9a98;
+}
+
+.svc-price {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
 .row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 12rpx 0;
+  padding: 14rpx 0;
 }
 
 .label {
-  font-size: 28rpx;
-  color: #888;
+  font-size: 26rpx;
+  color: #8a9a98;
 }
 
 .value {
-  font-size: 28rpx;
-  color: #222;
+  font-size: 26rpx;
+  color: #1b2b2a;
 }
 
-.value.discount {
-  color: #e8700a;
+.discount {
+  color: #ff5b4a;
 }
 
-.row.total {
-  border-top: 1rpx solid #eee;
-  margin-top: 12rpx;
-  padding-top: 24rpx;
+.total {
+  border-top: 2rpx solid #eaf1f0;
+  margin-top: 10rpx;
+  padding-top: 20rpx;
 }
 
-.total-val {
-  font-size: 36rpx;
-  color: #e8700a;
-  font-weight: 600;
+.price {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
 .pay-type {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 28rpx;
-  margin-bottom: 24rpx;
+}
+
+.pt-main {
+  display: flex;
+  align-items: center;
+}
+
+.pt-ico {
+  font-size: 40rpx;
+  margin-right: 14rpx;
 }
 
 .pt-name {
-  font-size: 30rpx;
-  color: #222;
+  font-size: 29rpx;
+  color: #1b2b2a;
 }
 
 .pt-check {
-  color: #1a73e8;
-  font-size: 32rpx;
+  color: #00aeb5;
+  font-size: 34rpx;
 }
 
+/* ---- 底部支付条 ---- */
 .bottom {
   position: fixed;
   left: 0;
@@ -242,28 +336,42 @@ onUnload(() => {
   display: flex;
   align-items: center;
   background: #fff;
-  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #eee;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.bottom-left {
+  margin-right: auto;
+}
+
+.bl-label {
+  display: block;
+  font-size: 22rpx;
+  color: #8a9a98;
+}
+
+.bl-price {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
 .cancel {
-  font-size: 28rpx;
-  color: #666;
-  padding: 20rpx 32rpx;
+  font-size: 26rpx;
+  color: #8a9a98;
+  padding: 0 24rpx;
 }
 
 .pay-btn {
-  flex: 1;
-  margin-left: 24rpx;
-  background: #1a73e8;
+  background: #14342f;
   color: #fff;
-  text-align: center;
-  padding: 24rpx 0;
-  border-radius: 12rpx;
-  font-size: 32rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 24rpx 46rpx;
+  border-radius: 40rpx;
 }
 
 .pay-btn.disabled {
-  background: #b8c6da;
+  background: #cfe0de;
 }
 </style>

@@ -30,7 +30,9 @@
         :placeholder="rating > 0 && rating < 5 ? '请说明原因，便于我们改进（必填）' : '说说你的体验（选填）'"
       />
 
-      <view class="btn" @click="submit">{{ submitting ? '提交中…' : '提交评价' }}</view>
+      <view class="btn" :class="{ disabled: submitting }" @click="submit">
+        {{ submitting ? '提交中…' : '提交评价' }}
+      </view>
     </view>
   </view>
 </template>
@@ -95,35 +97,35 @@ onLoad((options) => {
 <style>
 .page {
   padding: 24rpx;
-  background: #f6f7f9;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .panel {
   background: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
+  border-radius: 20rpx;
+  padding: 36rpx 30rpx;
 }
 
 .panel-title {
   display: block;
   font-size: 34rpx;
-  color: #222;
-  font-weight: 500;
+  color: #1b2b2a;
+  font-weight: 600;
   text-align: center;
 }
 
 .stars {
   display: flex;
   justify-content: center;
-  margin-top: 32rpx;
+  margin-top: 36rpx;
 }
 
 .star {
   font-size: 64rpx;
-  color: #dcdfe6;
-  padding: 0 12rpx;
+  color: #d7e3e1;
+  padding: 0 14rpx;
 }
 
 .star-on {
@@ -133,8 +135,8 @@ onLoad((options) => {
 .rating-text {
   display: block;
   text-align: center;
-  font-size: 28rpx;
-  color: #888;
+  font-size: 27rpx;
+  color: #8a9a98;
   margin-top: 12rpx;
 }
 
@@ -146,37 +148,42 @@ onLoad((options) => {
 
 .tag {
   padding: 14rpx 28rpx;
-  border: 2rpx solid #ddd;
+  border: 2rpx solid #dfe9e7;
   border-radius: 999rpx;
   font-size: 26rpx;
-  color: #666;
+  color: #6b7b79;
   margin: 0 16rpx 16rpx 0;
 }
 
 .tag-on {
-  border-color: #1a73e8;
-  color: #1a73e8;
-  background: #f2f7ff;
+  border-color: #00aeb5;
+  color: #00aeb5;
+  background: #f3fbfb;
 }
 
 .textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #f7f8fa;
-  border-radius: 12rpx;
-  padding: 22rpx;
+  background: #f6faf9;
+  border-radius: 16rpx;
+  padding: 24rpx;
   font-size: 28rpx;
   margin-top: 16rpx;
   height: 180rpx;
 }
 
 .btn {
-  margin-top: 40rpx;
-  background: #1a73e8;
+  margin-top: 44rpx;
+  background: #14342f;
   color: #fff;
   text-align: center;
-  padding: 26rpx 0;
-  border-radius: 16rpx;
+  padding: 28rpx 0;
+  border-radius: 44rpx;
   font-size: 32rpx;
+  font-weight: 600;
+}
+
+.btn.disabled {
+  background: #cfe0de;
 }
 </style>

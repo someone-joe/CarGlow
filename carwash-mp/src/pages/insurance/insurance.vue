@@ -4,35 +4,29 @@
 
     <block v-else>
       <!-- 可投保产品 -->
-      <view class="section">
-        <text class="section-title">保障方案</text>
-        <view v-if="!products.length" class="empty">暂无可投保的保障方案</view>
-        <view v-for="p in products" :key="p.productId" class="card">
-          <view class="card-main">
-            <text class="card-name">{{ p.name }}</text>
-            <text class="card-sub">{{ p.coverageDesc }}</text>
-            <text class="card-price">保费 ¥{{ fen2yuan(p.priceAmount) }} / 年</text>
-          </view>
-          <view class="card-action">
-            <view class="mini-btn" @click="onBuy(p)">投保</view>
-          </view>
+      <view class="block-title">保障方案</view>
+      <view v-if="!products.length" class="empty">暂无可投保的保障方案</view>
+      <view v-for="p in products" :key="p.productId" class="product">
+        <view class="product-main">
+          <text class="product-name">{{ p.name }}</text>
+          <text class="product-desc">{{ p.coverageDesc }}</text>
+          <text class="product-price">保费 ¥{{ fen2yuan(p.priceAmount) }} / 年</text>
         </view>
+        <view class="buy-btn" @click="onBuy(p)">投保</view>
       </view>
 
       <!-- 我的保单 -->
-      <view class="section">
-        <text class="section-title">我的保单</text>
-        <view v-if="!policies.length" class="empty">还没有保单，选上面的方案投保吧</view>
-        <view v-for="pol in policies" :key="pol.policyId" class="card column">
-          <view class="card-row">
-            <text class="card-name">{{ pol.name }}</text>
-            <text class="status-text" :class="statusClass(pol.status)">{{ policyStatusLabel(pol.status) }}</text>
-          </view>
-          <text class="card-sub">保单号 {{ pol.policyNo }}</text>
-          <text class="card-meta">车辆 {{ vehicleLabel(pol.vehicleId) }}</text>
-          <text class="card-meta">保障期 {{ formatDate(pol.startTime) }} ~ {{ formatDate(pol.endTime) }}</text>
-          <text class="card-meta">实付保费 ¥{{ fen2yuan(pol.paidAmount) }}</text>
+      <view class="block-title">我的保单</view>
+      <view v-if="!policies.length" class="empty">还没有保单，选上面的方案投保吧</view>
+      <view v-for="pol in policies" :key="pol.policyId" class="policy">
+        <view class="policy-top">
+          <text class="policy-name">{{ pol.name }}</text>
+          <text class="badge" :class="statusClass(pol.status)">{{ policyStatusLabel(pol.status) }}</text>
         </view>
+        <text class="policy-line">保单号 {{ pol.policyNo }}</text>
+        <text class="policy-line">车辆 {{ vehicleLabel(pol.vehicleId) }}</text>
+        <text class="policy-line">保障期 {{ formatDate(pol.startTime) }} ~ {{ formatDate(pol.endTime) }}</text>
+        <text class="policy-line">实付保费 ¥{{ fen2yuan(pol.paidAmount) }}</text>
       </view>
     </block>
   </view>
@@ -135,115 +129,124 @@ onShow(loadAll)
 
 <style>
 .page {
-  padding: 24rpx 32rpx 60rpx;
-  background: #f6f7f9;
+  padding: 24rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
-.section {
-  margin-bottom: 32rpx;
+.tip {
+  text-align: center;
+  color: #8a9a98;
+  font-size: 26rpx;
+  padding: 80rpx 0;
 }
 
-.section-title {
-  display: block;
-  margin-bottom: 16rpx;
+.block-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #1b2b2a;
+  padding: 12rpx 4rpx 18rpx;
 }
 
-.tip,
 .empty {
-  padding: 60rpx 0;
   text-align: center;
-  color: #999;
-  font-size: 28rpx;
+  color: #8a9a98;
+  font-size: 25rpx;
+  padding: 40rpx 0;
 }
 
-.empty {
-  background: #fff;
-  border-radius: 16rpx;
-}
-
-.card {
+/* ---- 保障方案 ---- */
+.product {
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 28rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
-.card.column {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.card-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.card-main {
+.product-main {
   flex: 1;
-  min-width: 0;
 }
 
-.card-name {
-  display: block;
+.product-name {
   font-size: 30rpx;
-  color: #222;
+  font-weight: 600;
+  color: #1b2b2a;
 }
 
-.card-sub {
+.product-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #8a9a98;
+}
+
+.product-price {
   display: block;
   margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #888;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
-.card-price {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #e8700a;
-}
-
-.card-meta {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #999;
-}
-
-.card-action {
-  margin-left: 16rpx;
-}
-
-.mini-btn {
-  padding: 14rpx 32rpx;
-  background: #1a73e8;
+.buy-btn {
+  background: #14342f;
   color: #fff;
-  border-radius: 30rpx;
   font-size: 26rpx;
+  padding: 14rpx 34rpx;
+  border-radius: 34rpx;
 }
 
-.status-text {
-  font-size: 26rpx;
+/* ---- 我的保单 ---- */
+.policy {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
 }
 
-.st-active {
-  color: #1a73e8;
+.policy-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #eaf1f0;
 }
 
-.st-expired {
-  color: #999;
+.policy-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1b2b2a;
 }
 
-.st-canceled {
-  color: #d93025;
+.badge {
+  font-size: 23rpx;
+  border-radius: 20rpx;
+  padding: 5rpx 18rpx;
+}
+
+.badge.st-active {
+  color: #00aeb5;
+  background: #e6f7f7;
+}
+
+.badge.st-expired {
+  color: #8a9a98;
+  background: #f2f7f7;
+}
+
+.badge.st-canceled {
+  color: #ff5b4a;
+  background: #ffeeeb;
+}
+
+.policy-line {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  color: #8a9a98;
 }
 </style>
