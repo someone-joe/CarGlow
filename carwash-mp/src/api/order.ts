@@ -103,6 +103,17 @@ export function fetchOpenCode(orderNo: string): Promise<OpenCodeVO> {
   })
 }
 
+/**
+ * 契约：openapi.yaml POST /api/v1/orders/{orderNo}/take-key-back。
+ * 客户在取钥匙开箱码页确认"已取出钥匙"：后端释放格口 + RETURNED → WAIT_REVIEW（bug092410）。
+ */
+export function takeKeyBack(orderNo: string): Promise<void> {
+  return request<void>({
+    url: `/api/v1/orders/${orderNo}/take-key-back`,
+    method: 'POST',
+  })
+}
+
 /** 契约：openapi.yaml POST /api/v1/orders/{orderNo}/cancel（reason 必填） */
 export function cancelOrder(orderNo: string, reason: string): Promise<void> {
   return request<void>({

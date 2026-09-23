@@ -811,6 +811,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{orderNo}/take-key-back": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 客户确认已取回钥匙（TAKE_KEY_BACK）
+         * @description 取钥匙是物理动作，正式环境应由柜机回调驱动；MVP 无真柜机，由客户在取钥匙
+         *     开箱码页点击确认。后端释放格口 + 状态机 RETURNED → WAIT_REVIEW。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{orderNo}/open-code": {
         parameters: {
             query?: never;

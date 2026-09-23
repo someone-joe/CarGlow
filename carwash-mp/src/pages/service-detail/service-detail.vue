@@ -61,7 +61,11 @@
       </view>
     </block>
 
-    <view v-else class="tip">服务不存在</view>
+    <view v-else class="fallback">
+      <text class="fallback-title">服务不存在或已下架</text>
+      <text class="fallback-sub">链接可能已过期，去看看其他服务吧</text>
+      <view class="fallback-btn" @click="goBack">返 回</view>
+    </view>
   </view>
 </template>
 
@@ -81,6 +85,11 @@ function fen2yuan(fen?: number): string {
 
 function preview(url: string): void {
   uni.previewImage({ urls: detail.value?.sampleImages || [url], current: url })
+}
+
+/** 兜底页返回：栈空（如直接扫码进入）时回首页 */
+function goBack(): void {
+  uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/home/home' }) })
 }
 
 function book(): void {
@@ -121,6 +130,35 @@ onLoad((opts) => {
   color: #8a9a98;
   font-size: 26rpx;
   padding: 80rpx 0;
+}
+
+/* ---- 空态兜底页 ---- */
+.fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.fallback-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.fallback-sub {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: #8a9a98;
+}
+
+.fallback-btn {
+  margin-top: 60rpx;
+  background: #14342f;
+  color: #fff;
+  font-size: 30rpx;
+  padding: 22rpx 80rpx;
+  border-radius: 44rpx;
 }
 
 .cover {

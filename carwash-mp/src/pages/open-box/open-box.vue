@@ -21,6 +21,8 @@
           <text class="countdown">剩余 {{ countdown }}</text>
         </view>
         <view class="copy" @click="copy">复制开箱码</view>
+        <!-- 取钥匙模式：客户开柜取走钥匙后手动确认（MVP 无柜机回调），后端释放格口并推进状态（bug092410） -->
+        <view v-if="mode === 'take'" class="taken-btn" @click="confirmTaken">我已取出钥匙</view>
       </view>
 
       <view class="warn">
@@ -35,7 +37,7 @@
 <script setup lang="ts">
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { fetchOpenCode, type OpenCodeVO } from '@/api/order'
+import { fetchOpenCode, takeKeyBack, type OpenCodeVO } from '@/api/order'
 
 const orderNo = ref('')
 const mode = ref<'deposit' | 'take'>('deposit')
@@ -79,6 +81,17 @@ async function load(): Promise<void> {
 function copy(): void {
   if (!code.value?.code) return
   uni.setClipboardData({ data: code.value.code })
+}
+
+/** 客户确认已取走钥匙：后端释放格口 + RETURNED → WAIT_REVIEW */
+async function confirmTaken(): Promise<void> {
+  try {
+    await takeKeyBack(orderNo.value)
+    uni.showToast({ title: '已确认取回钥匙', icon: 'none' })
+    setTimeout(() => uni.navigateBack(), 1000)
+  } catch {
+    // request 层已提示（如状态不符）
+  }
 }
 
 onLoad((opts) => {
@@ -197,6 +210,18 @@ onUnload(() => {
   border: 2rpx solid #00aeb5;
   border-radius: 36rpx;
   padding: 14rpx 52rpx;
+}
+
+.taken-btn {
+  display: block;
+  margin: 32rpx auto 0;
+  background: #14342f;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  width: fit-content;
+  padding: 22rpx 70rpx;
+  border-radius: 44rpx;
 }
 
 .warn {
