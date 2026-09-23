@@ -3,20 +3,24 @@
     <view v-if="loading" class="tip">加载中…</view>
 
     <block v-else-if="detail">
+      <!-- 封面 -->
       <image v-if="detail.coverUrl" class="cover" :src="detail.coverUrl" mode="aspectFill" />
       <image v-else class="cover cover-empty" src="/static/logo.png" mode="aspectFit" />
 
+      <!-- 头部信息 -->
       <view class="head">
-        <text class="name">{{ detail.name }}</text>
-        <text v-if="detail.subtitle" class="subtitle">{{ detail.subtitle }}</text>
-        <view class="price-row">
+        <view class="head-top">
+          <text class="name">{{ detail.name }}</text>
           <text class="price">¥{{ fen2yuan(detail.displayPrice) }}</text>
+        </view>
+        <text v-if="detail.subtitle" class="subtitle">{{ detail.subtitle }}</text>
+        <view class="meta-row">
           <text v-if="detail.originPrice && detail.originPrice !== detail.displayPrice" class="origin">
             ¥{{ fen2yuan(detail.originPrice) }}
           </text>
-          <text class="pickup">¥0 取送车</text>
+          <text class="tag">预计工时 {{ detail.workMinutes || '—' }} 分钟</text>
+          <text class="tag">¥0 取送车</text>
         </view>
-        <text class="work">预计工时 {{ detail.workMinutes || '—' }} 分钟</text>
       </view>
 
       <view class="panel">
@@ -47,8 +51,12 @@
         </view>
       </view>
 
+      <!-- 底部下单条 -->
       <view class="bottom-bar">
-        <text class="bottom-price">¥{{ fen2yuan(detail.displayPrice) }}</text>
+        <view class="bb-left">
+          <text class="bb-label">服务价格</text>
+          <text class="bb-price">¥{{ fen2yuan(detail.displayPrice) }}</text>
+        </view>
         <text class="bottom-btn" @click="book">立即下单</text>
       </view>
     </block>
@@ -102,121 +110,131 @@ onLoad((opts) => {
 
 <style>
 .page {
-  padding-bottom: 140rpx;
-  background: #f6f7f9;
+  padding-bottom: 160rpx;
+  background: #f2f7f7;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 .tip {
   text-align: center;
-  color: #999;
+  color: #8a9a98;
+  font-size: 26rpx;
   padding: 80rpx 0;
 }
 
 .cover {
   width: 100%;
-  height: 360rpx;
-  background: #eef1f5;
+  height: 380rpx;
+  background: #eef3f2;
 }
 
 .cover-empty {
-  opacity: 0.3;
+  padding: 40rpx 0;
+  background: linear-gradient(135deg, #00aeb5, #0e8f94);
 }
 
 .head {
   background: #fff;
-  padding: 28rpx;
+  border-radius: 20rpx;
+  margin: -40rpx 24rpx 20rpx;
+  padding: 30rpx;
+  position: relative;
+}
+
+.head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
 }
 
 .name {
-  display: block;
   font-size: 36rpx;
-  font-weight: 600;
-  color: #222;
+  font-weight: 700;
+  color: #1b2b2a;
+}
+
+.price {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
 .subtitle {
   display: block;
-  margin-top: 8rpx;
+  margin-top: 10rpx;
   font-size: 26rpx;
-  color: #888;
+  color: #8a9a98;
 }
 
-.price-row {
+.meta-row {
   display: flex;
-  align-items: baseline;
-  gap: 12rpx;
-  margin-top: 16rpx;
-}
-
-.price {
-  font-size: 42rpx;
-  color: #e8700a;
-  font-weight: 600;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 18rpx;
 }
 
 .origin {
-  font-size: 26rpx;
-  color: #aaa;
+  font-size: 24rpx;
+  color: #b6c2c0;
   text-decoration: line-through;
 }
 
-.pickup {
-  font-size: 24rpx;
-  color: #1a73e8;
-}
-
-.work {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #999;
+.tag {
+  font-size: 22rpx;
+  color: #00aeb5;
+  background: #e6f7f7;
+  border-radius: 20rpx;
+  padding: 6rpx 16rpx;
 }
 
 .panel {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 28rpx;
-  margin: 24rpx;
+  margin: 0 24rpx 20rpx;
 }
 
 .panel-title {
   display: block;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #222;
-  margin-bottom: 16rpx;
+  color: #1b2b2a;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx solid #eaf1f0;
+  margin-bottom: 18rpx;
 }
 
 .li {
-  font-size: 28rpx;
-  color: #555;
-  line-height: 1.8;
+  font-size: 26rpx;
+  color: #4a5a58;
+  line-height: 1.9;
 }
 
 .li.muted {
-  color: #bbb;
+  color: #b6c2c0;
 }
 
 .text {
-  font-size: 28rpx;
-  color: #555;
+  font-size: 26rpx;
+  color: #4a5a58;
+  line-height: 1.8;
 }
 
 .gallery {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
 .sample {
   width: 200rpx;
   height: 200rpx;
-  border-radius: 12rpx;
-  background: #eef1f5;
+  border-radius: 14rpx;
+  background: #eef3f2;
 }
 
+/* ---- 底部下单条 ---- */
 .bottom-bar {
   position: fixed;
   left: 0;
@@ -226,21 +244,32 @@ onLoad((opts) => {
   align-items: center;
   justify-content: space-between;
   background: #fff;
-  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #eee;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
 }
 
-.bottom-price {
-  font-size: 40rpx;
-  color: #e8700a;
-  font-weight: 600;
+.bb-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.bb-label {
+  font-size: 22rpx;
+  color: #8a9a98;
+}
+
+.bb-price {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #ff5b4a;
 }
 
 .bottom-btn {
-  background: #1a73e8;
+  background: #14342f;
   color: #fff;
   font-size: 30rpx;
-  padding: 20rpx 60rpx;
-  border-radius: 12rpx;
+  font-weight: 600;
+  padding: 24rpx 60rpx;
+  border-radius: 40rpx;
 }
 </style>
