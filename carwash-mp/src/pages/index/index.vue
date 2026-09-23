@@ -400,7 +400,9 @@ async function submitOrder(): Promise<void> {
     uni.showToast({ title: '下单成功，待支付', icon: 'none' })
     // 用券后清空选择，避免返回重复带参
     selectedCouponId.value = undefined
-    uni.navigateTo({ url: `/pages/orders/orders?orderNo=${result.orderNo}` })
+    // redirectTo 替换掉下单页：返回键回到进入下单页前的页面（如「我的」），
+    // 不会再回到已提交过的下单页造成重复提交（bug092403）
+    uni.redirectTo({ url: `/pages/orders/orders?orderNo=${result.orderNo}` })
   } catch {
     // request 层已统一提示，这里只恢复按钮状态
   } finally {

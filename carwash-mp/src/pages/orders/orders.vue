@@ -314,6 +314,12 @@ onReachBottom(() => {
   font-size: 32rpx;
   font-weight: 600;
   color: #1b2b2a;
+  /* 服务名长时单行省略，不挤压右侧状态徽章（bug092405） */
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge {
@@ -322,6 +328,9 @@ onReachBottom(() => {
   background: #e6f7f7;
   border-radius: 20rpx;
   padding: 6rpx 18rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  white-space: nowrap;
 }
 
 .meta {

@@ -30,7 +30,8 @@
           <text class="label">订单金额</text>
           <text class="value">¥{{ formatAmount(detail.originAmount) }}</text>
         </view>
-        <view class="row">
+        <!-- 没用到优惠就不显示这一行，避免出现 -¥0.00（bug092404） -->
+        <view class="row" v-if="detail.discountAmount">
           <text class="label">优惠</text>
           <text class="value discount">-¥{{ formatAmount(detail.discountAmount) }}</text>
         </view>

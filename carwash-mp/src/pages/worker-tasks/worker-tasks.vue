@@ -23,7 +23,9 @@
       </view>
       <view class="line">{{ t.serviceName || '洗车服务' }} · 预约 {{ t.appointmentDate || '—' }}</view>
       <view class="line sub">单号 {{ t.orderNo }}</view>
-      <view class="line sub" v-if="t.requiredPhotoCount">取车需拍 ≥{{ t.requiredPhotoCount }} 张</view>
+      <!-- 按阶段给提示：取车阶段才谈「≥6 张」，送回阶段说的是归柜停车照（bug092407） -->
+      <view class="line sub" v-if="t.status === 'PICKING' && t.requiredPhotoCount">取车需拍 ≥{{ t.requiredPhotoCount }} 张</view>
+      <view class="line sub" v-else-if="t.status === 'RETURNING'">给车主拍张停车照便于找车</view>
 
       <view v-if="photoList(t).length" class="photos">
         <text class="photos-title">用户停车照（找车用）</text>
@@ -66,7 +68,7 @@
           >拍照/选图</text>
           <text class="op" @click="submitPickCarDone(t.orderNo, t.requiredPhotoCount ?? 6)">完成取车</text>
         </template>
-        <text v-if="t.status === 'RETURNING'" class="op" @click="doReturnDone(t.orderNo)">送回归柜</text>
+        <text v-if="t.status === 'RETURNING'" class="op" @click="doReturnDone(t.orderNo)">拍照归柜</text>
       </view>
     </view>
 
@@ -199,12 +201,13 @@ async function submitPickCarDone(orderNo?: string, required: number = 6): Promis
 async function doReturnDone(orderNo?: string): Promise<void> {
   if (!orderNo) return
   await guard(async () => {
+    // 拍照归柜（bug092407）：先弹拍照/相册选最多 3 张，再登记车位号
+    const fileIds = await choosePhotos(3)
+    if (!fileIds) return
     const parkingNo = await prompt('车位号', '请填写停放车位号')
     if (!parkingNo) return
-    const fileIds = await choosePhotos(1)
-    if (!fileIds) return
     await returnDone(orderNo, fileIds, parkingNo)
-    uni.showToast({ title: '已送回归柜', icon: 'none' })
+    uni.showToast({ title: '已拍照归柜', icon: 'none' })
     await load()
   })
 }

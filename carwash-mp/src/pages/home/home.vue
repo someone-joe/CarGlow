@@ -198,10 +198,22 @@ onShow(() => {
   margin-bottom: 20rpx;
 }
 
+/* 左侧文本区：flex:1 + min-width:0 才能被压缩换行，不会把右侧按钮挤变形 */
+.hot-main {
+  flex: 1;
+  min-width: 0;
+  margin-right: 20rpx;
+}
+
 .hot-name {
   font-size: 30rpx;
   font-weight: 600;
   color: #1b2b2a;
+  /* 服务名最长限 2 行，超出省略（bug092402） */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .hot-sub {
@@ -214,6 +226,7 @@ onShow(() => {
 .hot-right {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .hot-price {
@@ -241,6 +254,9 @@ onShow(() => {
   font-size: 25rpx;
   padding: 14rpx 28rpx;
   border-radius: 32rpx;
+  /* 固定大小不随标题长度变化（bug092401） */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .empty {
