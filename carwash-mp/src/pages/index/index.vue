@@ -74,12 +74,19 @@
           <text class="step-no">STEP 4</text>
           <text class="step-title">填写车辆信息</text>
         </view>
-        <view class="step-body" @click="goVehicles">
-          <text class="step-value" :class="{ placeholder: !selectedPlate }">
-            {{ selectedPlate || '请选择车辆' }}
-          </text>
-          <text class="step-action">选择 ›</text>
+        <!-- 直接在本页选车：车辆页是管理页（新增/编辑），没有"选中"能力 -->
+        <view v-for="item in vehicles" :key="item.vehicleId" class="svc"
+              :class="{ active: vehicleId === item.vehicleId }" @click="vehicleId = item.vehicleId">
+          <view class="svc-main">
+            <text class="svc-name">{{ item.plateNo }}</text>
+            <text class="svc-sub">
+              {{ item.brand || '未填品牌' }}<text v-if="item.color"> · {{ item.color }}</text>
+            </text>
+          </view>
+          <text v-if="vehicleId === item.vehicleId" class="svc-check">✓</text>
         </view>
+        <view v-if="!vehicles.length" class="empty">还没有车辆，请先添加车辆</view>
+        <view class="manage" @click="goVehicles">管理车辆（添加 / 编辑）›</view>
         <input class="input" v-model="remark" placeholder="车辆停放位置，如：地库 A 区 23 号" />
       </view>
 
@@ -183,6 +190,13 @@ const showTimeSheet = ref(false)
 const capacity = ref<CapacityVO | null>(null)
 
 /**
+ * 是否需要在 onShow 时刷新列表。
+ * 不能无条件 onShow 刷新：从系统相册返回也会触发 onShow，
+ * 重载会让 loading 切换导致整块重建（页面滚到顶部），还会覆盖已选的服务/车辆/柜子。
+ */
+const needRefresh = ref(false)
+
+/**
  * 可选时间段（夜间服务：19:00-23:00 整点）。
  * TODO：营业时间应来自站点配置，当前后端未下发，先用固定时段并在浮层提示最晚存钥匙时间。
  */
@@ -273,10 +287,12 @@ function confirmTime(): void {
 }
 
 function goCabinet(): void {
+  needRefresh.value = true
   uni.navigateTo({ url: '/pages/cabinet/cabinet' })
 }
 
 function goVehicles(): void {
+  needRefresh.value = true
   uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
 
@@ -326,11 +342,17 @@ function loadOptions(): void {
       vehicles.value = vehicleList || []
       cabinets.value = cabinetList || []
 
-      // 默认选中：优先用服务/详情/选柜页带入的预选，否则取第一项
-      serviceId.value = orderDraft.serviceId ?? services.value[0]?.serviceId
-      vehicleId.value = vehicles.value[0]?.vehicleId
-      const usable = cabinets.value.find((item) => !item.full)
-      cabinetId.value = orderDraft.cabinetId ?? usable?.cabinetId ?? cabinets.value[0]?.cabinetId
+      // 只补全「未选」的项：不能覆盖用户已选，否则刷新一次选择就丢了
+      if (serviceId.value == null) {
+        serviceId.value = orderDraft.serviceId ?? services.value[0]?.serviceId
+      }
+      if (vehicleId.value == null) {
+        vehicleId.value = vehicles.value[0]?.vehicleId
+      }
+      if (cabinetId.value == null) {
+        const usable = cabinets.value.find((item) => !item.full)
+        cabinetId.value = orderDraft.cabinetId ?? usable?.cabinetId ?? cabinets.value[0]?.cabinetId
+      }
     })
     .finally(() => {
       loading.value = false
@@ -390,10 +412,16 @@ async function submitOrder(): Promise<void> {
 onLoad((opts) => {
   const id = opts?.couponUserId ? Number(opts.couponUserId) : undefined
   selectedCouponId.value = id && !isNaN(id) ? id : orderDraft.couponUserId
+  loadOptions()
 })
 
-// 用 onShow 而非 onMounted：从车辆页/选柜页返回后，列表与预选要立刻生效
-onShow(loadOptions)
+// 只在从车辆页/选柜页返回时刷新：避免选照片后页面回到顶部
+onShow(() => {
+  if (needRefresh.value) {
+    needRefresh.value = false
+    loadOptions()
+  }
+})
 </script>
 
 <style>
@@ -537,6 +565,18 @@ onShow(loadOptions)
   margin-top: 6rpx;
   font-size: 23rpx;
   color: #8a9a98;
+}
+
+.svc-check {
+  font-size: 32rpx;
+  color: #00aeb5;
+}
+
+.manage {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #00aeb5;
+  padding: 12rpx 0;
 }
 
 .svc-price {

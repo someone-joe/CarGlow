@@ -10,8 +10,7 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "CarGlow",
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "服务下单"
 			}
 		},
 		{
