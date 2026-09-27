@@ -1,7 +1,7 @@
 # 项目进度交接（换设备 / 新会话先看这里）
 
 > 用途：聊天记录不会跨设备，但本文件会。新会话开始时，让 AI 先读本文件即可无损接上。
-> 最后更新：2026-09-23
+> 最后更新：2026-09-27（补录后台契约 + 新增第十一节「双机环境差异」）
 
 ---
 
@@ -352,6 +352,7 @@ git clone <仓库地址>      # 或 git pull
 
 ## 十、C 端界面改版与商品配置（2026-09-23）
 
+
 > 依据 `对标产品设计稿/`（22 张，竞品"洗悦 X-CLEAN"）改版 C 端，并让商品（服务项）后台可配置。
 
 ### 10.1 设计语言（新主题的基线）
@@ -392,11 +393,26 @@ git clone <仓库地址>      # 或 git pull
 - ✅ **时间浮层接站点营业时间**：`wash_site` 加 `business_start` / `business_end`（默认 19:00/23:00，SQL `wash_20260924_site_hours.sql`），经 `CapacityVO` 下发，前端 `timeSlots` 改 computed 按整点生成（异常值兜底 19:00-23:00），不再写死。
 
 **E（正确性收口，下一步做）**
-1. `admin-api` 契约入 `openapi.yaml`：目前后台接口是裸 Spring MVC（无契约），需按 PRD 6.7.3 的 `wash:*:*` 权限逐个补（`/admin-api/wash/order|member|vehicle|dashboard|service`）。量大，纯文档活，可单独一轮。
-2. `fileId` 真实性校验：M2 已知简化——`pick-car-done` / `return-done` / 下单 `parkPhotoFileIds` 只校验数量，**未校验 fileId 是否存在、是否属于本单、是否被复用**（传任意字符串都能推进状态）。
-   - 落点：`WashMediaService` 加统一 `requireBelongToOrder(fileIds, orderNo, bizType)`，三个入口调用。
-   - ⚠️ **前置依赖（已探明）**：师傅端上传走 `uploadMedia(path, bizType)`，**没有传 orderNo**，导致影像记录的 `order_no` 为空，`selectByOrderNo` 查不到 → 直接加归属校验会让师傅端拍照全部失败。
-   - 因此正确顺序：**先让上传链路带 orderNo**（前端 `uploadMedia` 加订单号参数 + 后端上传接口接收并落库），**再**加归属校验。
+1. ✅ **已完成（2026-09-27，换到 Mac 后第一轮）**：`admin-api` 契约入 `openapi.yaml` —— 后台 4 个控制器共 13 路径 / 15 个操作全部落契约（tag `admin-*`），新增 14 个后台 schema。关键结论（别改）：
+   - 后台返回体**不套 Result**，沿用若依 `AjaxResult` / `TableDataInfo`：成功码是 **200** 不是 0，分页是平铺的 `{ total, rows }` 不是 `data.list`。
+     原因：RuoYi-Vue3 的请求拦截器按 `code === 200` 判成功，改成 0 会让全后台把成功响应当错误弹出来。
+     已写进 `info.description` 与 `RuoYiResult` / `RuoYiTableDataInfo` 的说明里。
+   - 每个操作都标了 `x-permission`（`wash:order:list` 等），必须与后端 `@PreAuthorize`、`wash_menu.sql` 三处一致。
+   - 字典类接口（`status-options` / `event-options` / `category-options`）在契约里写明"来源唯一、前端不得自带名单"；
+     `EventOption.confirmRequired` 由后端下发，哪些事件算高危不由前端判断。
+   - 后台工单详情复用了 C 端同一个 `OrderDetailVO`（同一套 8 节点时间轴），避免两端字段漂移。
+   - 后续已在 Mac 装好 Node 并完成类型重新生成（`src/api/schema.d.ts` 83KB → 113KB）。
+2. ✅ **已完成（2026-09-27）**：`fileId` 真实性校验。原先只校验照片数量，传任意字符串都能推进状态。
+   - **前置依赖先打通**：`uploadMedia` 本就支持 orderNo 但两处没传——`worker-station` 的洗后照（WASHED）、
+     以及 `worker-tasks` 的 `choosePhotos()`。已全部补上。
+   - **顺带修了一个真实的错配**：归柜照片 `choosePhotos()` 里硬编码 bizType=PICK，而契约 `return-done` 要求 RETURN。
+     后端不校验时看不出来，**一加校验归柜就会全量失败**，属于必须提前修的雷。
+   - 落点：`WashMediaService.requireBelongToOrder(fileIds, orderNo, bizType)` 是归属校验的唯一实现处，
+     三个师傅端入口（pick-car-done / return-done / qc-pass）都调它，规则不散落。
+   - **下单侧特殊处理**：停车照在下单前上传，此时没有订单号，只能按「本人 + PARK + 尚未归属」校验
+     （`requireOwnParkPhotos`），**订单号生成后再 `bindToOrder` 回填**（SQL 带 `order_no is null`，已归别的单的抢不走）。
+     此前下单完全不回填，影像与订单之间没有关联，事后查不到当时拍了什么。
+   - 新增错误码 **B1005**（影像不存在或不属于当前订单），契约与 `ErrorCode` 已同步；新增 11 个单测全绿。
 3. 影像鉴权收敛：前端 `photoUrl()` 用 query token（`?token=`，因 `image` 组件带不了 header，`MediaAuthInterceptor` 已支持）。待定：统一为 query token 唯一方式，还是限制有效期/加签。
 
 **D（后台运营补全，最后做，量大）**
@@ -408,7 +424,119 @@ git clone <仓库地址>      # 或 git pull
 
 ### 10.7 原剩余待办（未开始）
 - **后台「服务详情配置」**（用户明确要求）：详情页的 items/不包含项/注意事项/样图/封面等明细字段，需 `wash_service` 加列 + 后台表单。当前后端详情接口已通（`GET /api/v1/services/{serviceId}`）但明细返回空，前端有空态兜底。
-- C 端订单 tab 改「待处理/服务中/已完成」需后端 `OrderTab` 新增取值（跨端小改）。
-- 时间浮层时段目前固定 19:00–23:00（后端未下发站点营业时间，代码已标 TODO）。
-- D（后台运营补全：师傅管理/站点小区/优惠券管理/工位与 SOP/复盘工单）与 E（`admin-api` 契约入 `openapi.yaml`、fileId 真实性校验、影像鉴权收敛）尚未开始。
-- 设计稿图片被重命名为有语义文件名（22 张），**未提交**，待决定。
+- ~~C 端订单 tab 改「待处理/服务中/已完成」~~ ✅ 已完成（10.6 已完成项，`70c1dbd` + `74e589d`）
+- ~~时间浮层时段固定 19:00–23:00~~ ✅ 已完成（站点营业时间经 `CapacityVO` 下发，`70c1dbd`）
+- ~~设计稿图片重命名未提交~~ ✅ 已提交（`74de9be`）
+- E 的 `admin-api` 契约 ✅ 已完成（见 10.6）；剩余 fileId 真实性校验、影像鉴权收敛未做
+- D（师傅管理 / 站点小区 / 优惠券管理 / 工位与 SOP / 复盘工单）：**全部未开始**
+- **后台「服务详情配置」**：仍未开始（`wash_service` 明细字段缺列）
+
+---
+
+## 十一、开发环境：Windows 机 ↔ Mac 机（2026-09-27）
+
+> Windows 是主力开发环境；Mac 目前**能跑中间件，但没有 Java / Maven / Node**。换机器前先看这一节，别浪费一轮去试命令。
+
+| 工具 | Windows（`d:/CarGlow`） | Mac（`/Users/joe/CarGlow`） |
+| --- | --- | --- |
+| JDK 17 | ✅ | ✅ **2026-09-27 装好**（brew openjdk@17，17.0.20.1） |
+| Maven | ✅ | ✅ **2026-09-27 装好**（3.9.16，走阿里云镜像） |
+| Node | ✅ v20.2 | ✅ **2026-09-27 装好**（v26.10.0） |
+| Docker 中间件 | ✅ Docker Desktop | ✅ **2026-09-27 装好并启动**（见 11.1） |
+
+### 11.1 Mac 的 Docker 中间件（已就绪）
+
+Mac 上没装 Docker Desktop，走的是 **colima**（VM 形态的容器引擎）+ brew 的 docker CLI。
+容器里的 MySQL / Redis 与 Windows 完全相同：同一份 compose、同一套口令。
+
+```bash
+export PATH="/opt/homebrew/bin:$PATH"     # 该终端默认没带 brew 路径，别漏
+
+colima start                              # 起容器引擎（已配置 4核/8G/60G，重开机后执行这条）
+docker compose -f docker/docker-compose.dev.yml up -d   # 起 MySQL 8 + Redis 7
+colima status                             # 查看状态
+colima stop                               # 收工停引擎（数据保留在 named volume）
+```
+
+- 连接信息：`root / carglow_dev`，`127.0.0.1:3306`、`127.0.0.1:6379`，库 `carwash`（已自动创建）。
+- **当前 Mac 的 MySQL 是空库**：`carwash-server/sql/` 下的脚本一份都还没导入，跑后端前必须先导。
+- ⚠️ **别让它再去下载 colima 镜像**：本机直连 GitHub 只有 ~2.5KB/s（332MB 要下几十小时）。
+  已用 `gh-proxy.com` 代理拉到本地 `~/Downloads/colima-ubuntu-24.04-docker-arm64.raw.gz`（317MB），
+  将来重建环境用 `colima start --disk-image ~/Downloads/colima-ubuntu-24.04-docker-arm64.raw.gz` 复用。
+- ⚠️ brew 装的 docker CLI **不含 compose**：已 `brew install docker-compose`，
+  并在 `~/.docker/config.json` 配了 `cliPluginsExtraDirs: ["/opt/homebrew/lib/docker/cli-plugins"]`。
+  没这一步就只有 `docker-compose`（连字符），用不了 `docker compose`（空格）——两者等价。
+
+### 11.2 分工建议
+
+> 2026-09-27 更新：JDK / Maven / Node 均已装好，Mac 现在**能编译、能跑测试、能起服务**，
+> 不再受「只能改文档」的限制。下面两条是当时的判断，留作背景。
+
+- **Mac 能做的**：纯文档与契约（`openapi.yaml`、各类 `.md`）、SQL 审阅、代码走查、git 操作。
+- **后端编译与测试**（已验证可用）：
+
+```bash
+source ~/.zshrc          # 或新开终端；JAVA_HOME 只在 ~/.zshrc 里配了，没走 sudo 软链
+cd carwash-server
+mvn -B -pl ruoyi-wash/wash-order,ruoyi-wash/wash-worker -am test
+```
+
+  ⚠️ **必须带 `-am`**：只写 `-pl` 会因为 `wash-common`、`ruoyi-framework` 等模块没进本地仓库而
+  报 `Could not find artifact`——那不是依赖下不到，是本仓库的兄弟模块没构建。
+- **小程序类型检查**：`cd carwash-mp && npm run type-check`（依赖已装；`npm install` 走 npmmirror 镜像）。
+
+### 11.3 契约改动后的必做动作
+
+```bash
+npx openapi-typescript openapi.yaml -o carwash-mp/src/api/schema.d.ts
+```
+
+不重新生成的话，小程序侧 TS 类型还是旧的，编译期发现不了字段漂移。
+
+### 11.4 Mac 上起后端（2026-09-27 跑通）
+
+数据库和中间件都好了，但**直接 `java -jar` 在 Mac 上会启动失败**（Windows 上不会），原因与绕法如下：
+
+- `logback.xml` 里 `log.path` 硬编码 `/home/ruoyi/logs`。Windows 上会被解析成当前盘下的目录并自动创建；
+  Mac 是 Unix，`/home` 在根分区，没权限创建 → Logback 报错 → Spring Boot 直接判定启动失败。
+- `log.path` 是硬编码（没写成 `${LOG_PATH:-...}`），所以 `-Dlog.path=` 覆盖不了。
+- **绕法（不改仓库文件，避免影响 Windows）**：复制一份改好路径的配置放到外部，启动时同时给两个参数：
+
+```bash
+mkdir -p ~/carwash-logs
+sed 's|/home/ruoyi/logs|'"$HOME"'/carwash-logs|g' \
+  carwash-server/ruoyi-admin/src/main/resources/logback.xml > /tmp/logback-mac.xml
+
+cd /Users/joe/CarGlow
+java -Dlogback.configurationFile=/tmp/logback-mac.xml \
+     -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar \
+     --logging.config=file:/tmp/logback-mac.xml
+```
+
+  两个参数缺一不可：logback 原生阶段和 Spring Boot 接管阶段各读一次，只给一个仍会失败。
+- 打 jar：`cd carwash-server && mvn -B -DskipTests -pl ruoyi-admin -am package`（产物 `ruoyi-admin/target/ruoyi-admin.jar`）。
+- 停进程：改代码重新打包前必须 `pkill -f ruoyi-admin.jar`，否则 jar 被占用（Windows 上踩过同一个坑）。
+
+**已验证（2026-09-27）**：SQL 全量导入 51 张表 → 后端启动 → `GET /captchaImage` 正常返回、
+师傅端 `POST /api/v1/worker/login`（W001 / dev123）返回 `code=0` 与 token。
+
+导入 SQL 的顺序（有依赖，别乱）：
+
+```bash
+cd carwash-server/sql
+for f in ry_20260417.sql quartz.sql wash_20260917_minimal.sql wash_20260918_order.sql \
+         wash_20260919_pay.sql wash_20260919_promo.sql wash_20260919_refund.sql \
+         wash_20260919_site_review_media.sql wash_20260919_slot.sql wash_20260920_worker.sql \
+         wash_20260924_site_hours.sql wash_menu.sql wash_seed_dev.sql; do
+  docker exec -i carglow-mysql mysql -uroot -pcarglow_dev --default-character-set=utf8mb4 carwash < "$f"
+done
+```
+
+> ⚠️ 上面那条命令会在 stderr 打 `[Warning] Using a password on the command line interface can be insecure`，
+> 这是 MySQL 的提示不是报错，别误判成导入失败。用 `show tables` 复核。
+> 中文编码已用 hex 复核过（`标准洗车` = `E6A087E58786E6B497E8BDA6`，是真 UTF-8 不是双重编码）。
+
+### 11.5 跨设备同步
+
+仓库 `origin = https://github.com/someone-joe/CarGlow`，走 git 即可。
+离开 A 机前 `git push`，到 B 机后 `git pull --ff-only`（2026-09-27 已验证：22 个 commit 干净快进）。
