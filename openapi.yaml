@@ -26,9 +26,18 @@ info:
     - 幂等：下单、支付、开箱、分配格口四类接口必须传 `Idempotency-Key` 请求头。
 
     **路径前缀**
-    - `/api/v1/**` C 端与 B 端小程序（wx-token 鉴权）
-    - `/admin-api/**` 运营后台（若依 JWT 鉴权，本文件 V1.0 不展开）
+    - `/api/v1/**` C 端与师傅端小程序（wx-token / worker-token 鉴权）
+    - `/admin-api/**` 运营后台（若依 JWT 鉴权，返回体沿用若依结构，见下条）
     - `/device-callback/v1/**` 钥匙柜回调（签名 + IP 白名单，见 x-roadmap）
+
+    **后台通道与 `/api/v1` 的两处差异（不统一，勿混用）**
+    1. 成功码：后台 `code = 200`，小程序端 `code = 0`。
+       原因是后台必须零改造复用若依 `AjaxResult` / `TableDataInfo`，
+       否则 RuoYi-Vue3 的请求拦截器（`code === 200`）会把成功响应当错误处理。
+    2. 分页：后台返回平铺的 `{ total, rows, code, msg }`（若依 `TableDataInfo`），
+       不是小程序端的 `data = { list, total, pageNum, pageSize }`。
+    3. 业务错误：后台沿用若依 `AjaxResult.error(msg)`（HTTP 200 + 业务失败码），
+       不走 x-error-codes 的字母分段映射。
   contact:
     name: CarGlow
 
@@ -65,6 +74,14 @@ tags:
     description: C 端优惠券（领券中心 / 我的券 / 下单最优券）
   - name: insurance
     description: C 端保险（产品 / 投保 / 我的保单）
+  - name: admin-order
+    description: 后台订单管理（列表 / 详情 / 人工干预）
+  - name: admin-member
+    description: 后台会员与车辆查询
+  - name: admin-goods
+    description: 后台服务项（商品）配置
+  - name: admin-dashboard
+    description: 后台经营数据看板
 
 # -----------------------------------------------------------------------------
 # 错误码（分段：A0 通用 / B1 订单 / B2 柜机格口 / B3 支付 / B4 任务 / C0 第三方 / C1 营销 / C2 保险）
@@ -80,6 +97,7 @@ x-error-codes:
   B1002: 订单状态不允许该操作
   B1003: 未到存钥匙时间 / 已过截止时间
   B1004: 取消原因必填
+  B1005: 影像不存在、或不属于当前订单 / 当前会员（防 fileId 伪造与跨单复用）
   B2001: 柜机离线
   B2002: 格口已被占用
   B2003: 无空闲格口
@@ -109,7 +127,8 @@ x-roadmap:
   - 师傅端（取送）/api/v1/pick/** ：任务池、接单、取车/还车打卡、异常上报、工作量
   - 师傅端（作业）/api/v1/station/** ：工位队列看板、15 步 SOP 打卡、质检、产能预警
   - 设备回调 /device-callback/v1/** ：注册心跳、格口状态同步、开箱回调、开关门上报、故障告警
-  - 后台 /admin-api/** ：模块 1-7 的 CRUD 与订单干预
+  - '[已补录，见 tag admin-*] 后台 /admin-api/wash/** ：订单管理、会员/车辆、服务项配置、经营看板，共 15 个接口'
+  - 后台尚未开工的模块（开工前必须先补契约）：师傅管理 wash_worker、站点/小区管理、优惠券管理、工位 bay 与 SOP 明细、复盘工单
 
 paths:
   # ============================ 登录授权 ============================
@@ -851,6 +870,11 @@ paths:
       description: |
         multipart 上传。大小与类型限制由服务端配置（wash.media），前端不要自行放宽。
         bizType 决定这张图属于哪个环节（停车 / 取车 / 洗后 / 还车 / 对比 / 视频）。
+
+        **orderNo 是影像归属的唯一依据**：凡能拿到订单号的环节（取车 PICK / 洗后 WASHED / 停放 RETURN）
+        必须传，否则这条影像是无主的，后续「校验影像属于本单」时查不到，会返回 B1005。
+        唯一例外是下单前传的停车照（PARK）——此时订单号还没生成，按「本人 + PARK + 尚未绑定订单」校验，
+        下单成功时由服务端把 orderNo 回填到这些影像上。
       requestBody:
         required: true
         content:
@@ -1161,7 +1185,10 @@ paths:
                   type: array
                   items: { type: string }
                   minItems: 6
-                  description: 上传后的 fileId 列表，bizType=PICK
+                  description: |
+                    上传后的 fileId 列表，bizType=PICK。
+                    服务端校验每个 fileId 真实存在、属于本单且 bizType=PICK，不通过返回 B1005
+                    （只校验数量时，传任意字符串都能推进状态）。
                 note: { type: string }
       responses:
         '200':
@@ -1193,7 +1220,9 @@ paths:
                 fileIds:
                   type: array
                   items: { type: string }
-                  description: 停放照 fileId 列表，bizType=RETURN
+                  description: |
+                    停放照 fileId 列表，bizType=RETURN。
+                    服务端校验每个 fileId 真实存在、属于本单且 bizType=RETURN，不通过返回 B1005。
                 parkingNo: { type: string, description: 车位号 }
       responses:
         '200':
@@ -1273,7 +1302,9 @@ paths:
                 fileIds:
                   type: array
                   items: { type: string }
-                  description: 洗后照 fileId 列表，bizType=WASHED
+                  description: |
+                    洗后照 fileId 列表，bizType=WASHED。
+                    服务端校验每个 fileId 真实存在、属于本单且 bizType=WASHED，不通过返回 B1005。
       responses:
         '200':
           description: 成功
@@ -1358,6 +1389,388 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Result' }
+
+  # ============================================================================
+  # 运营后台（/admin-api，若依 JWT 鉴权）
+  # 返回体与 /api/v1 不同：成功码 200、分页为 { total, rows }，详见 info.description。
+  # x-permission 为 PRD 6.7.3 的 wash:*:* 标识，后端 @PreAuthorize 与本文件必须一致。
+  # ============================================================================
+  /admin-api/wash/order/list:
+    get:
+      tags: [admin-order]
+      summary: 后台订单列表（全量视图）
+      description: |
+        后台看得到所有站点的订单，不做 tab 分组（分组规则 '/api/v1/orders' 与这里是两套，勿复用）。
+        敏感字段（手机号等）一律不返回。
+      x-permission: wash:order:list
+      parameters:
+        - name: orderNo
+          in: query
+          required: false
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          description: 取值必须来自 GET /admin-api/wash/order/status-options，前端不得自带一份状态名单
+          schema: { type: string }
+        - name: memberId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminOrderVO' }
+
+  /admin-api/wash/order/status-options:
+    get:
+      tags: [admin-order]
+      summary: 订单状态下拉选项
+      description: 由后端 OrderStatus 枚举直接生成，是状态名单的唯一真源。
+      x-permission: wash:order:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/StatusOption' }
+
+  /admin-api/wash/order/{orderNo}:
+    get:
+      tags: [admin-order]
+      summary: 后台订单详情
+      description: |
+        含 C 端同款 8 节点时间轴（直接读 wash_order_status_log 生成，不另写一套进度表）。
+        与 GET /api/v1/orders/{orderNo} 返回同一个 OrderDetailVO，避免两端字段漂移。
+      x-permission: wash:order:query
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OrderDetailVO' }
+
+  /admin-api/wash/order/{orderNo}/event-options:
+    get:
+      tags: [admin-order]
+      summary: 当前状态允许触发的事件选项
+      description: |
+        由状态机规则表（OrderStatusTransitions）+ 后台白名单共同算出，
+        客服下拉里只会出现真正能推进成功的事件；confirmRequired 由后端判定后下发，
+        前端只负责是否弹二次确认框，不得自行维护一份「哪些事件危险」的名单。
+      x-permission: wash:order:edit
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/EventOption' }
+
+  /admin-api/wash/order/{orderNo}/advance:
+    post:
+      tags: [admin-order]
+      summary: 人工推进订单状态（异常补救）
+      description: |
+        必须走状态机（WashOrderStateService.adminFire），非法事件直接被拒绝并写流转日志。
+        高危事件（isConfirmRequired=true）必须带 confirm=true，否则返回业务失败。
+        TODO（上线前）：目前客服可一步推到「已完成」，需收紧允许后台触发的事件集合。
+      x-permission: wash:order:edit
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminOrderAdvanceRequest' }
+      responses:
+        '200':
+          description: 成功；data 为推进后的状态枚举名
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OrderStatus' }
+
+  /admin-api/wash/order/{orderNo}/cancel:
+    post:
+      tags: [admin-order]
+      summary: 后台取消订单
+      description: 不受「客户只能取消车未动」的限制，但终态仍不可取消——由状态机兜底。
+      x-permission: wash:order:edit
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminOrderCancelRequest' }
+      responses:
+        '200':
+          description: 成功；data 为取消后的状态枚举名
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OrderStatus' }
+
+  /admin-api/wash/member/list:
+    get:
+      tags: [admin-member]
+      summary: 后台会员列表
+      description: 手机号与 openid 仅返回脱敏值（个保法最小化，技术方案 P8），后台也不暴露明文。
+      x-permission: wash:member:list
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 昵称 / 手机号模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminMemberVO' }
+
+  /admin-api/wash/vehicle/list:
+    get:
+      tags: [admin-member]
+      summary: 后台车辆列表
+      description: 车牌属于个人信息，但客服需要报车牌找车，故按会员维度展示且不做脱敏。
+      x-permission: wash:vehicle:list
+      parameters:
+        - name: plateNo
+          in: query
+          required: false
+          schema: { type: string }
+        - name: memberId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminVehicleVO' }
+
+  /admin-api/wash/service/list:
+    get:
+      tags: [admin-goods]
+      summary: 后台服务项列表
+      description: 与 C 端不同——包含已下架项，供后台修改/重新上架。
+      x-permission: wash:service:list
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          schema: { type: string }
+        - name: categoryId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminServiceVO' }
+
+  /admin-api/wash/service/category-options:
+    get:
+      tags: [admin-goods]
+      summary: 服务分类下拉选项
+      description: 来源 wash_service_category 表，前端不得自带一份分类名单。
+      x-permission: wash:service:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CategoryOption' }
+
+  /admin-api/wash/service/{serviceId}:
+    get:
+      tags: [admin-goods]
+      summary: 服务项详情
+      x-permission: wash:service:list
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminServiceVO' }
+    delete:
+      tags: [admin-goods]
+      summary: 删除服务项（逻辑删除）
+      description: 历史订单仍引用服务名与价格快照，因此只能逻辑删除，禁止物理删行。
+      x-permission: wash:service:remove
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/service:
+    post:
+      tags: [admin-goods]
+      summary: 新增服务项
+      description: 金额单位为【分】；后台表单填元，换算在页面层完成，后端不接收「元」。
+      x-permission: wash:service:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminServiceRequest' }
+      responses:
+        '200':
+          description: 成功；data 为新增后的服务项
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminServiceVO' }
+    put:
+      tags: [admin-goods]
+      summary: 修改服务项（含改价 / 上下架）
+      description: |
+        改价只影响新订单：历史订单用的是下单时的价格快照，不会被追溯修改。
+        serviceId 必填，缺失视为新增（幂等键不适用本接口，重复提交会产生多次修改）。
+      x-permission: wash:service:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminServiceRequest' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/dashboard/stats:
+    get:
+      tags: [admin-dashboard]
+      summary: 经营数据看板
+      description: 纯只读聚合，不写状态、不留痕；统计口径由后端唯一定义，前端只渲染不二次计算。
+      x-permission: wash:dashboard:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/DashboardStatsVO' }
 
 components:
 
@@ -1729,8 +2142,11 @@ components:
         parkPhotoFileIds:
           type: array
           maxItems: 6
-          description: 停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId
           items: { type: string }
+          description: |
+            停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId。
+            下单时订单号尚未生成，故按「本人 + bizType=PARK + 尚未绑定订单」校验，
+            下单成功时服务端把这些 fileId 的 orderNo 回填为本单。不通过返回 B1005。
         agreed:
           type: boolean
           description: 已同意《服务条款与钥匙寄存协议》
@@ -1930,3 +2346,185 @@ components:
         ticketType:
           type: string
           description: 绑定的工单类型，一键建单时带入
+
+    # ==========================================================================
+    # 运营后台独有结构
+    #
+    # 后台复用若依原生返回结构（不套 Result），成功码是 200 不是 0：
+    # RuoYi 的 request 拦截器按 code === 200 判定成功，改成 0 会让全后台报错。
+    # ==========================================================================
+    RuoYiResult:
+      type: object
+      required: [code, msg]
+      description: 若依 AjaxResult。业务失败也是 HTTP 200，靠 code 区分。
+      properties:
+        code:
+          type: integer
+          description: 200 表示成功，非 200 为失败
+          example: 200
+        msg: { type: string, example: 操作成功 }
+        data:
+          description: 业务数据，各接口不同
+
+    RuoYiTableDataInfo:
+      type: object
+      required: [code, total, rows]
+      description: 若依分页结构。注意是平铺的 rows/total，不是 data.list。
+      properties:
+        code: { type: integer, example: 200 }
+        msg: { type: string }
+        total: { type: integer, format: int64 }
+        rows:
+          type: array
+          items: { type: object }
+          description: 具体元素类型在各接口的 allOf 中覆盖
+
+    # ---------------- 后台订单 ----------------
+    AdminOrderVO:
+      type: object
+      description: 后台订单列表行。手机号等敏感字段一律不返回（个保法最小化）。
+      properties:
+        orderId: { type: integer, format: int64 }
+        orderNo: { type: string }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        statusLabel:
+          type: string
+          description: 中文状态名，由后端从枚举取，前端勿自己维护映射表
+        serviceName: { type: string }
+        plateNo: { type: string }
+        payAmount: { type: integer, format: int64, description: 实付金额，单位分 }
+        memberId: { type: integer, format: int64 }
+        siteId: { type: integer, format: int64 }
+        communityId: { type: integer, format: int64 }
+        appointTime: { type: integer, format: int64, description: 预约取车时间，毫秒 }
+        createTime:
+          type: string
+          description: 后台此处返回格式化时间字符串（非毫秒），沿用若依列表习惯
+
+    StatusOption:
+      type: object
+      description: 状态下拉项，来源是 OrderStatus 枚举（唯一真源）。
+      properties:
+        value: { type: string, description: 状态枚举名 }
+        label: { type: string, description: 中文状态名 }
+
+    EventOption:
+      type: object
+      description: |
+        后台可触发的事件下拉项。列表由状态机规则表 × 后台白名单算出，
+        前端据此渲染；confirmRequired 决定要不要弹二次确认框，
+        哪些事件算「高危」由后端判定，前端不得自行复制一份。
+      properties:
+        value: { type: string, description: 事件枚举名 }
+        label: { type: string, description: 中文事件名 }
+        confirmRequired:
+          type: boolean
+          description: 为 true 时提交必须带 confirm=true
+
+    AdminOrderAdvanceRequest:
+      type: object
+      required: [event]
+      properties:
+        event:
+          type: string
+          description: 事件名，取值来自同一订单的 event-options
+          example: TAKE_KEY_BACK
+        reason:
+          type: string
+          description: 推进原因，写入流转日志备查
+        confirm:
+          type: boolean
+          description: 高危事件的二次确认勾选项
+
+    AdminOrderCancelRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: 取消原因，客服视角需留痕
+
+    # ---------------- 后台会员 / 车辆 ----------------
+    AdminMemberVO:
+      type: object
+      description: 会员列表行。手机号与 openid 只给脱敏值，后台也不出明文。
+      properties:
+        memberId: { type: integer, format: int64 }
+        openidMasked: { type: string, example: oXx1B***************Ab }
+        nickname: { type: string }
+        phoneMasked: { type: string, example: 138****1234 }
+        vehicleCount: { type: integer }
+        orderCount: { type: integer }
+        createTime: { type: string }
+
+    AdminVehicleVO:
+      type: object
+      description: 车辆列表行。车牌不脱敏（客服需报车牌找车）。
+      properties:
+        vehicleId: { type: integer, format: int64 }
+        memberId: { type: integer, format: int64 }
+        plateNo: { type: string }
+        brand: { type: string }
+        color: { type: string }
+        isNewEnergy: { type: string, enum: ['Y', 'N'], description: 是否新能源 }
+        communityId: { type: integer, format: int64 }
+        parkingNo: { type: string }
+        createTime: { type: string }
+
+    # ---------------- 后台服务项（商品） ----------------
+    AdminServiceVO:
+      type: object
+      description: |
+        后台服务项。与 C 端 ServiceVO 刻意分开：C 端只给对外可售字段且带算好的展示价，
+        后台要能改原始价格与上下架，字段集合不同，不做复用。
+      properties:
+        serviceId: { type: integer, format: int64 }
+        categoryId: { type: integer, format: int64 }
+        serviceName: { type: string }
+        priceAmount: { type: integer, format: int64, description: 价格，单位分 }
+        workMinutes: { type: integer, description: 工时，分钟 }
+        enabled: { type: string, enum: ['Y', 'N'], description: 是否上架 }
+        createBy: { type: string }
+        createTime: { type: string }
+        updateBy: { type: string }
+        updateTime: { type: string }
+        remark: { type: string }
+
+    AdminServiceRequest:
+      type: object
+      description: 新增/修改服务项的入参。金额为【分】，后台表单填元需在页面层换算。
+      required: [serviceName, categoryId, priceAmount]
+      properties:
+        serviceId: { type: integer, format: int64, description: 新增时不传，修改时必传 }
+        categoryId: { type: integer, format: int64 }
+        serviceName: { type: string }
+        priceAmount: { type: integer, format: int64, description: 价格，单位分 }
+        workMinutes: { type: integer }
+        enabled: { type: string, enum: ['Y', 'N'], default: 'Y' }
+        remark: { type: string }
+
+    CategoryOption:
+      type: object
+      description: 分类下拉项，来源是 wash_service_category 表。
+      properties:
+        value: { type: integer, format: int64 }
+        label: { type: string }
+
+    # ---------------- 后台看板 ----------------
+    StatusCountVO:
+      type: object
+      properties:
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        label: { type: string, description: 中文状态名 }
+        count: { type: integer, format: int64 }
+
+    DashboardStatsVO:
+      type: object
+      description: 纯只读聚合的口径由后端唯一定义，前端只渲染不二次计算。
+      properties:
+        todayOrderCount: { type: integer, format: int64, description: 今日下单数，按 create_time 计 }
+        washingCount: { type: integer, format: int64, description: 作业中 }
+        waitingKeyCount: { type: integer, format: int64, description: 待存钥匙 }
+        abnormalCount: { type: integer, format: int64, description: 异常：退款中，需人工跟进 }
+        statusBreakdown:
+          type: array
+          items: { $ref: '#/components/schemas/StatusCountVO' }
