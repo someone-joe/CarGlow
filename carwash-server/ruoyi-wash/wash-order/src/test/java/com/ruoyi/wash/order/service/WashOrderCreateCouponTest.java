@@ -22,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +43,8 @@ class WashOrderCreateCouponTest {
     @Mock private WashSlotService slotService;
     @Mock private WashCouponService couponService;
     @Mock private RedisCache redisCache;
+    /** 停车照归属校验与回填（E-2 新增依赖）；本组用例不传照片，调用会直接空转 */
+    @Mock private WashMediaService mediaService;
 
     private WashOrderCreateService service;
 
@@ -58,6 +62,7 @@ class WashOrderCreateCouponTest {
         inject(service, "slotService", slotService);
         inject(service, "couponService", couponService);
         inject(service, "redisCache", redisCache);
+        inject(service, "mediaService", mediaService);
         // 幂等键首次提交，无已存在订单
         when(redisCache.getCacheObject(anyString())).thenReturn(null);
         // 产能脚本返回 -1：当日未设置产能，不拦截
@@ -75,7 +80,10 @@ class WashOrderCreateCouponTest {
     }
 
     private CreateOrderRequest baseRequest(Long couponUserId) {
-        return new CreateOrderRequest(1L, 1L, 1L, "2026-09-20", "19:00",
+        // 必须动态取「明天」：原先写死 2026-09-20，日期一过这条用例就必挂
+        // （后端校验预约时间必须晚于当前时间），属于测试里的时间炸弹。
+        String tomorrow = LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1).toString();
+        return new CreateOrderRequest(1L, 1L, 1L, tomorrow, "19:00",
                 true, null, null, true, couponUserId);
     }
 

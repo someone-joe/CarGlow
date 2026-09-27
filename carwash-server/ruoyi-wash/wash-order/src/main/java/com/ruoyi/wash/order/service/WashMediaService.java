@@ -111,6 +111,68 @@ public class WashMediaService {
     }
 
     /**
+     * 校验 fileId 真实存在、属于本单、且业务类型匹配（归属校验的唯一实现处）。
+     *
+     * <p>此前四个入口只校验照片数量，传任意字符串都能推进状态（PROGRESS 10.6 E-2 的欠账）。
+     * 规则收敛在这里，各入口不要再各写一套判断。
+     *
+     * @param bizType 期望的业务类型（PICK / WASHED / RETURN），不匹配即拒绝，防止拿别环节的照片顶替
+     */
+    public void requireBelongToOrder(List<String> fileIds, String orderNo, String bizType) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return;
+        }
+        for (String fileId : fileIds) {
+            WashMedia media = mediaMapper.selectByFileId(fileId);
+            boolean ok = media != null
+                    && orderNo != null && orderNo.equals(media.getOrderNo())
+                    && bizType.equals(media.getBizType());
+            if (!ok) {
+                log.warn("[影像] 归属校验失败 fileId={} 期望={}/{} 实际={}", fileId, orderNo, bizType,
+                        media == null ? "不存在" : media.getOrderNo() + "/" + media.getBizType());
+                throw new ApiException(ErrorCode.B1005);
+            }
+        }
+    }
+
+    /**
+     * 下单专用校验：停车照是在下单前上传的，此时订单号还没生成，
+     * 只能按「本人 + PARK + 尚未归属任何订单」校验。下单成功后由 bindToOrder 回填订单号。
+     */
+    public void requireOwnParkPhotos(List<String> fileIds, Long memberId) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return;
+        }
+        for (String fileId : fileIds) {
+            WashMedia media = mediaMapper.selectByFileId(fileId);
+            boolean ok = media != null
+                    && "PARK".equals(media.getBizType())
+                    && memberId != null && memberId.equals(media.getMemberId())
+                    && (media.getOrderNo() == null || media.getOrderNo().isBlank());
+            if (!ok) {
+                log.warn("[影像] 停车照校验失败 fileId={} memberId={} 实际={}", fileId, memberId,
+                        media == null ? "不存在" : media.getBizType() + "/" + media.getMemberId() + "/" + media.getOrderNo());
+                throw new ApiException(ErrorCode.B1005);
+            }
+        }
+    }
+
+    /**
+     * 把已通过校验的停车照挂到订单上。只更新尚未归属的影像，
+     * 已被别的单领走的不会被抢（SQL 里带 order_no is null 条件）。
+     */
+    public void bindToOrder(List<String> fileIds, String orderNo) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return;
+        }
+        int bound = mediaMapper.bindOrderNo(fileIds, orderNo);
+        if (bound != fileIds.size()) {
+            // 不阻断下单：照片没挂上只影响后续追溯，订单本身已经成立
+            log.warn("[影像] 停车照回填订单号数量不符 orderNo={} 期望={} 实际={}", orderNo, fileIds.size(), bound);
+        }
+    }
+
+    /**
      * 按订单 + 业务类型查影像，返回带访问地址的 VO（师傅端查看用户停车照等场景复用）。
      * 放在本域而不是让调用方自己拼 URL：访问路径的生成规则只允许有一处。
      */

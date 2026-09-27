@@ -73,6 +73,10 @@ public class WashOrderCreateService {
     @Autowired
     private WashCouponService couponService;
 
+    /** 停车照的归属校验与回填（本模块内的影像服务，非跨模块） */
+    @Autowired
+    private WashMediaService mediaService;
+
     /** 支付倒计时（分钟），阈值走配置，不硬编码 */
     @Value("${wash.order.pay-timeout-minutes:15}")
     private int payTimeoutMinutes;
@@ -105,6 +109,9 @@ public class WashOrderCreateService {
         if (request.parkPhotoFileIds() != null && request.parkPhotoFileIds().size() > parkPhotoMax) {
             throw new ApiException(ErrorCode.A0001, "停放照片最多 " + parkPhotoMax + " 张");
         }
+        // 数量之外还要验归属：停车照是下单前传的（此时无订单号），按「本人 + PARK + 未归属」校验；
+        // 订单号生成后再回填（见下方 bindToOrder），否则这些影像永远是无主的。
+        mediaService.requireOwnParkPhotos(request.parkPhotoFileIds(), memberId);
 
         WashService service = serviceQueryService.requireEnabled(request.serviceId());
         WashVehicle vehicle = vehicleQueryService.requireOwned(memberId, request.vehicleId());
@@ -150,6 +157,9 @@ public class WashOrderCreateService {
         order.setRemark(request.remark());
         order.setDelFlag("0");
         orderMapper.insertWashOrder(order);
+
+        // 停车照挂到订单上：此前只校验数量，影像与订单之间没有关联，事后查不到当时拍了什么
+        mediaService.bindToOrder(request.parkPhotoFileIds(), orderNo);
 
         // 幂等记录保留 24 小时，覆盖重复提交与网络重试窗口
         redisCache.setCacheObject(idemKey, orderNo, 24, TimeUnit.HOURS);

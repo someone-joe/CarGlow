@@ -50,6 +50,12 @@ public class WashPickService {
     /** 用户停车照的业务类型：师傅找车看的就是这批照片 */
     private static final String BIZ_TYPE_PARK = "PARK";
 
+    /** 取车照（360° + 仪表盘） */
+    private static final String BIZ_TYPE_PICK = "PICK";
+
+    /** 送回停放照（含车位号） */
+    private static final String BIZ_TYPE_RETURN = "RETURN";
+
     @Autowired
     private WashWorkerService workerService;
 
@@ -111,6 +117,8 @@ public class WashPickService {
         if (fileIds == null || fileIds.size() < photoMin) {
             throw new ApiException(ErrorCode.B4002);
         }
+        // 光校验数量不够：传任意字符串都能推进状态，事后无法证明照片是本单的车
+        mediaService.requireBelongToOrder(fileIds, orderNo, BIZ_TYPE_PICK);
         stateService.workerFire(orderNo, OrderEvent.PICK_CAR_DONE, workerId, note);
     }
 
@@ -122,6 +130,7 @@ public class WashPickService {
         if (parkingNo == null || parkingNo.isBlank()) {
             throw new ApiException(ErrorCode.A0001, "车位号必填");
         }
+        mediaService.requireBelongToOrder(fileIds, orderNo, BIZ_TYPE_RETURN);
         stateService.workerFire(orderNo, OrderEvent.RETURN_DONE, workerId, parkingNo);
     }
 

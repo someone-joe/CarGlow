@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.statemachine.OrderEvent;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.order.service.WashMediaService;
 import com.ruoyi.wash.order.service.WashOrderStationService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.worker.dto.StationQueueVO;
@@ -35,6 +36,12 @@ public class WashStationService {
 
     @Autowired
     private WashOrderStateService stateService;
+
+    @Autowired
+    private WashMediaService mediaService;
+
+    /** 洗后照（质检通过的依据），与契约 qc-pass 的 fileIds 一致 */
+    private static final String BIZ_TYPE_WASHED = "WASHED";
 
     /** 累计重洗达到该次数就要人工复盘（PRD：≥2 次自动生成复盘工单），走配置不写死 */
     @Value("${wash.qc.rewash-alert:2}")
@@ -99,6 +106,8 @@ public class WashStationService {
         if (fileIds == null || fileIds.isEmpty()) {
             throw new ApiException(ErrorCode.B4002);
         }
+        // 归属校验：洗后照必须是本单的 WASHED 影像，不能用别环节或别订单的照片凑数
+        mediaService.requireBelongToOrder(fileIds, orderNo, BIZ_TYPE_WASHED);
         stateService.workerFire(orderNo, OrderEvent.QC_PASS, workerId, null);
     }
 
