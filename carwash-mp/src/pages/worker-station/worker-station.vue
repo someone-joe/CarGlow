@@ -125,7 +125,8 @@ async function doQcPass(orderNo: string): Promise<void> {
         continue
       }
       try {
-        const media = await uploadMedia(f.tempFilePath, 'WASHED')
+        // 带 orderNo：影像归属的唯一依据，缺了后续校验「这张图属于本单」会查不到
+        const media = await uploadMedia(f.tempFilePath, 'WASHED', orderNo)
         if (media.fileId) ids.push(media.fileId)
       } catch (e) {
         uni.showToast({ title: (e as { msg?: string }).msg || '上传失败', icon: 'none' })

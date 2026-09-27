@@ -80,7 +80,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
-import { uploadMedia, type MediaVO, MAX_UPLOAD_MB } from '@/api/media'
+import { uploadMedia, type MediaBizType, type MediaVO, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchPickTasks, pickCarDone, returnDone, takeKey, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
 import { BASE_URL, getToken } from '@/utils/request'
@@ -199,14 +199,18 @@ async function submitPickCarDone(orderNo?: string, required: number = 6): Promis
 }
 
 async function doReturnDone(orderNo?: string): Promise<void> {
-  if (!orderNo) return
+  // 用 const 承接：可选参数在闭包里不会保留 TS 的窄化判断
+  const no = orderNo
+  if (!no) return
   await guard(async () => {
-    // 拍照归柜（bug092407）：先弹拍照/相册选最多 3 张，再登记车位号
-    const fileIds = await choosePhotos(3)
+    // 拍照归柜（bug092407）：先弹拍照/相册选最多 3 张，再登记车位号。
+    // bizType 必须是 RETURN（契约 return-done 要求）——原先这里硬编码 PICK，
+    // 后端不校验时看不出问题，一旦按 bizType 做归属校验就会全量失败。
+    const fileIds = await choosePhotos(3, no, 'RETURN')
     if (!fileIds) return
     const parkingNo = await prompt('车位号', '请填写停放车位号')
     if (!parkingNo) return
-    await returnDone(orderNo, fileIds, parkingNo)
+    await returnDone(no, fileIds, parkingNo)
     uni.showToast({ title: '已拍照归柜', icon: 'none' })
     await load()
   })
@@ -234,8 +238,13 @@ function preview(photos: MediaVO[], index: number): void {
   uni.previewImage({ urls: photos.map((p) => photoUrl(p.url)), current: index })
 }
 
-/** 选图并上传，返回 fileId 列表；用户取消返回 null */
-async function choosePhotos(count: number): Promise<string[] | null> {
+/**
+ * 选图并上传，返回 fileId 列表；用户取消返回 null。
+ *
+ * orderNo 与 bizType 必须显式传入：影像记录靠 order_no 做归属校验，
+ * 不传的话这条影像是「无主」的，后端后续校验 fileId 属于本单时会查不到（E-2 前置依赖）。
+ */
+async function choosePhotos(count: number, orderNo: string, bizType: MediaBizType): Promise<string[] | null> {
   const res = await new Promise<UniApp.ChooseMediaSuccessCallbackResult>((resolve, reject) => {
     uni.chooseMedia({ count, mediaType: ['image'], sizeType: ['compressed'], success: resolve, fail: reject })
   }).catch(() => null)
@@ -244,7 +253,7 @@ async function choosePhotos(count: number): Promise<string[] | null> {
   }
   const ids: string[] = []
   for (const f of res.tempFiles) {
-    const media = await uploadMedia(f.tempFilePath, 'PICK')
+    const media = await uploadMedia(f.tempFilePath, bizType, orderNo)
     if (media.fileId) ids.push(media.fileId)
   }
   return ids

@@ -1243,6 +1243,11 @@ export interface paths {
          * 上传影像证据
          * @description multipart 上传。大小与类型限制由服务端配置（wash.media），前端不要自行放宽。
          *     bizType 决定这张图属于哪个环节（停车 / 取车 / 洗后 / 还车 / 对比 / 视频）。
+         *
+         *     **orderNo 是影像归属的唯一依据**：凡能拿到订单号的环节（取车 PICK / 洗后 WASHED / 停放 RETURN）
+         *     必须传，否则这条影像是无主的，后续「校验影像属于本单」时查不到，会返回 B1005。
+         *     唯一例外是下单前传的停车照（PARK）——此时订单号还没生成，按「本人 + PARK + 尚未绑定订单」校验，
+         *     下单成功时由服务端把 orderNo 回填到这些影像上。
          */
         post: {
             parameters: {
@@ -1762,7 +1767,11 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 上传后的 fileId 列表，bizType=PICK */
+                        /**
+                         * @description 上传后的 fileId 列表，bizType=PICK。
+                         *     服务端校验每个 fileId 真实存在、属于本单且 bizType=PICK，不通过返回 B1005
+                         *     （只校验数量时，传任意字符串都能推进状态）。
+                         */
                         fileIds: string[];
                         note?: string;
                     };
@@ -1812,7 +1821,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 停放照 fileId 列表，bizType=RETURN */
+                        /**
+                         * @description 停放照 fileId 列表，bizType=RETURN。
+                         *     服务端校验每个 fileId 真实存在、属于本单且 bizType=RETURN，不通过返回 B1005。
+                         */
                         fileIds: string[];
                         /** @description 车位号 */
                         parkingNo: string;
@@ -1955,7 +1967,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description 洗后照 fileId 列表，bizType=WASHED */
+                        /**
+                         * @description 洗后照 fileId 列表，bizType=WASHED。
+                         *     服务端校验每个 fileId 真实存在、属于本单且 bizType=WASHED，不通过返回 B1005。
+                         */
                         fileIds: string[];
                     };
                 };
@@ -2142,6 +2157,639 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台订单列表（全量视图）
+         * @description 后台看得到所有站点的订单，不做 tab 分组（分组规则 '/api/v1/orders' 与这里是两套，勿复用）。
+         *     敏感字段（手机号等）一律不返回。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    orderNo?: string;
+                    /** @description 取值必须来自 GET /admin-api/wash/order/status-options，前端不得自带一份状态名单 */
+                    status?: string;
+                    memberId?: number;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminOrderVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/status-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 订单状态下拉选项
+         * @description 由后端 OrderStatus 枚举直接生成，是状态名单的唯一真源。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["StatusOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/{orderNo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台订单详情
+         * @description 含 C 端同款 8 节点时间轴（直接读 wash_order_status_log 生成，不另写一套进度表）。
+         *     与 GET /api/v1/orders/{orderNo} 返回同一个 OrderDetailVO，避免两端字段漂移。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["OrderDetailVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/{orderNo}/event-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 当前状态允许触发的事件选项
+         * @description 由状态机规则表（OrderStatusTransitions）+ 后台白名单共同算出，
+         *     客服下拉里只会出现真正能推进成功的事件；confirmRequired 由后端判定后下发，
+         *     前端只负责是否弹二次确认框，不得自行维护一份「哪些事件危险」的名单。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["EventOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/{orderNo}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 人工推进订单状态（异常补救）
+         * @description 必须走状态机（WashOrderStateService.adminFire），非法事件直接被拒绝并写流转日志。
+         *     高危事件（isConfirmRequired=true）必须带 confirm=true，否则返回业务失败。
+         *     TODO（上线前）：目前客服可一步推到「已完成」，需收紧允许后台触发的事件集合。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminOrderAdvanceRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为推进后的状态枚举名 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["OrderStatus"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/order/{orderNo}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 后台取消订单
+         * @description 不受「客户只能取消车未动」的限制，但终态仍不可取消——由状态机兜底。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AdminOrderCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为取消后的状态枚举名 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["OrderStatus"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/member/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台会员列表
+         * @description 手机号与 openid 仅返回脱敏值（个保法最小化，技术方案 P8），后台也不暴露明文。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 昵称 / 手机号模糊匹配 */
+                    keyword?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminMemberVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/vehicle/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台车辆列表
+         * @description 车牌属于个人信息，但客服需要报车牌找车，故按会员维度展示且不做脱敏。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    plateNo?: string;
+                    memberId?: number;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminVehicleVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/service/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台服务项列表
+         * @description 与 C 端不同——包含已下架项，供后台修改/重新上架。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    serviceName?: string;
+                    categoryId?: number;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminServiceVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/service/category-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 服务分类下拉选项
+         * @description 来源 wash_service_category 表，前端不得自带一份分类名单。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["CategoryOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/service/{serviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 服务项详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serviceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminServiceVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * 删除服务项（逻辑删除）
+         * @description 历史订单仍引用服务名与价格快照，因此只能逻辑删除，禁止物理删行。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serviceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 修改服务项（含改价 / 上下架）
+         * @description 改价只影响新订单：历史订单用的是下单时的价格快照，不会被追溯修改。
+         *     serviceId 必填，缺失视为新增（幂等键不适用本接口，重复提交会产生多次修改）。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminServiceRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /**
+         * 新增服务项
+         * @description 金额单位为【分】；后台表单填元，换算在页面层完成，后端不接收「元」。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminServiceRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为新增后的服务项 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminServiceVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/dashboard/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 经营数据看板
+         * @description 纯只读聚合，不写状态、不留痕；统计口径由后端唯一定义，前端只渲染不二次计算。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["DashboardStatsVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2446,7 +3094,11 @@ export interface components {
              */
             pickupRequired: boolean;
             remark?: string;
-            /** @description 停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId */
+            /**
+             * @description 停放照片，最多 6 张（bug092204）；先经 media/upload 上传后引用 fileId。
+             *     下单时订单号尚未生成，故按「本人 + bizType=PARK + 尚未绑定订单」校验，
+             *     下单成功时服务端把这些 fileId 的 orderNo 回填为本单。不通过返回 B1005。
+             */
             parkPhotoFileIds?: string[];
             /** @description 已同意《服务条款与钥匙寄存协议》 */
             agreed: boolean;
@@ -2624,6 +3276,212 @@ export interface components {
             answer?: string;
             /** @description 绑定的工单类型，一键建单时带入 */
             ticketType?: string;
+        };
+        /** @description 若依 AjaxResult。业务失败也是 HTTP 200，靠 code 区分。 */
+        RuoYiResult: {
+            /**
+             * @description 200 表示成功，非 200 为失败
+             * @example 200
+             */
+            code: number;
+            /** @example 操作成功 */
+            msg: string;
+            /** @description 业务数据，各接口不同 */
+            data?: unknown;
+        };
+        /** @description 若依分页结构。注意是平铺的 rows/total，不是 data.list。 */
+        RuoYiTableDataInfo: {
+            /** @example 200 */
+            code: number;
+            msg?: string;
+            /** Format: int64 */
+            total: number;
+            /** @description 具体元素类型在各接口的 allOf 中覆盖 */
+            rows: Record<string, never>[];
+        };
+        /** @description 后台订单列表行。手机号等敏感字段一律不返回（个保法最小化）。 */
+        AdminOrderVO: {
+            /** Format: int64 */
+            orderId?: number;
+            orderNo?: string;
+            status?: components["schemas"]["OrderStatus"];
+            /** @description 中文状态名，由后端从枚举取，前端勿自己维护映射表 */
+            statusLabel?: string;
+            serviceName?: string;
+            plateNo?: string;
+            /**
+             * Format: int64
+             * @description 实付金额，单位分
+             */
+            payAmount?: number;
+            /** Format: int64 */
+            memberId?: number;
+            /** Format: int64 */
+            siteId?: number;
+            /** Format: int64 */
+            communityId?: number;
+            /**
+             * Format: int64
+             * @description 预约取车时间，毫秒
+             */
+            appointTime?: number;
+            /** @description 后台此处返回格式化时间字符串（非毫秒），沿用若依列表习惯 */
+            createTime?: string;
+        };
+        /** @description 状态下拉项，来源是 OrderStatus 枚举（唯一真源）。 */
+        StatusOption: {
+            /** @description 状态枚举名 */
+            value?: string;
+            /** @description 中文状态名 */
+            label?: string;
+        };
+        /**
+         * @description 后台可触发的事件下拉项。列表由状态机规则表 × 后台白名单算出，
+         *     前端据此渲染；confirmRequired 决定要不要弹二次确认框，
+         *     哪些事件算「高危」由后端判定，前端不得自行复制一份。
+         */
+        EventOption: {
+            /** @description 事件枚举名 */
+            value?: string;
+            /** @description 中文事件名 */
+            label?: string;
+            /** @description 为 true 时提交必须带 confirm=true */
+            confirmRequired?: boolean;
+        };
+        AdminOrderAdvanceRequest: {
+            /**
+             * @description 事件名，取值来自同一订单的 event-options
+             * @example TAKE_KEY_BACK
+             */
+            event: string;
+            /** @description 推进原因，写入流转日志备查 */
+            reason?: string;
+            /** @description 高危事件的二次确认勾选项 */
+            confirm?: boolean;
+        };
+        AdminOrderCancelRequest: {
+            /** @description 取消原因，客服视角需留痕 */
+            reason?: string;
+        };
+        /** @description 会员列表行。手机号与 openid 只给脱敏值，后台也不出明文。 */
+        AdminMemberVO: {
+            /** Format: int64 */
+            memberId?: number;
+            /** @example oXx1B***************Ab */
+            openidMasked?: string;
+            nickname?: string;
+            /** @example 138****1234 */
+            phoneMasked?: string;
+            vehicleCount?: number;
+            orderCount?: number;
+            createTime?: string;
+        };
+        /** @description 车辆列表行。车牌不脱敏（客服需报车牌找车）。 */
+        AdminVehicleVO: {
+            /** Format: int64 */
+            vehicleId?: number;
+            /** Format: int64 */
+            memberId?: number;
+            plateNo?: string;
+            brand?: string;
+            color?: string;
+            /**
+             * @description 是否新能源
+             * @enum {string}
+             */
+            isNewEnergy?: "Y" | "N";
+            /** Format: int64 */
+            communityId?: number;
+            parkingNo?: string;
+            createTime?: string;
+        };
+        /**
+         * @description 后台服务项。与 C 端 ServiceVO 刻意分开：C 端只给对外可售字段且带算好的展示价，
+         *     后台要能改原始价格与上下架，字段集合不同，不做复用。
+         */
+        AdminServiceVO: {
+            /** Format: int64 */
+            serviceId?: number;
+            /** Format: int64 */
+            categoryId?: number;
+            serviceName?: string;
+            /**
+             * Format: int64
+             * @description 价格，单位分
+             */
+            priceAmount?: number;
+            /** @description 工时，分钟 */
+            workMinutes?: number;
+            /**
+             * @description 是否上架
+             * @enum {string}
+             */
+            enabled?: "Y" | "N";
+            createBy?: string;
+            createTime?: string;
+            updateBy?: string;
+            updateTime?: string;
+            remark?: string;
+        };
+        /** @description 新增/修改服务项的入参。金额为【分】，后台表单填元需在页面层换算。 */
+        AdminServiceRequest: {
+            /**
+             * Format: int64
+             * @description 新增时不传，修改时必传
+             */
+            serviceId?: number;
+            /** Format: int64 */
+            categoryId: number;
+            serviceName: string;
+            /**
+             * Format: int64
+             * @description 价格，单位分
+             */
+            priceAmount: number;
+            workMinutes?: number;
+            /**
+             * @default Y
+             * @enum {string}
+             */
+            enabled: "Y" | "N";
+            remark?: string;
+        };
+        /** @description 分类下拉项，来源是 wash_service_category 表。 */
+        CategoryOption: {
+            /** Format: int64 */
+            value?: number;
+            label?: string;
+        };
+        StatusCountVO: {
+            status?: components["schemas"]["OrderStatus"];
+            /** @description 中文状态名 */
+            label?: string;
+            /** Format: int64 */
+            count?: number;
+        };
+        /** @description 纯只读聚合的口径由后端唯一定义，前端只渲染不二次计算。 */
+        DashboardStatsVO: {
+            /**
+             * Format: int64
+             * @description 今日下单数，按 create_time 计
+             */
+            todayOrderCount?: number;
+            /**
+             * Format: int64
+             * @description 作业中
+             */
+            washingCount?: number;
+            /**
+             * Format: int64
+             * @description 待存钥匙
+             */
+            waitingKeyCount?: number;
+            /**
+             * Format: int64
+             * @description 异常：退款中，需人工跟进
+             */
+            abnormalCount?: number;
+            statusBreakdown?: components["schemas"]["StatusCountVO"][];
         };
     };
     responses: never;
