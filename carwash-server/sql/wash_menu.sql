@@ -134,3 +134,9 @@ values (2063, '小区修改', 2060, 3, '', null, 1, 0, 'F', '0', '0', 'wash:comm
 
 insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
 values (2064, '小区删除', 2060, 4, '', null, 1, 0, 'F', '0', '0', 'wash:community:remove', '#', 'admin', sysdate(), '删除小区（逻辑删除）');
+
+-- 角色菜单授权：admin 角色(1) 可见本文件新增的菜单（幂等，重复插入忽略）
+-- 原有 2000-2045 的授权此前已在库中存在，本文件未删，故此处只补新增项
+insert ignore into sys_role_menu (role_id, menu_id) values
+(1, 2050), (1, 2051), (1, 2052), (1, 2053), (1, 2054),
+(1, 2060), (1, 2061), (1, 2062), (1, 2063), (1, 2064);
