@@ -614,3 +614,16 @@ CarGlow 后台基于 RuoYi-Vue3，但侧边栏菜单由后端 `sys_menu` 驱动�
 
 仓库 `origin = https://github.com/someone-joe/CarGlow`，走 git 即可。
 离开 A 机前 `git push`，到 B 机后 `git pull --ff-only`（2026-09-27 已验证：22 个 commit 干净快进）。
+
+---
+
+## 十二、上线前提醒（Go-live checklist）
+
+> 本地开发为便利临时放宽的项、以及已知的生产阻断项，上线/交付前逐条核对并改回。
+
+- **后台登录验证码（本地已关，上线必须开）**：`sys_config.sys.account.captchaEnabled` 当前为 `false`（2026-10-08 本地开发关掉，方便登录）。
+  注意 RuoYi 把 `sys_config` 缓存在 Redis（key `sys_config:sys.account.captchaEnabled`），改 DB 后需清该缓存键或重启后端才生效。上线前设为 `true`。
+- **mock-pay 必须关**：`wash.pay.mock-enabled` 生产必须 `false`，否则钱不会真收到（见第七节）。
+- **退款必须真正调微信**：目前订单只推到 `REFUNDING`，未接微信退款 API、无退款单表/重试，生产前必须补齐，否则退款退不出去（见第七节）。
+- **影像存储路径必须绝对路径**：`wash.media.store-path` 默认相对路径（跟进程工作目录走），生产必须配绝对路径，否则老文件 404（已发生过，见第九节）。
+- **admin-api 契约补入 openapi.yaml**：后台接口目前没进契约（x-roadmap 欠账），随接口增多漂移风险越大，需尽快补（见第九节 9.4）。
