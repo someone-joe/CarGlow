@@ -108,6 +108,12 @@
 			"style": {
 				"navigationBarTitleText": "作业台"
 			}
+		},
+		{
+			"path": "pages/worker-open-box/worker-open-box",
+			"style": {
+				"navigationBarTitleText": "取钥匙开箱"
+			}
 		}
 	],
 	"tabBar": {

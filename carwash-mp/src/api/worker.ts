@@ -4,6 +4,7 @@ import { request } from '@/utils/request'
 export type WorkerLoginVO = components['schemas']['WorkerLoginVO']
 export type PickTaskVO = components['schemas']['PickTaskVO']
 export type StationQueueVO = components['schemas']['StationQueueVO']
+export type OpenCodeVO = components['schemas']['OpenCodeVO']
 
 /**
  * 师傅端接口。契约：openapi.yaml /api/v1/worker|pick|station/**。
@@ -32,9 +33,26 @@ export function fetchPickTasks(stage: PickStage = 'ALL'): Promise<PickTaskVO[]> 
   })
 }
 
-/** 契约：POST /api/v1/pick/orders/{orderNo}/take-key（KEY_IN → PICKING） */
-export function takeKey(orderNo: string): Promise<void> {
-  return request<void>({ url: `/api/v1/pick/orders/${orderNo}/take-key`, method: 'POST' })
+/**
+ * 契约：POST /api/v1/pick/orders/{orderNo}/open-code（仅 KEY_IN 可调用）
+ * slotNo 为扫柜机格口二维码所得：传了由服务端校验格口匹配（一物一码，防开错柜）；
+ * 不传则只取备用开箱码（扫码失败时的兜底）。
+ */
+export function fetchWorkerOpenCode(orderNo: string, slotNo?: string): Promise<OpenCodeVO> {
+  return request<OpenCodeVO>({
+    url: `/api/v1/pick/orders/${orderNo}/open-code`,
+    method: 'POST',
+    data: { slotNo },
+  })
+}
+
+/** 契约：POST /api/v1/pick/orders/{orderNo}/take-key（必带开箱码，一次有效；KEY_IN → PICKING） */
+export function takeKey(orderNo: string, code: string): Promise<void> {
+  return request<void>({
+    url: `/api/v1/pick/orders/${orderNo}/take-key`,
+    method: 'POST',
+    data: { code },
+  })
 }
 
 /** 契约：POST /api/v1/pick/orders/{orderNo}/pick-car-done（≥6 张照片） */

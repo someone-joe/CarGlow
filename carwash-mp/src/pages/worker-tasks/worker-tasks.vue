@@ -60,7 +60,8 @@
       </view>
 
       <view class="ops">
-        <text v-if="t.status === 'KEY_IN'" class="op" @click="doTakeKey(t.orderNo)">取钥匙</text>
+        <!-- 取钥匙必须先开箱：跳开箱页取码，确认取出后才推进状态（PRD 6.4：开箱 → 校验 → 确认） -->
+        <text v-if="t.status === 'KEY_IN'" class="op" @click="goOpenBox(t.orderNo)">取钥匙开箱</text>
         <template v-if="t.status === 'PICKING'">
           <text
             :class="['op', draftList(t.orderNo).length >= (t.requiredPhotoCount ?? 6) && 'op-disabled']"
@@ -81,7 +82,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
 import { uploadMedia, type MediaBizType, type MediaVO, MAX_UPLOAD_MB } from '@/api/media'
-import { fetchPickTasks, pickCarDone, returnDone, takeKey, type PickStage, type PickTaskVO } from '@/api/worker'
+import { fetchPickTasks, pickCarDone, returnDone, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
 import { BASE_URL, getToken } from '@/utils/request'
 
@@ -109,13 +110,13 @@ async function load(): Promise<void> {
   }
 }
 
-async function doTakeKey(orderNo?: string): Promise<void> {
+/**
+ * 取钥匙 = 开箱动作，不再是纯打卡：必须先拿到开箱码（扫码或柜机键盘输码），
+ * 由开箱页确认「已取出」后提交开箱码，后端校验通过才推进 KEY_IN → PICKING。
+ */
+function goOpenBox(orderNo?: string): void {
   if (!orderNo) return
-  await guard(async () => {
-    await takeKey(orderNo)
-    uni.showToast({ title: '已取钥匙', icon: 'none' })
-    await load()
-  })
+  uni.navigateTo({ url: `/pages/worker-open-box/worker-open-box?orderNo=${orderNo}` })
 }
 
 /**
