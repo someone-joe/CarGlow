@@ -260,3 +260,7 @@ upload/
 # 系统
 .DS_Store
 Thumbs.db
+
+# 临时文件与个人笔记（不入库）
+tmp/
+*-mac.txt
