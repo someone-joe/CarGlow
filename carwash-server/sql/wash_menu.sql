@@ -96,3 +96,41 @@ values (2044, '师傅删除', 2040, 4, '', null, 1, 0, 'F', '0', '0', 'wash:work
 
 insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
 values (2045, '重置师傅密码', 2040, 5, '', null, 1, 0, 'F', '0', '0', 'wash:worker:reset', '#', 'admin', sysdate(), '重置登录密码，重置后旧登录态立即失效');
+
+-- ----------------------------
+-- 站点管理（2026-10-07 新增，中央站可配置）
+-- ----------------------------
+delete from sys_menu where menu_id in (2050, 2051, 2052, 2053, 2054);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2050, '站点管理', 2000, 5, 'site', 'wash/site/index', 1, 0, 'C', '0', '0', 'wash:site:list', 'tree', 'admin', sysdate(), '中央站配置：产能/营业时段/停业公告');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2051, '站点查询', 2050, 1, '', null, 1, 0, 'F', '0', '0', 'wash:site:list', '#', 'admin', sysdate(), '查看站点列表');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2052, '站点新增', 2050, 2, '', null, 1, 0, 'F', '0', '0', 'wash:site:add', '#', 'admin', sysdate(), '新增站点');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2053, '站点修改', 2050, 3, '', null, 1, 0, 'F', '0', '0', 'wash:site:edit', '#', 'admin', sysdate(), '修改站点配置');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2054, '站点删除', 2050, 4, '', null, 1, 0, 'F', '0', '0', 'wash:site:remove', '#', 'admin', sysdate(), '删除站点（逻辑删除）');
+
+-- ----------------------------
+-- 小区管理（2026-10-07 新增，已开通小区）
+-- ----------------------------
+delete from sys_menu where menu_id in (2060, 2061, 2062, 2063, 2064);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2060, '小区管理', 2000, 6, 'community', 'wash/community/index', 1, 0, 'C', '0', '0', 'wash:community:list', 'tree', 'admin', sysdate(), '已开通小区：地库授权/启停');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2061, '小区查询', 2060, 1, '', null, 1, 0, 'F', '0', '0', 'wash:community:list', '#', 'admin', sysdate(), '查看小区列表');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2062, '小区新增', 2060, 2, '', null, 1, 0, 'F', '0', '0', 'wash:community:add', '#', 'admin', sysdate(), '新增小区');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2063, '小区修改', 2060, 3, '', null, 1, 0, 'F', '0', '0', 'wash:community:edit', '#', 'admin', sysdate(), '修改小区/授权/启停');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2064, '小区删除', 2060, 4, '', null, 1, 0, 'F', '0', '0', 'wash:community:remove', '#', 'admin', sysdate(), '删除小区（逻辑删除）');

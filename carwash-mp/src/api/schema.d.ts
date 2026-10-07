@@ -2040,6 +2040,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pick/orders/{orderNo}/open-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 师傅取钥匙开箱码（扫码为主、码兜底）
+         * @description 师傅从柜中取出客户钥匙前的开箱凭证，仅「钥匙已入柜 KEY_IN」可调用，师傅端鉴权（WorkerContext）。
+         *     带 slotNo = 扫码开箱：服务端校验扫码格口与本单格口一致（一物一码，防止开错柜），不一致返回 B2005。
+         *     不带 slotNo = 备用开箱码兜底（扫码失败、柜机离线时到柜机键盘输码）。
+         *     开箱码 10 分钟有效、一次有效；取码即写开箱留痕（角色=工作人员），重复取码不重置时效。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description 扫柜机格口二维码得到的格口号；传了就做格口匹配校验 */
+                        slotNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["OpenCodeVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pick/orders/{orderNo}/take-key": {
         parameters: {
             query?: never;
@@ -2052,6 +2105,9 @@ export interface paths {
         /**
          * 取钥匙（触发 TAKE_KEY）
          * @description 触发状态机 TAKE_KEY：KEY_IN → PICKING。师傅从柜中取出客户钥匙、开始取车作业。
+         *     **必带开箱码 code**：服务端校验一致才推进状态（一次有效，不符返回 B2004），
+         *     通过后写开箱留痕（角色=工作人员、人员=当前师傅、来源端=师傅小程序）。
+         *     正式环境该动作应由柜机开箱回执驱动（PRD 6.2），MVP 无柜机，由师傅在开箱页确认后提交。
          */
         post: {
             parameters: {
@@ -2062,7 +2118,14 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 6 位开箱码，一次有效 */
+                        code: string;
+                    };
+                };
+            };
             responses: {
                 /** @description 成功 */
                 200: {
@@ -2796,6 +2859,710 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin-api/wash/worker/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台师傅列表
+         * @description 含已禁用与已离职（逻辑删除前）的记录，便于运营找回。
+         *     **任何情况下都不返回 password**（即使是密文也不回）。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 工号 / 姓名 / 手机号模糊匹配 */
+                    keyword?: string;
+                    siteId?: number;
+                    /** @description 取值来自 GET /admin-api/wash/worker/status-options */
+                    status?: components["schemas"]["WorkerStatus"];
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminWorkerVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/status-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 师傅状态下拉选项
+         * @description 由 WorkerStatus 枚举生成，前端不得自带一份状态名单。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["StatusOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/site-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 站点下拉选项（给师傅归属站点用）
+         * @description 来源 wash_site 表。将来站点/小区管理上线后，两者应共用同一个数据来源。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["CategoryOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/{workerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 师傅详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminWorkerVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * 删除师傅（逻辑删除）
+         * @description 逻辑删除而非物理删行：历史任务的作业人仍指向该师傅记录。
+         *     正在作业中的师傅不允许删除（有未完成任务时会被拒绝）。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 修改师傅资料
+         * @description workerId 必填。修改时**不允许改密码** —— 改密码走独立的重置密码接口，避免误改把师傅锁在门外。
+         *     把 status 改为 DISABLED 即禁用：该师傅无法登录，token 也会失效。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminWorkerRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /**
+         * 新增师傅
+         * @description 工号唯一（重复返回 D4005）。初始密码必填 —— 由运营设置后线下告知师傅。
+         *     密码 MVP 阶段明文存储，**上线前必须改 BCrypt（届时只动 WashWorkerService 的校验方法）**。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminWorkerRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为新增师傅 ID */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            /** Format: int64 */
+                            data?: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/{workerId}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 重置师傅密码
+         * @description 运营日常最高频的操作之一（师傅忘密码）。重置后该师傅的旧 token 立即失效。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminWorkerPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/site/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 后台站点列表 */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 站点名称模糊匹配 */
+                    keyword?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["WashSite"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/site/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 站点下拉选项
+         * @description 来源 wash_site 表（del_flag=0），供小区管理等页面复用。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["CategoryOption"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/site/{siteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 站点详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    siteId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["WashSite"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** 删除站点（逻辑删除） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    siteId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改站点配置 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WashSite"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /** 新增站点 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WashSite"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为新增站点 ID */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            /** Format: int64 */
+                            data?: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/community/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 后台小区列表 */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 小区名称模糊匹配 */
+                    keyword?: string;
+                    siteId?: number;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["WashCommunity"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/community/{communityId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 小区详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    communityId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["WashCommunity"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** 删除小区（逻辑删除） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    communityId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/community": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改小区 / 授权 / 启停 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WashCommunity"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /** 新增小区 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WashCommunity"];
+                };
+            };
+            responses: {
+                /** @description 成功；data 为新增小区 ID */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            /** Format: int64 */
+                            data?: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3446,11 +4213,104 @@ export interface components {
             enabled: "Y" | "N";
             remark?: string;
         };
+        /** @description 站点（中央站） */
+        WashSite: {
+            /**
+             * Format: int64
+             * @description 站点ID
+             */
+            siteId?: number;
+            /** @description 站点名称 */
+            siteName?: string;
+            /** @description 单日产能上限，0 表示不限量 */
+            dailyLimit?: number;
+            /** @description 最晚存钥匙时间，如 23:30 */
+            depositDeadline?: string;
+            /** @description 承诺还车时间，如 次日 07:00 */
+            promiseReturnTime?: string;
+            /** @description 营业时段起（整点），如 19:00 */
+            businessStart?: string;
+            /** @description 营业时段止，如 23:00 */
+            businessEnd?: string;
+            /** @description 营业状态 OPEN/CLOSED */
+            serviceStatus?: string;
+            /** @description 停业公告 */
+            closedNotice?: string;
+        };
+        /** @description 已开通小区 */
+        WashCommunity: {
+            /**
+             * Format: int64
+             * @description 小区ID
+             */
+            communityId?: number;
+            /** @description 小区名称 */
+            communityName?: string;
+            /**
+             * Format: int64
+             * @description 所属站点ID
+             */
+            siteId?: number;
+            /** @description 地库授权 Y/N，N 时禁止该小区下单 */
+            accessAuth?: string;
+            /** @description 启用状态 Y/N */
+            enabled?: string;
+        };
         /** @description 分类下拉项，来源是 wash_service_category 表。 */
         CategoryOption: {
             /** Format: int64 */
             value?: number;
             label?: string;
+        };
+        /**
+         * @description 师傅状态，取值必须与 wash_worker.status 及后端枚举完全一致。
+         *     禁用 DISABLED 后：不能登录、token 失效，但不影响其历史任务追溯。
+         * @enum {string}
+         */
+        WorkerStatus: "NORMAL" | "DISABLED";
+        /** @description 后台师傅列表行。**不含 password 字段**——密码永不出现在任何后台响应里。 */
+        AdminWorkerVO: {
+            /** Format: int64 */
+            workerId?: number;
+            /** @description 工号，登录账号 */
+            workerNo?: string;
+            name?: string;
+            phone?: string;
+            /** Format: int64 */
+            siteId?: number;
+            /** @description 由服务端关联查出，前端不做 id→名称映射 */
+            siteName?: string;
+            status?: components["schemas"]["WorkerStatus"];
+            /** @description 中文状态名，由后端给出，前端勿自维护映射表 */
+            statusLabel?: string;
+            createTime?: string;
+        };
+        /**
+         * @description 新增/修改师傅的入参。
+         *     注意：**修改时不接受 password**（改密码走 reset-password 接口），
+         *     避免运营在改资料时误触密码把师傅锁在门外。
+         */
+        AdminWorkerRequest: {
+            /**
+             * Format: int64
+             * @description 新增时不传，修改时必传
+             */
+            workerId?: number;
+            workerNo: string;
+            /** @description 仅新增时必填（初始密码） */
+            password?: string;
+            name: string;
+            phone?: string;
+            /**
+             * Format: int64
+             * @description 所属站点，用于任务池过滤
+             */
+            siteId?: number;
+            status?: components["schemas"]["WorkerStatus"];
+        };
+        AdminWorkerPasswordRequest: {
+            /** @description 新密码，至少 6 位 */
+            password: string;
         };
         StatusCountVO: {
             status?: components["schemas"]["OrderStatus"];

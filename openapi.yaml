@@ -77,6 +77,8 @@ tags:
   - name: admin-order
     description: 后台订单管理（列表 / 详情 / 人工干预）
   - name: admin-worker
+  - name: admin-site
+  - name: admin-community
     description: 后台师傅（工作人员）管理
   - name: admin-member
     description: 后台会员与车辆查询
@@ -2014,6 +2016,232 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RuoYiResult' }
 
+  /admin-api/wash/site/list:
+    get:
+      tags: [admin-site]
+      summary: 后台站点列表
+      x-permission: wash:site:list
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 站点名称模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/WashSite' }
+
+  /admin-api/wash/site/options:
+    get:
+      tags: [admin-site]
+      summary: 站点下拉选项
+      description: 来源 wash_site 表（del_flag=0），供小区管理等页面复用。
+      x-permission: wash:site:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CategoryOption' }
+
+  /admin-api/wash/site/{siteId}:
+    get:
+      tags: [admin-site]
+      summary: 站点详情
+      x-permission: wash:site:list
+      parameters:
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WashSite' }
+    delete:
+      tags: [admin-site]
+      summary: 删除站点（逻辑删除）
+      x-permission: wash:site:remove
+      parameters:
+        - name: siteId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/site:
+    post:
+      tags: [admin-site]
+      summary: 新增站点
+      x-permission: wash:site:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WashSite' }
+      responses:
+        '200':
+          description: 成功；data 为新增站点 ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { type: integer, format: int64 }
+    put:
+      tags: [admin-site]
+      summary: 修改站点配置
+      x-permission: wash:site:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WashSite' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/community/list:
+    get:
+      tags: [admin-community]
+      summary: 后台小区列表
+      x-permission: wash:community:list
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 小区名称模糊匹配
+          schema: { type: string }
+        - name: siteId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/WashCommunity' }
+
+  /admin-api/wash/community/{communityId}:
+    get:
+      tags: [admin-community]
+      summary: 小区详情
+      x-permission: wash:community:list
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WashCommunity' }
+    delete:
+      tags: [admin-community]
+      summary: 删除小区（逻辑删除）
+      x-permission: wash:community:remove
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/community:
+    post:
+      tags: [admin-community]
+      summary: 新增小区
+      x-permission: wash:community:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WashCommunity' }
+      responses:
+        '200':
+          description: 成功；data 为新增小区 ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { type: integer, format: int64 }
+    put:
+      tags: [admin-community]
+      summary: 修改小区 / 授权 / 启停
+      x-permission: wash:community:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WashCommunity' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
 components:
 
   securitySchemes:
@@ -2743,6 +2971,30 @@ components:
         workMinutes: { type: integer }
         enabled: { type: string, enum: ['Y', 'N'], default: 'Y' }
         remark: { type: string }
+
+    WashSite:
+      type: object
+      description: 站点（中央站）
+      properties:
+        siteId: { type: integer, format: int64, description: 站点ID }
+        siteName: { type: string, description: 站点名称 }
+        dailyLimit: { type: integer, description: 单日产能上限，0 表示不限量 }
+        depositDeadline: { type: string, description: 最晚存钥匙时间，如 23:30 }
+        promiseReturnTime: { type: string, description: 承诺还车时间，如 次日 07:00 }
+        businessStart: { type: string, description: 营业时段起（整点），如 19:00 }
+        businessEnd: { type: string, description: 营业时段止，如 23:00 }
+        serviceStatus: { type: string, description: 营业状态 OPEN/CLOSED }
+        closedNotice: { type: string, description: 停业公告 }
+
+    WashCommunity:
+      type: object
+      description: 已开通小区
+      properties:
+        communityId: { type: integer, format: int64, description: 小区ID }
+        communityName: { type: string, description: 小区名称 }
+        siteId: { type: integer, format: int64, description: 所属站点ID }
+        accessAuth: { type: string, description: 地库授权 Y/N，N 时禁止该小区下单 }
+        enabled: { type: string, description: 启用状态 Y/N }
 
     CategoryOption:
       type: object
