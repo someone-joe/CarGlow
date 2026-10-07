@@ -55,4 +55,26 @@ public interface WashSlotMapper {
                       @Param("memberId") Long memberId,
                       @Param("action") String action,
                       @Param("openCode") String openCode);
+
+    /**
+     * 带操作者的开箱留痕（角色 / 人员 / 来源端 / 结果）。
+     *
+     * <p>PRD 6.2 要求每次开箱记录「角色、人员、结果、来源端」，旧 insertOpenLog 只有 member_id，
+     * 师傅开箱会记成会员，事后查不出钥匙是谁取走的。新调用一律走本方法。
+     */
+    @Insert("insert into wash_slot_open_log (cabinet_id, slot_id, slot_no, order_no, member_id, action, open_code, " +
+            "role, user_id, source, result, create_time) " +
+            "values (#{cabinetId}, #{slotId}, #{slotNo}, #{orderNo}, #{memberId}, #{action}, #{openCode}, " +
+            "#{role}, #{userId}, #{source}, #{result}, sysdate())")
+    int insertOpenLogWithActor(@Param("cabinetId") Long cabinetId,
+                               @Param("slotId") Long slotId,
+                               @Param("slotNo") String slotNo,
+                               @Param("orderNo") String orderNo,
+                               @Param("memberId") Long memberId,
+                               @Param("action") String action,
+                               @Param("openCode") String openCode,
+                               @Param("role") String role,
+                               @Param("userId") Long userId,
+                               @Param("source") String source,
+                               @Param("result") String result);
 }

@@ -22,6 +22,12 @@ public class WashSlotService {
     public static final String RESERVED = "RESERVED";
     public static final String OCCUPIED = "OCCUPIED";
 
+    /** 开箱角色：工作人员（PRD 6.2 三类角色：客户 / 工作人员 / 管理员） */
+    public static final String ROLE_WORKER = "WORKER";
+
+    /** 来源端：师傅小程序 */
+    public static final String SOURCE_WORKER = "WORKER";
+
     @Autowired
     private WashSlotMapper slotMapper;
 
@@ -54,13 +60,21 @@ public class WashSlotService {
         return slotMapper.selectById(slot.getSlotId());
     }
 
-    /** 释放格口（取消、取回钥匙、异常作废） */
+    /** 释放格口（取消、取回钥匙、异常作废）：调用方没有操作者信息时留痕不带角色 */
     public void release(String orderNo) {
+        release(orderNo, null, null, null);
+    }
+
+    /**
+     * 带操作者的释放：师傅取走钥匙后必须走这个重载，
+     * 否则留痕只记 member_id，会把师傅的动作记到会员头上。
+     */
+    public void release(String orderNo, String role, Long userId, String source) {
         WashSlot slot = slotMapper.selectByOrderNo(orderNo);
         slotMapper.releaseByOrderNo(orderNo);
         if (slot != null) {
-            slotMapper.insertOpenLog(slot.getCabinetId(), slot.getSlotId(), slot.getSlotNo(),
-                    orderNo, slot.getMemberId(), "RELEASE", null);
+            slotMapper.insertOpenLogWithActor(slot.getCabinetId(), slot.getSlotId(), slot.getSlotNo(),
+                    orderNo, slot.getMemberId(), "RELEASE", null, role, userId, source, "SUCCESS");
         }
     }
 
@@ -87,5 +101,17 @@ public class WashSlotService {
         String masked = openCode == null ? null : openCode.substring(0, Math.min(2, openCode.length())) + "****";
         slotMapper.insertOpenLog(slot.getCabinetId(), slot.getSlotId(), slot.getSlotNo(),
                 slot.getOrderNo(), slot.getMemberId(), "OPEN_CODE", masked);
+    }
+
+    /**
+     * 带操作者的开箱留痕（角色 / 人员 / 来源端 / 结果）。
+     *
+     * <p>与 logOpenCode 的区别：后者只有会员维度（客户取码）。
+     * 工作人员 / 管理员开箱一律走本方法，否则留痕里查不到真正开箱的人（PRD 6.2 留痕完整率 100%）。
+     */
+    public void logOpen(WashSlot slot, String action, String openCode, String role, Long userId, String source, String result) {
+        String masked = openCode == null ? null : openCode.substring(0, Math.min(2, openCode.length())) + "****";
+        slotMapper.insertOpenLogWithActor(slot.getCabinetId(), slot.getSlotId(), slot.getSlotNo(),
+                slot.getOrderNo(), slot.getMemberId(), action, masked, role, userId, source, result);
     }
 }

@@ -4,6 +4,7 @@ import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ApiResult;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.security.WorkerContext;
+import com.ruoyi.wash.order.dto.OpenCodeVO;
 import com.ruoyi.wash.worker.dto.PickTaskVO;
 import com.ruoyi.wash.worker.service.WashPickService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +32,20 @@ public class WashPickController {
         return ApiResult.ok(pickService.tasks(WorkerContext.require(), stage));
     }
 
+    /** 取钥匙开箱码。body 可为空（不带 slotNo = 走备用码兜底） */
+    @PostMapping("/api/v1/pick/orders/{orderNo}/open-code")
+    public ApiResult<OpenCodeVO> openCode(@PathVariable String orderNo,
+                                          @RequestBody(required = false) OpenCodeRequest request) {
+        String slotNo = request == null ? null : request.slotNo();
+        return ApiResult.ok(pickService.openCode(orderNo, slotNo, WorkerContext.require()));
+    }
+
     @PostMapping("/api/v1/pick/orders/{orderNo}/take-key")
-    public ApiResult<Void> takeKey(@PathVariable String orderNo) {
-        pickService.takeKey(orderNo, WorkerContext.require());
+    public ApiResult<Void> takeKey(@PathVariable String orderNo, @RequestBody TakeKeyRequest request) {
+        if (request == null || request.code() == null || request.code().isBlank()) {
+            throw new ApiException(ErrorCode.A0001, "开箱码必填");
+        }
+        pickService.takeKey(orderNo, request.code(), WorkerContext.require());
         return ApiResult.<Void>ok(null);
     }
 
@@ -57,6 +69,14 @@ public class WashPickController {
 
     /** 与契约 request body 逐字段一致。 */
     public record PickCarDoneRequest(List<String> fileIds, String note) {
+    }
+
+    /** 与契约 request body 逐字段一致（slotNo 可选：扫码开箱才传） */
+    public record OpenCodeRequest(String slotNo) {
+    }
+
+    /** 与契约 request body 逐字段一致 */
+    public record TakeKeyRequest(String code) {
     }
 
     /** 与契约 request body 逐字段一致。 */

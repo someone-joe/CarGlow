@@ -7,7 +7,13 @@ import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.service.WashMediaService;
 import com.ruoyi.wash.order.service.WashOrderPickService;
+import com.ruoyi.wash.network.domain.WashCabinet;
+import com.ruoyi.wash.network.domain.WashSlot;
+import com.ruoyi.wash.network.service.WashCabinetQueryService;
+import com.ruoyi.wash.network.service.WashSlotCodeService;
 import com.ruoyi.wash.network.service.WashSlotService;
+import com.ruoyi.wash.order.dto.OpenCodeVO;
+import com.ruoyi.wash.order.service.WashOrderPaySupportService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.worker.dto.PickTaskVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +78,20 @@ public class WashPickService {
     @Autowired
     private WashSlotService slotService;
 
+    @Autowired
+    private WashSlotCodeService codeService;
+
+    @Autowired
+    private WashCabinetQueryService cabinetQueryService;
+
+    /** 按订单号查订单（无登录态查询入口，取钥匙前校验状态用） */
+    @Autowired
+    private WashOrderPaySupportService orderQuery;
+
+    /** 开箱码有效期（分钟）：仅用于取码后算不出 TTL 时的兜底，避免倒计时直接归零 */
+    @Value("${wash.slot.open-code-ttl-minutes:10}")
+    private long openCodeTtlMinutes;
+
     /**
      * 任务池。站点是硬过滤（师傅只看本站点单），stage 决定看待取还是待送。
      */
@@ -100,13 +120,55 @@ public class WashPickService {
     }
 
     /**
-     * 取钥匙：师傅从柜中取出客户钥匙，开始取车作业（KEY_IN → PICKING）。
-     * 物理开箱由柜机回调负责，这里只做作业动作的打卡与状态推进。
+     * 取钥匙的开箱码：扫码为主、码兜底。仅「钥匙已入柜 KEY_IN」可开箱。
+     *
+     * <p>传了 slotNo（扫柜机格口二维码所得）就做格口匹配校验：一物一码，
+     * 扫错柜比取不到钥匙更糟——开的是别人的格口。不传则只取备用码（扫码失败、柜机离线时的兜底）。
+     *
+     * <p>MVP 无柜机，扫码只做到「格口匹配」为止；接入硬件后开箱应改由柜机回执驱动（见 PROGRESS 挂起项）。
      */
-    public void takeKey(String orderNo, Long workerId) {
+    public OpenCodeVO openCode(String orderNo, String slotNo, Long workerId) {
+        WashOrder order = orderQuery.require(orderNo);
+        if (!OrderStatus.KEY_IN.name().equals(order.getStatus())) {
+            throw new ApiException(ErrorCode.B1002, "当前状态无需开箱，状态：" + order.getStatus());
+        }
+        WashSlot slot = slotService.require(orderNo);
+        if (slotNo != null && !slotNo.isBlank() && !slotNo.equals(slot.getSlotNo())) {
+            throw new ApiException(ErrorCode.B2005, "扫码格口与本单格口不符，本单格口：" + slot.getSlotNo());
+        }
+        WashCabinet cabinet = cabinetQueryService.requireEnabled(order.getCabinetId());
+
+        String code = codeService.issue(WashSlotCodeService.WORKER_PREFIX, orderNo);
+        // 取码即留痕：开箱凭证的发放本身就是可审计动作（PRD 6.2 留痕完整率 100%）
+        slotService.logOpen(slot, "OPEN_CODE", code, WashSlotService.ROLE_WORKER, workerId,
+                WashSlotService.SOURCE_WORKER, "SUCCESS");
+
+        OpenCodeVO vo = new OpenCodeVO();
+        vo.setCode(code);
+        vo.setCabinetName(cabinet.getCabinetName());
+        vo.setSlotNo(slot.getSlotNo());
+        // 重复取码不重置时效：取剩余 TTL（与 C 端 open-code 同一口径）
+        long remainMs = codeService.expireMillis(WashSlotCodeService.WORKER_PREFIX, orderNo);
+        vo.setExpireAt(System.currentTimeMillis() + (remainMs > 0 ? remainMs : openCodeTtlMinutes * 60_000));
+        return vo;
+    }
+
+    /**
+     * 取钥匙：师傅从柜中取出客户钥匙，开始取车作业（KEY_IN → PICKING）。
+     *
+     * <p>必带开箱码且先校验再推进状态：顺序反了会出现「状态已走但箱没开」，
+     * 留痕也就成了事后补录（PRD 6.4 要求开箱动作真实发生）。
+     * 正式环境应由柜机开箱回执驱动，MVP 无柜机，由师傅在开箱页确认后提交。
+     */
+    public void takeKey(String orderNo, String code, Long workerId) {
+        WashSlot slot = slotService.require(orderNo);
+        codeService.verify(WashSlotCodeService.WORKER_PREFIX, orderNo, code);
+        slotService.logOpen(slot, "OPEN", code, WashSlotService.ROLE_WORKER, workerId,
+                WashSlotService.SOURCE_WORKER, "SUCCESS");
+        codeService.clear(WashSlotCodeService.WORKER_PREFIX, orderNo);
         stateService.workerFire(orderNo, OrderEvent.TAKE_KEY, workerId, null);
         // 钥匙已被师傅取走，格口必须腾出，否则该格永远占用（bug092410）
-        slotService.release(orderNo);
+        slotService.release(orderNo, WashSlotService.ROLE_WORKER, workerId, WashSlotService.SOURCE_WORKER);
     }
 
     /**

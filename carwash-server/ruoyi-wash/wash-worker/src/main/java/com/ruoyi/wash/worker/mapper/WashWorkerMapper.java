@@ -1,8 +1,13 @@
 package com.ruoyi.wash.worker.mapper;
 
 import com.ruoyi.wash.worker.domain.WashWorker;
+import com.ruoyi.wash.worker.dto.AdminWorkerVO;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
 
 /**
  * 师傅表读写。禁止其他模块直接注入本 Mapper，跨域一律走 WashWorkerService / Manager。
@@ -21,4 +26,78 @@ public interface WashWorkerMapper {
     @Select("select worker_id, worker_no, password, name, phone, site_id, status, del_flag " +
             "from wash_worker where worker_id = #{workerId} and del_flag = '0'")
     WashWorker selectByWorkerId(@Param("workerId") Long workerId);
+
+    // ---------------- 后台管理 ----------------
+
+    /** 后台列表：含已禁用项（运营要能找回），不含已删除项 */
+    @Select("<script>" +
+            "select worker_id, worker_no, name, phone, site_id, status, remark, " +
+            "       create_time as createTime " +
+            "from wash_worker where del_flag = '0' " +
+            "<if test='keyword != null and keyword != &quot;&quot;'> " +
+            "  and (worker_no like concat('%', #{keyword}, '%') " +
+            "    or name like concat('%', #{keyword}, '%') " +
+            "    or phone like concat('%', #{keyword}, '%')) " +
+            "</if>" +
+            "<if test='siteId != null'> and site_id = #{siteId} </if>" +
+            "<if test='status != null and status != &quot;&quot;'> and status = #{status} </if>" +
+            "order by create_time desc limit #{offset}, #{pageSize}" +
+            "</script>")
+    List<AdminWorkerVO> selectAdminList(@Param("keyword") String keyword,
+                                        @Param("siteId") Long siteId,
+                                        @Param("status") String status,
+                                        @Param("offset") int offset,
+                                        @Param("pageSize") int pageSize);
+
+    /** 后台详情：与列表同一套 VO（不含 password 列，密码不进任何查询） */
+    @Select("select worker_id, worker_no, name, phone, site_id, status, remark, " +
+            "       create_time as createTime " +
+            "from wash_worker where worker_id = #{workerId} and del_flag = '0'")
+    AdminWorkerVO selectAdminById(@Param("workerId") Long workerId);
+
+    @Select("<script>" +
+            "select count(*) from wash_worker where del_flag = '0' " +
+            "<if test='keyword != null and keyword != &quot;&quot;'> " +
+            "  and (worker_no like concat('%', #{keyword}, '%') " +
+            "    or name like concat('%', #{keyword}, '%') " +
+            "    or phone like concat('%', #{keyword}, '%')) " +
+            "</if>" +
+            "<if test='siteId != null'> and site_id = #{siteId} </if>" +
+            "<if test='status != null and status != &quot;&quot;'> and status = #{status} </if>" +
+            "</script>")
+    long countAdmin(@Param("keyword") String keyword,
+                    @Param("siteId") Long siteId,
+                    @Param("status") String status);
+
+    /** 工号唯一性：同一个工号被已删除的记录占用也不允许，避免删了再加的边界纠纷 */
+    @Select("select count(*) from wash_worker where worker_no = #{workerNo}")
+    long countByWorkerNo(@Param("workerNo") String workerNo);
+
+    @Insert("insert into wash_worker (worker_no, password, name, phone, site_id, status, remark, del_flag, create_time) " +
+            "values (#{workerNo}, #{password}, #{name}, #{phone}, #{siteId}, #{status}, #{remark}, '0', sysdate())")
+    int insertWorker(AdminWorkerVO worker);
+
+    @Update("<script>" +
+            "update wash_worker " +
+            "<set>" +
+            "  <if test='name != null'> name = #{name}, </if>" +
+            "  <if test='phone != null'> phone = #{phone}, </if>" +
+            "  <if test='siteId != null'> site_id = #{siteId}, </if>" +
+            "  <if test='status != null'> status = #{status}, </if>" +
+            "  <if test='remark != null'> remark = #{remark}, </if>" +
+            "</set>" +
+            "where worker_id = #{workerId} and del_flag = '0'" +
+            "</script>")
+    int updateWorker(AdminWorkerVO worker);
+
+    /**
+     * 单独改密码。为什么不给 updateWorker 顺手改：修改资料时误触密码会把师傅锁在门外，
+     * 两个动作必须分成两个接口、两个权限。
+     */
+    @Update("update wash_worker set password = #{password} where worker_id = #{workerId} and del_flag = '0'")
+    int updatePassword(@Param("workerId") Long workerId, @Param("password") String password);
+
+    /** 逻辑删除：历史任务的作业人仍指向本记录，禁止物理删行 */
+    @Update("update wash_worker set del_flag = '2' where worker_id = #{workerId} and del_flag = '0'")
+    int logicDelete(@Param("workerId") Long workerId);
 }

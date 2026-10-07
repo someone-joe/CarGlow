@@ -3,6 +3,7 @@ package com.ruoyi.wash.worker.service;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.worker.domain.WashWorker;
+import com.ruoyi.wash.worker.domain.WorkerStatus;
 import com.ruoyi.wash.worker.dto.WorkerLoginVO;
 import com.ruoyi.wash.worker.mapper.WashWorkerMapper;
 import com.ruoyi.wash.worker.security.WorkerTokenService;
@@ -18,8 +19,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class WashWorkerService {
 
-    private static final String STATUS_NORMAL = "NORMAL";
-
     @Autowired
     private WashWorkerMapper workerMapper;
 
@@ -34,7 +33,7 @@ public class WashWorkerService {
         if (!matches(worker.getPassword(), password)) {
             throw new ApiException(ErrorCode.D4002, "密码或验证码错误");
         }
-        if (!STATUS_NORMAL.equals(worker.getStatus())) {
+        if (!WorkerStatus.NORMAL.name().equals(worker.getStatus())) {
             throw new ApiException(ErrorCode.D4003, "师傅账号已被禁用");
         }
         if (worker.getSiteId() == null) {

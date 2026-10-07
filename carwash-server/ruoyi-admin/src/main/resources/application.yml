@@ -170,6 +170,9 @@ wash:
     store-path: ./upload/media
     # 单文件大小上限（MB），阈值走配置不硬编码
     max-size-mb: 10
+  slot:
+    # 开箱码有效期（分钟）；与 C 端开箱码口径一致（PRD：10 分钟内有效、一次有效）
+    open-code-ttl-minutes: 10
   # 当前站点（MVP 只有一个中央站；多站点后改为按定位/小区解析）
   default-site-id: 1
   customer-service:
