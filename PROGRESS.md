@@ -416,7 +416,26 @@ git clone <仓库地址>      # 或 git pull
 3. 影像鉴权收敛：前端 `photoUrl()` 用 query token（`?token=`，因 `image` 组件带不了 header，`MediaAuthInterceptor` 已支持）。待定：统一为 query token 唯一方式，还是限制有效期/加签。
 
 **D（后台运营补全，最后做，量大）**
-- 师傅管理（`wash_worker` CRUD + 菜单）
+- ✅ **D-1 师傅管理已完成（2026-09-27）**：`wash_worker` CRUD + 菜单，契约 tag `admin-worker`（7 路径 9 操作）。
+  - 接口：`/admin-api/wash/worker` 的 list / get / add / edit / remove + `reset-password` + 两个字典项
+    （`status-options` / `site-options`）。权限 `wash:worker:list|add|edit|remove|reset`，菜单 SQL 2040–2045。
+  - **新增枚举 `WorkerStatus`（NORMAL / DISABLED）作为 SSOT**，与 openapi 的 WorkerStatus 逐条一致。
+    原先 NORMAL 是 `WashWorkerService` 里的私有字符串常量，后台同样要判断状态，再写一份就会漂移。
+  - 新增错误码 **D4005（工号已被占用）/ D4006（师傅不存在）**。
+  - 三个刻意的设计（别改）：
+    1. **修改资料不接受 password** —— 改密码走独立的 `reset-password` 接口和 `wash:worker:reset` 权限，
+       避免「运营改个手机号，师傅被登出」的误操作。
+    2. **禁用 / 重置密码 / 删除都会吊销该师傅的登录态**。
+       实现是扫 `worker:token:*` 比对 workerId：token 是 UUID，Redis 只有正向映射，
+       规模极小，比改 TokenService 的签发逻辑划算，也没动公共组件。
+    3. **工号不允许修改**（是登录凭证），要换就删除后新建。
+  - 出参一律走 `AdminWorkerVO`（**不含 password**，Service 里查完即清空），
+    绝不直接返回实体，避免将来给实体加字段时把密码带出去。
+  - 为什么不用 WashWorker 实体当入参：实体只有登录字段（没 create_time / remark），
+    补字段会把登录链路牵扯进来，故与 `AdminOrderVO` 一致——由 Mapper 直接查成 VO。
+  - 验证：13 个单测全绿（`WashWorkerAdminServiceTest`），后台前端 `vite build` 无错。
+  - ⚠️ 菜单 SQL 导入后**后台需退出重登**才显示（若依菜单缓存）。
+- 站点/小区管理（含本次新增的营业时间字段）
 - 站点/小区管理（含本次新增的营业时间字段）
 - 优惠券管理（券模板 + 发放 + 核销记录）
 - 工位（bay）与 SOP 15 步明细（当前无工位表，`station/queue` 的 bayNo/sopStep 为 null）
@@ -535,6 +554,61 @@ done
 > ⚠️ 上面那条命令会在 stderr 打 `[Warning] Using a password on the command line interface can be insecure`，
 > 这是 MySQL 的提示不是报错，别误判成导入失败。用 `show tables` 复核。
 > 中文编码已用 hex 复核过（`标准洗车` = `E6A087E58786E6B497E8BDA6`，是真 UTF-8 不是双重编码）。
+
+### 11.4.1 全套服务一键启动顺序（2026-10-07 补全）
+
+之前只记了后端，漏了后台管理前端——它就是 `http://localhost:1024` 打不开的原因。
+四个进程各自独立，按下面顺序起（重开机后从第一条开始；平时只重启挂掉的那个）：
+
+```bash
+# 0. 容器引擎（只有重启电脑后才需要；平时跳到 1）
+colima start --disk-image ~/Downloads/colima-ubuntu-24.04-docker-arm64.raw.gz \
+             --cpu 4 --memory 8 --disk 60 --arch aarch64
+#    ⚠️ daemon 起得慢，start 完若 docker 命令报错，等几秒再试，别急着 stop 重建
+
+# 1. 中间件
+docker compose -f docker/docker-compose.dev.yml up -d     # MySQL 3306 / Redis 6379
+
+# 2. 后端 API（8080）—— logback 路径坑见 11.4
+sed 's|/home/ruoyi/logs|'"$HOME"'/carwash-logs|g' \
+  carwash-server/ruoyi-admin/src/main/resources/logback.xml > /tmp/logback-mac.xml
+java -Dlogback.configurationFile=/tmp/logback-mac.xml \
+     -jar carwash-server/ruoyi-admin/target/ruoyi-admin.jar \
+     --logging.config=file:/tmp/logback-mac.xml
+
+# 3. 后台管理前端（1024，RuoYi-Vue3）—— 这是 localhost:1024 那个页面
+cd carwash-admin && npm run dev        # /dev-api 代理到 8080；admin / admin123 登录
+
+# 4. 小程序（可选，开发预览用）
+cd carwash-mp && npm run dev:mp-weixin # 产物 dist/dev/mp-weixin，微信开发者工具导入
+```
+
+检查是否全活：`docker ps`（两个 healthy）、`curl -s localhost:8080/captchaImage`（200）、
+浏览器开 `http://localhost:1024`（200）。
+
+> 后台和小程序的 `npm run dev` 是 watch 长驻进程，关终端前先 `Ctrl+C`；
+> 重打包后端前 `pkill -f ruoyi-admin.jar`，否则 jar 被占用。
+
+### 11.6 后台前端去若依化（2026-10-07）
+
+CarGlow 后台基于 RuoYi-Vue3，但侧边栏菜单由后端 `sys_menu` 驱动，默认会把一整套若依自带
+模块（系统监控 / 系统工具 / 若依官网 + 系统管理全部子项）一起显示。本次按"只删明显无用的"原则清理：
+
+**删除（2026-10-07）**
+- 菜单（写进 `sql/wash_menu.sql` 顶部 delete，重导 SQL 即生效）：系统监控(2) 整目录、系统工具(3) 整目录、若依官网(4)，含 `sys_role_menu` 关联
+- 前端视图：`views/monitor/` 下 online/job/druid/server/cache（留 operlog/logininfor，日志管理 108 用的是这俩）
+- 前端视图：`views/tool/` 整目录（代码生成/表单构建/swagger）
+- 前端 api：`api/monitor/` 的 cache/job/jobLog/online/server、`api/tool/` 整目录（留 operlog/logininfor）
+- 首页样板页 `views/index.vue`（纯若依宣传页），根路径改重定向到本项目看板 `/wash/dashboard`
+- navbar 若依品牌下拉：`components/RuoYi/Git`、`components/RuoYi/Doc` 及 Navbar 中的引用
+
+**保留**（用户拍板：系统管理全留，权限根基）
+- 用户/角色/菜单/部门/岗位/字典/参数/通知 + 日志管理(108)下的操作日志/登录日志
+
+**验证**：`npx vite build` 通过（exit 0，无悬空 import）；DB 重导后监控/工具/官网菜单为空、日志管理仍在；`http://localhost:1024` 首页 200。
+
+> ⚠️ 若重导 `ry_20260417.sql`（默认菜单源），被删的监控/工具/官网会回来——因为删除语句只在 `wash_menu.sql` 里。
+> 正常走"导 ry 基础库 → 导 wash_menu.sql"的顺序即可保持干净。
 
 ### 11.5 跨设备同步
 

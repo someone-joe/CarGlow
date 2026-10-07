@@ -5,7 +5,7 @@ docker exec carglow-redis redis-cli -a carglow_dev --no-auth-warning SET "slot:c
 
 
 触发柜机回调：
-$body = '{"orderNo":"SE20260921115500411526","code":"429935","slotNo":"A02"}'
+$body = '{"orderNo":"SE20260930122207458853","code":"255902","slotNo":"A02"}'
 [System.IO.File]::WriteAllText('d:\CarGlow\deposit.json', $body)
 curl.exe -X POST "http://localhost:8080/device-callback/v1/slot/deposit" -H "Content-Type: application/json" --data-binary "@d:\CarGlow\deposit.json"
 
