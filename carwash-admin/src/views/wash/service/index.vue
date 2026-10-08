@@ -73,6 +73,28 @@
           <el-switch v-model="form.enabled" active-value="Y" inactive-value="N"
                      active-text="上架" inactive-text="下架" />
         </el-form-item>
+        <el-divider content-position="left">服务详情配置</el-divider>
+        <el-form-item label="服务内容" prop="items">
+          <el-input v-model="form.items" type="textarea" :rows="3"
+                    placeholder="每行一项，如：外观精洗 / 内饰吸尘 / 轮胎上光" />
+        </el-form-item>
+        <el-form-item label="不包含项" prop="notIncluded">
+          <el-input v-model="form.notIncluded" type="textarea" :rows="3"
+                    placeholder="每行一项，如：发动机深度清洗 / 内饰翻新" />
+        </el-form-item>
+        <el-form-item label="注意事项" prop="notices">
+          <el-input v-model="form.notices" type="textarea" :rows="3"
+                    placeholder="每行一项，如：请确认车窗关闭 / 贵重物品请自行保管" />
+        </el-form-item>
+        <el-form-item label="适用车型" prop="applicableModels">
+          <el-input v-model="form.applicableModels" placeholder="如：5座小轿车/SUV（不限新能源）" />
+        </el-form-item>
+        <el-form-item label="样图URL" prop="sampleImages">
+          <el-input v-model="form.sampleImages" type="textarea" :rows="3" placeholder="每行一个图片URL" />
+        </el-form-item>
+        <el-form-item label="封面图URL" prop="cover">
+          <el-input v-model="form.cover" placeholder="封面图URL" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button type="primary" @click="submitForm">确 定</el-button>
@@ -117,6 +139,11 @@ function fen2yuan(fen) {
   return ((fen || 0) / 100).toFixed(2)
 }
 
+/** 多行文本 → 字符串数组（去空、去首尾空格），用于明细清单字段 */
+function toLines(s) {
+  return (s || '').split('\n').map(x => x.trim()).filter(x => x.length > 0)
+}
+
 function categoryLabel(categoryId) {
   const hit = categoryList.value.find((c) => c.value === categoryId)
   return hit ? hit.label : '-'
@@ -149,7 +176,13 @@ function reset() {
     categoryId: undefined,
     priceYuan: 0,
     workMinutes: 40,
-    enabled: 'Y'
+    enabled: 'Y',
+    items: '',
+    notIncluded: '',
+    notices: '',
+    sampleImages: '',
+    applicableModels: '',
+    cover: ''
   }
   proxy.resetForm('serviceRef')
 }
@@ -178,7 +211,13 @@ function handleUpdate(row) {
     categoryId: row.categoryId,
     priceYuan: Number(((row.priceAmount || 0) / 100).toFixed(2)),
     workMinutes: row.workMinutes,
-    enabled: row.enabled
+    enabled: row.enabled,
+    items: (row.items || []).join('\n'),
+    notIncluded: (row.notIncluded || []).join('\n'),
+    notices: (row.notices || []).join('\n'),
+    sampleImages: (row.sampleImages || []).join('\n'),
+    applicableModels: row.applicableModels || '',
+    cover: row.cover || ''
   }
   open.value = true
   title.value = '修改服务项'
@@ -194,7 +233,14 @@ function submitForm() {
       categoryId: form.value.categoryId,
       priceAmount: Math.round((form.value.priceYuan || 0) * 100),
       workMinutes: form.value.workMinutes,
-      enabled: form.value.enabled
+      enabled: form.value.enabled,
+      // 多行文本 → 数组：明细清单由后端以 JSON 存储，前端只负责换行分隔
+      items: toLines(form.value.items),
+      notIncluded: toLines(form.value.notIncluded),
+      notices: toLines(form.value.notices),
+      sampleImages: toLines(form.value.sampleImages),
+      applicableModels: form.value.applicableModels || null,
+      cover: form.value.cover || null
     }
     if (payload.serviceId) {
       updateService(payload).then(() => {

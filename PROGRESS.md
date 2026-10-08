@@ -337,7 +337,7 @@ git clone <仓库地址>      # 或 git pull
 
 ### 9.4 待办欠账（下一步）
 
-- `admin-api` 契约未入 `openapi.yaml`（`x-roadmap` 欠账，会随后台接口增多越滚越大）。
+- ~~`admin-api` 契约未入 `openapi.yaml`~~ ✅ 已完成（2026-09-27，E-1）：后台接口已全量入契约（tag `admin-*`）。
 - 影像 `store-path` 默认相对路径（跟着进程工作目录走）——**生产必须配绝对路径**，否则老文件 404（已发生过）。
 - 后台运营功能：商品（服务项）配置、师傅管理、站点/小区管理、优惠券管理。
 - C 端界面改版（对标 `对标产品设计稿/`）。
@@ -435,20 +435,38 @@ git clone <仓库地址>      # 或 git pull
     补字段会把登录链路牵扯进来，故与 `AdminOrderVO` 一致——由 Mapper 直接查成 VO。
   - 验证：13 个单测全绿（`WashWorkerAdminServiceTest`），后台前端 `vite build` 无错。
   - ⚠️ 菜单 SQL 导入后**后台需退出重登**才显示（若依菜单缓存）。
-- 站点/小区管理（含本次新增的营业时间字段）
-- 站点/小区管理（含本次新增的营业时间字段）
+- ✅ **站点 / 小区管理已完成（2026-10-08 核实）**：`AdminSiteController` + `WashSiteAdminService`（站点）、
+  `AdminCommunityController` + `WashCommunityAdminService`（小区）均已落地，前端 `carwash-admin` 对应表单与列表页已存在。
+  站点新增曾因 `deposit_deadline` 静态 insert 报 NOT NULL，已改为动态 SQL 修复（见 `WashSiteMapper`，commit ead7e0c）。
 - 优惠券管理（券模板 + 发放 + 核销记录）
 - 工位（bay）与 SOP 15 步明细（当前无工位表，`station/queue` 的 bayNo/sopStep 为 null）
 - 复盘工单（`qc-fail` 达阈值目前只 WARN，未自动建单）
 
+### 10.6.1 F（后台服务详情配置，2026-10-08 已完成）
+
+> 用户明确要求：服务详情的 items / 不包含项 / 注意事项 / 样图 / 封面可由运营后台配置，C 端详情接口返回。
+
+- `wash_service` 新增 6 列：`detail_items` / `detail_not_included` / `detail_notices` / `detail_sample_images`（TEXT，存 JSON 数组）、
+  `applicable_models` / `cover_url`（迁移 `sql/wash_20261008_service_detail.sql`，幂等，列已存在则跳过）。
+- 新增 `JsonStringListTypeHandler`（`ruoyi-wash/wash-common`，复用 fastjson2）：数组字段在 DB 以 JSON 文本存取，实体用 `List<String>`，
+  前后端 JSON 直接是数组，格式转换不散落。
+- `WashService` 实体 + `WashServiceMapper`（全查询带别名映射 + `@ResultMap`、insert/update 带 typeHandler）；
+  `WashServiceQueryService.detail()` 填充明细；C 端 `ServiceDetailVO` 补 `cover`。
+- 契约 `openapi.yaml`：`ServiceDetailVO` / `AdminServiceVO` / `AdminServiceRequest` 补齐
+  `items` / `notIncluded` / `notices` / `sampleImages` / `applicableModels` / `cover`（C 端 `cover` 为新增字段）。
+- 后台前端 `carwash-admin/src/views/wash/service/index.vue` 新增明细表单（多行文本 ↔ 数组转换）。
+- 小程序 `schema.d.ts` 已据 openapi 重新生成（仅新增字段，+30 行）。
+- 验证：新增带明细的服务项，后台回查与 C 端 `GET /api/v1/services/{id}`（会员 token）均正确返回数组。
+- ⚠️ **C 端小程序服务详情页尚未渲染这些字段**：数据已就绪，页面展示是独立前端任务（空态兜底仍在）。
+
 ### 10.7 原剩余待办（未开始）
-- **后台「服务详情配置」**（用户明确要求）：详情页的 items/不包含项/注意事项/样图/封面等明细字段，需 `wash_service` 加列 + 后台表单。当前后端详情接口已通（`GET /api/v1/services/{serviceId}`）但明细返回空，前端有空态兜底。
+- ~~**后台「服务详情配置」**（用户明确要求）~~ ✅ 已完成（2026-10-08）：`wash_service` 加 6 列 + 后台表单 + C 端详情接口已返回明细（见 10.6 已完成项 3）。C 端小程序页面渲染为独立前端任务。
 - ~~C 端订单 tab 改「待处理/服务中/已完成」~~ ✅ 已完成（10.6 已完成项，`70c1dbd` + `74e589d`）
 - ~~时间浮层时段固定 19:00–23:00~~ ✅ 已完成（站点营业时间经 `CapacityVO` 下发，`70c1dbd`）
 - ~~设计稿图片重命名未提交~~ ✅ 已提交（`74de9be`）
 - E 的 `admin-api` 契约 ✅ 已完成（见 10.6）；剩余 fileId 真实性校验、影像鉴权收敛未做
-- D（师傅管理 / 站点小区 / 优惠券管理 / 工位与 SOP / 复盘工单）：**全部未开始**
-- **后台「服务详情配置」**：仍未开始（`wash_service` 明细字段缺列）
+- D（师傅管理 ✅ / 站点小区 ✅ / 优惠券管理 / 工位与 SOP / 复盘工单）：部分完成
+- ~~**后台「服务详情配置」~~ ✅ 已完成（2026-10-08，见 10.6 已完成项 3）
 
 ---
 
@@ -546,7 +564,7 @@ cd carwash-server/sql
 for f in ry_20260417.sql quartz.sql wash_20260917_minimal.sql wash_20260918_order.sql \
          wash_20260919_pay.sql wash_20260919_promo.sql wash_20260919_refund.sql \
          wash_20260919_site_review_media.sql wash_20260919_slot.sql wash_20260920_worker.sql \
-         wash_20260924_site_hours.sql wash_menu.sql wash_seed_dev.sql; do
+         wash_20260924_site_hours.sql wash_20261008_service_detail.sql wash_menu.sql wash_seed_dev.sql; do
   docker exec -i carglow-mysql mysql -uroot -pcarglow_dev --default-character-set=utf8mb4 carwash < "$f"
 done
 ```
@@ -626,4 +644,4 @@ CarGlow 后台基于 RuoYi-Vue3，但侧边栏菜单由后端 `sys_menu` 驱动�
 - **mock-pay 必须关**：`wash.pay.mock-enabled` 生产必须 `false`，否则钱不会真收到（见第七节）。
 - **退款必须真正调微信**：目前订单只推到 `REFUNDING`，未接微信退款 API、无退款单表/重试，生产前必须补齐，否则退款退不出去（见第七节）。
 - **影像存储路径必须绝对路径**：`wash.media.store-path` 默认相对路径（跟进程工作目录走），生产必须配绝对路径，否则老文件 404（已发生过，见第九节）。
-- **admin-api 契约补入 openapi.yaml**：后台接口目前没进契约（x-roadmap 欠账），随接口增多漂移风险越大，需尽快补（见第九节 9.4）。
+- ~~**admin-api 契约补入 openapi.yaml**~~ ✅ 已完成（2026-09-27，E-1）：后台 4 个控制器共 13 路径 / 15 操作已全部落契约（tag `admin-*`），详见第十节 10.6。本条已从上线阻断项移除。

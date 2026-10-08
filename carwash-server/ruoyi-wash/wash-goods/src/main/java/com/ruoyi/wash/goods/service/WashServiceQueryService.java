@@ -62,6 +62,13 @@ public class WashServiceQueryService {
         vo.setDisplayPrice(service.getPriceAmount());
         vo.setWorkMinutes(service.getWorkMinutes());
         vo.setPickupFee(PICKUP_FEE_FREE);
+        // 明细字段：由后台「服务详情配置」维护，缺失时给空集合/空串，前端有空态兜底
+        vo.setItems(service.getItems() != null ? service.getItems() : new ArrayList<>());
+        vo.setNotIncluded(service.getNotIncluded() != null ? service.getNotIncluded() : new ArrayList<>());
+        vo.setNotices(service.getNotices() != null ? service.getNotices() : new ArrayList<>());
+        vo.setSampleImages(service.getSampleImages() != null ? service.getSampleImages() : new ArrayList<>());
+        vo.setApplicableModels(service.getApplicableModels());
+        vo.setCover(service.getCover());
         return vo;
     }
 

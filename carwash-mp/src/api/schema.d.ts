@@ -3796,10 +3796,16 @@ export interface components {
         ServiceDetailVO: components["schemas"]["ServiceVO"] & {
             /** @description 服务内容清单 */
             items?: string[];
+            /** @description 适用车型 */
             applicableModels?: string;
+            /** @description 不包含项 */
             notIncluded?: string[];
+            /** @description 注意事项 */
             notices?: string[];
+            /** @description 样图（图片URL） */
             sampleImages?: string[];
+            /** @description 封面图URL */
+            cover?: string;
         };
         CabinetVO: {
             /** Format: int64 */
@@ -4189,6 +4195,18 @@ export interface components {
             updateBy?: string;
             updateTime?: string;
             remark?: string;
+            /** @description 服务内容清单 */
+            items?: string[];
+            /** @description 不包含项 */
+            notIncluded?: string[];
+            /** @description 注意事项 */
+            notices?: string[];
+            /** @description 样图（图片URL） */
+            sampleImages?: string[];
+            /** @description 适用车型 */
+            applicableModels?: string;
+            /** @description 封面图URL */
+            cover?: string;
         };
         /** @description 新增/修改服务项的入参。金额为【分】，后台表单填元需在页面层换算。 */
         AdminServiceRequest: {
@@ -4212,6 +4230,18 @@ export interface components {
              */
             enabled: "Y" | "N";
             remark?: string;
+            /** @description 服务内容清单 */
+            items?: string[];
+            /** @description 不包含项 */
+            notIncluded?: string[];
+            /** @description 注意事项 */
+            notices?: string[];
+            /** @description 样图（图片URL） */
+            sampleImages?: string[];
+            /** @description 适用车型 */
+            applicableModels?: string;
+            /** @description 封面图URL */
+            cover?: string;
         };
         /** @description 站点（中央站） */
         WashSite: {

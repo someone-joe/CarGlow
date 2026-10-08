@@ -2525,16 +2525,20 @@ components:
               type: array
               description: 服务内容清单
               items: { type: string }
-            applicableModels: { type: string }
+            applicableModels: { type: string, description: 适用车型 }
             notIncluded:
               type: array
+              description: 不包含项
               items: { type: string }
             notices:
               type: array
+              description: 注意事项
               items: { type: string }
             sampleImages:
               type: array
+              description: 样图（图片URL）
               items: { type: string }
+            cover: { type: string, description: 封面图URL }
 
     # ---------------- 钥匙柜 ----------------
     CabinetVO:
@@ -2958,6 +2962,24 @@ components:
         updateBy: { type: string }
         updateTime: { type: string }
         remark: { type: string }
+        items:
+          type: array
+          description: 服务内容清单
+          items: { type: string }
+        notIncluded:
+          type: array
+          description: 不包含项
+          items: { type: string }
+        notices:
+          type: array
+          description: 注意事项
+          items: { type: string }
+        sampleImages:
+          type: array
+          description: 样图（图片URL）
+          items: { type: string }
+        applicableModels: { type: string, description: 适用车型 }
+        cover: { type: string, description: 封面图URL }
 
     AdminServiceRequest:
       type: object
@@ -2971,6 +2993,24 @@ components:
         workMinutes: { type: integer }
         enabled: { type: string, enum: ['Y', 'N'], default: 'Y' }
         remark: { type: string }
+        items:
+          type: array
+          description: 服务内容清单
+          items: { type: string }
+        notIncluded:
+          type: array
+          description: 不包含项
+          items: { type: string }
+        notices:
+          type: array
+          description: 注意事项
+          items: { type: string }
+        sampleImages:
+          type: array
+          description: 样图（图片URL）
+          items: { type: string }
+        applicableModels: { type: string, description: 适用车型 }
+        cover: { type: string, description: 封面图URL }
 
     WashSite:
       type: object

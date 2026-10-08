@@ -16,6 +16,8 @@ public class ServiceDetailVO extends ServiceVO {
     private List<String> notIncluded;
     private List<String> notices;
     private List<String> sampleImages;
+    /** 封面图 URL */
+    private String cover;
 
     public List<String> getItems() {
         return items;
@@ -55,5 +57,13 @@ public class ServiceDetailVO extends ServiceVO {
 
     public void setSampleImages(List<String> sampleImages) {
         this.sampleImages = sampleImages;
+    }
+
+    public String getCover() {
+        return cover;
+    }
+
+    public void setCover(String cover) {
+        this.cover = cover;
     }
 }
