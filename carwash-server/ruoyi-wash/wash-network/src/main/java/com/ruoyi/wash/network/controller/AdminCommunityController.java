@@ -3,6 +3,7 @@ package com.ruoyi.wash.network.controller;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.network.domain.WashCommunity;
+import com.ruoyi.wash.network.mapper.WashCommunityMapper;
 import com.ruoyi.wash.network.service.WashCommunityAdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,7 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 后台小区管理。契约见 openapi.yaml 的 /admin-api/wash/community/**（tag admin-community）。
@@ -28,6 +32,26 @@ public class AdminCommunityController {
 
     @Autowired
     private WashCommunityAdminService adminService;
+    @Autowired
+    private WashCommunityMapper communityMapper;
+
+    /** 小区下拉：可选按站点过滤；柜机表单用 */
+    @PreAuthorize("@ss.hasPermi('wash:community:list')")
+    @GetMapping("/options")
+    public AjaxResult options(@RequestParam(required = false) Long siteId) {
+        List<WashCommunity> list = siteId != null
+                ? communityMapper.selectBySite(siteId)
+                : communityMapper.selectEnabledList();
+        List<Map<String, Object>> options = new ArrayList<>();
+        for (WashCommunity c : list) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("value", c.getCommunityId());
+            item.put("label", c.getCommunityName());
+            item.put("siteId", c.getSiteId());
+            options.add(item);
+        }
+        return AjaxResult.success(options);
+    }
 
     @PreAuthorize("@ss.hasPermi('wash:community:list')")
     @GetMapping("/list")

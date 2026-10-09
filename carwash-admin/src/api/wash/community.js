@@ -38,3 +38,12 @@ export function delCommunity(communityId) {
     method: 'delete'
   })
 }
+
+// 小区下拉：可选按站点过滤，柜机表单用
+export function communityOptions(siteId) {
+  return request({
+    url: '/admin-api/wash/community/options',
+    method: 'get',
+    params: { siteId }
+  })
+}

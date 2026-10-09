@@ -12,6 +12,9 @@ public class WashSlot extends BaseEntity {
     private String orderNo;
     private Long memberId;
 
+    /** 列表展示用：关联机柜名（非表字段） */
+    private String cabinetName;
+
     public Long getSlotId() {
         return slotId;
     }
@@ -58,5 +61,13 @@ public class WashSlot extends BaseEntity {
 
     public void setMemberId(Long memberId) {
         this.memberId = memberId;
+    }
+
+    public String getCabinetName() {
+        return cabinetName;
+    }
+
+    public void setCabinetName(String cabinetName) {
+        this.cabinetName = cabinetName;
     }
 }
