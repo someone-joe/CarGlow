@@ -20,26 +20,33 @@ export function ensureLogin(): Promise<string> {
   if (pending) {
     return pending
   }
-  pending = new Promise<string>((resolve, reject) => {
+  const p = new Promise<string>((resolve, reject) => {
     uni.login({
       provider: 'weixin',
       success: (res) => {
         // res.code 类型上可能为空，缺 code 直接失败，避免静默带上 undefined 换取错误 openid
         if (!res.code) {
+          pending = null
           reject(new Error('wx.login 未返回 code'))
           return
         }
         login(res.code)
           .then((data) => {
             setToken(data.token ?? '')
+            pending = null
             resolve(data.token ?? '')
           })
-          .catch(reject)
+          .catch((err) => {
+            pending = null
+            reject(err)
+          })
       },
-      fail: (err) => reject(err),
+      fail: (err) => {
+        pending = null
+        reject(err)
+      },
     })
-  }).finally(() => {
-    pending = null
   })
-  return pending
+  pending = p
+  return p
 }
