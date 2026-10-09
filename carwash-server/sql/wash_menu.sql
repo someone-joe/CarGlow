@@ -179,4 +179,18 @@ insert ignore into sys_role_menu (role_id, menu_id) values
 (1, 2050), (1, 2051), (1, 2052), (1, 2053), (1, 2054),
 (1, 2060), (1, 2061), (1, 2062), (1, 2063), (1, 2064),
 (1, 2070), (1, 2071), (1, 2072), (1, 2073), (1, 2074),
-(1, 2080), (1, 2081), (1, 2082), (1, 2083), (1, 2084);
+(1, 2080), (1, 2081), (1, 2082), (1, 2083), (1, 2084),
+(1, 2090), (1, 2091);
+
+-- ----------------------------
+-- 客服配置（2026-10-09 新增，小程序客服 tab 后台可配置：双电话/夜间提示/企微码/常见问题）
+-- ----------------------------
+delete from sys_menu where menu_id in (2090, 2091);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2090, '客服配置', 2000, 9, 'cs-config', 'wash/cs-config/index', 1, 0, 'C', '0', '0', 'wash:cs:query', 'phone', 'admin', sysdate(), '小程序客服 tab 配置：双电话/夜间提示/企微码/常见问题');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2091, '客服配置保存', 2090, 1, '', null, 1, 0, 'F', '0', '0', 'wash:cs:edit', '#', 'admin', sysdate(), '保存客服配置');
+
+-- 角色菜单授权补录（幂等）
+insert ignore into sys_role_menu (role_id, menu_id) values (1, 2090), (1, 2091);

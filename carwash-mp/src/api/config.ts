@@ -6,11 +6,18 @@ import { request } from '@/utils/request'
  * <p>该接口在契约里是内联 schema（没有具名 CustomerServiceVO），故此处按契约逐字段声明，
  * 不用 components['schemas'] 引用。字段含义见契约：企微二维码、平台电话、站点电话、夜间提示。
  */
+export interface CsFaq {
+  question: string
+  answer?: string
+}
+
 export interface CustomerServiceVO {
   wecomQrcodeUrl?: string
   platformPhone?: string
   stationPhone?: string
   nightTip?: string
+  /** 您可能会遇到的问题（后台「客服配置」维护），未配置则缺省 */
+  faqs?: CsFaq[]
 }
 
 /**

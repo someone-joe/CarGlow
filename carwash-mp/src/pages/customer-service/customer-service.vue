@@ -10,12 +10,13 @@
         <text class="qr-tip">长按二维码添加管家企业微信</text>
       </view>
 
-      <!-- 常见问题：标签网格 -->
+      <!-- 常见问题：标签网格（来自后台「客服配置」，不再前端硬编码） -->
       <view class="card">
         <text class="card-title">您可能会遇到的问题</text>
         <view class="faq">
-          <view v-for="(f, i) in faqs" :key="i" class="faq-item" @click="ask(f)">{{ f }}</view>
+          <view v-for="(f, i) in faqs" :key="i" class="faq-item" @click="ask(f)">{{ f.question }}</view>
         </view>
+        <view v-if="!faqs.length" class="muted">暂无常见问题</view>
       </view>
 
       <!-- 服务电话：平台 + 本站点（号码全部后台配置，前端不硬编码） -->
@@ -38,24 +39,10 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import { fetchCustomerService, type CustomerServiceVO } from '@/api/config'
+import { fetchCustomerService, type CustomerServiceVO, type CsFaq } from '@/api/config'
 
-/** 常见问题标签：PRD P16 固定清单，后端暂未提供接口，前端按契约常量维护 */
-const faqs = [
-  '无法打开柜门',
-  '忘记存放钥匙',
-  '想修改订单',
-  '咨询排队情况',
-  '是否要取送车',
-  '普洗精洗区别',
-  '未按服务时间',
-  '取消预约',
-  '其他小区服务',
-  '车主未按时存车',
-  '具体位置',
-  '最近折扣',
-  '其他需求',
-]
+/** 常见问题来自后台「客服配置」，前端不再硬编码（PRD：问题清单由运营维护） */
+const faqs = ref<CsFaq[]>([])
 
 const cfg = ref<CustomerServiceVO>({})
 const loading = ref(true)
@@ -66,19 +53,21 @@ async function load(): Promise<void> {
   try {
     const c = await fetchCustomerService()
     cfg.value = c
+    faqs.value = c.faqs && c.faqs.length ? c.faqs : []
     phones.value = [c.platformPhone, c.stationPhone].filter((p): p is string => !!p)
   } catch {
     cfg.value = {}
+    faqs.value = []
   } finally {
     loading.value = false
   }
 }
 
-function ask(tag: string): void {
-  // V1.0：点击标签弹出对应解答占位，后续一键转工单（自动带类型与订单号）
+function ask(f: CsFaq): void {
+  // 后台配了答案则直接展示；否则弹通用占位（后续可一键转工单，自动带类型与订单号）
   uni.showModal({
-    title: tag,
-    content: '已记录您的问题，正在为您匹配解答；如需人工，将自动生成工单。',
+    title: f.question,
+    content: f.answer && f.answer.trim() ? f.answer : '已记录您的问题，正在为您匹配解答；如需人工，将自动生成工单。',
     showCancel: false,
     confirmText: '知道了',
   })

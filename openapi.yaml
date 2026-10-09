@@ -959,11 +959,13 @@ paths:
   /api/v1/config/customer-service:
     get:
       tags: [misc]
-      summary: 客服配置（企微二维码、双电话、夜间提示）
+      summary: 客服配置（企微二维码、双电话、夜间提示、常见问题）
       description: |
         取值优先级：后台「系统管理 → 参数设置」（key：wash.cs.platform-phone / wash.cs.station-phone /
         wash.cs.night-tip / wash.cs.wecom-qrcode-url）→ application.yml 兜底 → 代码默认。
         platformPhone 默认 10086：客服入口任何时候都必须能拨通（bug092203）。
+        faqs（您可能会遇到的问题）由后台「客服配置」页维护，存于 wash_cs_faq 表；
+        未配置时返回空数组，前端自行决定是否展示占位。
       responses:
         '200':
           description: 成功
@@ -981,6 +983,14 @@ paths:
                           platformPhone: { type: string }
                           stationPhone: { type: string }
                           nightTip: { type: string }
+                          faqs:
+                            type: array
+                            description: 常见问题（您可能会遇到的问题），按 sortOrder 升序
+                            items:
+                              type: object
+                              properties:
+                                question: { type: string, description: 问题文案 }
+                                answer: { type: string, description: 解答文案，可空；空则前端弹通用占位 }
 
   # ============================ 优惠券（C 端） ============================
   /api/v1/coupons/center:

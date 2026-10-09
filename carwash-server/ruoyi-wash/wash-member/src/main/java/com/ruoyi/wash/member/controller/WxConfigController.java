@@ -2,11 +2,17 @@ package com.ruoyi.wash.member.controller;
 
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.wash.common.api.ApiResult;
+import com.ruoyi.wash.member.domain.WashCsFaq;
+import com.ruoyi.wash.member.dto.CsFaq;
 import com.ruoyi.wash.member.dto.CustomerServiceVO;
+import com.ruoyi.wash.member.mapper.WashCsFaqMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * C 端通用配置。契约：openapi.yaml GET /api/v1/config/customer-service。
@@ -33,6 +39,9 @@ public class WxConfigController {
     @Autowired
     private ISysConfigService sysConfigService;
 
+    @Autowired
+    private WashCsFaqMapper faqMapper;
+
     @Value("${wash.customer-service.wecom-qrcode-url:}")
     private String wecomQrcodeUrl;
 
@@ -54,6 +63,10 @@ public class WxConfigController {
         vo.setPlatformPhone(platform == null || platform.isBlank() ? DEFAULT_PLATFORM_PHONE : platform);
         vo.setStationPhone(resolve(KEY_STATION_PHONE, stationPhone));
         vo.setNightTip(resolve(KEY_NIGHT_TIP, nightTip));
+        List<CsFaq> faqs = faqMapper.selectAll().stream()
+                .map(f -> new CsFaq(f.getQuestion(), f.getAnswer()))
+                .collect(Collectors.toList());
+        vo.setFaqs(faqs);
         return ApiResult.ok(vo);
     }
 

@@ -1,10 +1,12 @@
 package com.ruoyi.wash.member.dto;
 
+import java.util.List;
+
 /**
  * 客服配置。契约：openapi.yaml GET /api/v1/config/customer-service。
  *
- * <p>取值全部来自配置（application.yml 的 wash.customer-service），
- * 前端不得硬编码电话号码或文案；未配置的字段返回空串，前端自行决定展示。
+ * <p>取值全部来自配置（application.yml 的 wash.customer-service 或后台「客服配置」页），
+ * 前端不得硬编码电话号码或文案；未配置的字段返回空串，faqs 返回空数组，前端自行决定展示。
  */
 public class CustomerServiceVO {
 
@@ -12,6 +14,7 @@ public class CustomerServiceVO {
     private String platformPhone;
     private String stationPhone;
     private String nightTip;
+    private List<CsFaq> faqs;
 
     public String getWecomQrcodeUrl() {
         return wecomQrcodeUrl;
@@ -43,5 +46,13 @@ public class CustomerServiceVO {
 
     public void setNightTip(String nightTip) {
         this.nightTip = nightTip;
+    }
+
+    public List<CsFaq> getFaqs() {
+        return faqs;
+    }
+
+    public void setFaqs(List<CsFaq> faqs) {
+        this.faqs = faqs;
     }
 }
