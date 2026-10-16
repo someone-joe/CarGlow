@@ -2521,6 +2521,107 @@ paths:
               schema:
                 $ref: '#/components/schemas/RuoYiResult'
 
+  /admin-api/wash/selfwash/order/status-options:
+    get:
+      tags: [admin-selfwash]
+      summary: 自助订单状态下拉
+      x-permission: wash:selfwash:order:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value: { type: string }
+                            label: { type: string }
+  /admin-api/wash/selfwash/order/list:
+    get:
+      tags: [admin-selfwash]
+      summary: 自助订单分页（监控）
+      x-permission: wash:selfwash:order:list
+      parameters:
+        - name: memberId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: siteId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: workstationId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: orderNo
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/SelfwashOrderVO' }
+                          total: { type: integer, format: int64 }
+  /admin-api/wash/selfwash/order/{orderNo}:
+    get:
+      tags: [admin-selfwash]
+      summary: 自助订单详情（监控）
+      x-permission: wash:selfwash:order:list
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SelfwashOrderVO' }
+  /admin-api/wash/selfwash/order/{orderNo}/finish:
+    post:
+      tags: [admin-selfwash]
+      summary: 强制结束（仅服务中订单）
+      x-permission: wash:selfwash:order:finish
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
   # ========================= 师傅（工作人员）管理 =========================
   /admin-api/wash/worker/list:
     get:

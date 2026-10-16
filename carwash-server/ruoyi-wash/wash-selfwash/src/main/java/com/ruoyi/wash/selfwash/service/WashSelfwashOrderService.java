@@ -22,8 +22,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 自助洗车订单：选位下单 → 支付（储值/微信mock）→ 待使用 → 取消（已付退余额）。
@@ -232,11 +234,70 @@ public class WashSelfwashOrderService {
         return base + added / 60L;
     }
 
+    // ---------------- 后台监控 ----------------
+
+    /** 后台分页（筛选：状态/站点/工位/会员/单号） */
+    public Map<String, Object> adminPage(Long memberId, Long siteId, Long workstationId, String status,
+                                         String orderNo, int pageNum, int pageSize) {
+        if (pageNum < 1) pageNum = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+        Map<String, Object> params = new HashMap<>();
+        params.put("memberId", memberId);
+        params.put("siteId", siteId);
+        params.put("workstationId", workstationId);
+        params.put("status", status);
+        params.put("orderNo", orderNo);
+        params.put("offset", (pageNum - 1) * pageSize);
+        params.put("limit", pageSize);
+        Map<String, Object> data = new HashMap<>();
+        List<SelfwashOrderVO> voRows = new ArrayList<>();
+        for (WashSelfwashOrder o : orderMapper.selectAdminPage(params)) {
+            voRows.add(toVO(o));
+        }
+        data.put("rows", voRows);
+        data.put("total", orderMapper.countAdmin(params));
+        return data;
+    }
+
+    /** 后台详情（不按会员隔离） */
+    public SelfwashOrderVO adminDetail(String orderNo) {
+        WashSelfwashOrder o = orderMapper.selectByOrderNo(orderNo);
+        if (o == null) {
+            throw new ApiException(ErrorCode.B1001, "订单不存在");
+        }
+        return toVO(o);
+    }
+
+    /** 后台强制结束（处理卡在服务中的异常单）：断电 + 完成 + 开始下一排队单 */
+    @Transactional(rollbackFor = Exception.class)
+    public void adminForceFinish(String orderNo) {
+        WashSelfwashOrder o = orderMapper.selectByOrderNo(orderNo);
+        if (o == null) {
+            throw new ApiException(ErrorCode.B1001, "订单不存在");
+        }
+        if (!SelfWashStatus.SERVING.name().equals(o.getStatus())) {
+            throw new ApiException(ErrorCode.B1002, "仅服务中的订单可强制结束，当前：" + label(o.getStatus()));
+        }
+        orderMapper.markDone(orderNo);
+        deviceService.powerOff(o.getWorkstationId(), orderNo);
+        startNextIfIdle(o.getWorkstationId());
+    }
+
+    /** 状态下拉（后台筛选用），值来自 SelfWashStatus */
+    public List<Map<String, String>> statusOptions() {
+        List<Map<String, String>> out = new ArrayList<>();
+        for (SelfWashStatus s : SelfWashStatus.values()) {
+            out.add(Map.of("value", s.name(), "label", s.getLabel()));
+        }
+        return out;
+    }
+
     // ---------------- 内部 ----------------
 
     private List<String> statusesForTab(String tab) {
         String t = tab == null ? "WAIT_USE" : tab;
         return switch (t) {
+            case "WAIT_PAY" -> List.of(SelfWashStatus.WAIT_PAY.name());
             case "ONGOING" -> Arrays.asList(SelfWashStatus.QUEUING.name(), SelfWashStatus.SERVING.name(), SelfWashStatus.PAUSED.name());
             case "DONE" -> List.of(SelfWashStatus.DONE.name());
             case "CANCELED" -> List.of(SelfWashStatus.CANCELED.name());

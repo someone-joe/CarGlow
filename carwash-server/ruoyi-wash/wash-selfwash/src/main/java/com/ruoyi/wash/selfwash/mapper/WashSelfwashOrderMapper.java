@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 
 /** 自助洗车订单读写。状态流转用条件更新（where 带 from 状态）保证幂等/不越态。 */
 public interface WashSelfwashOrderMapper {
@@ -76,4 +77,31 @@ public interface WashSelfwashOrderMapper {
             "pay_amount, pay_channel, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time " +
             "from wash_selfwash_order where workstation_id = #{workstationId} and status in ('QUEUING', 'SERVING') and del_flag = '0' order by queue_no asc, order_id asc")
     List<WashSelfwashOrder> selectActiveByWorkstation(@Param("workstationId") Long workstationId);
+
+    @Select({
+        "<script>",
+        "select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, ",
+        "pay_amount, pay_channel, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time ",
+        "from wash_selfwash_order where del_flag = '0' ",
+        "<if test='status != null and status != \"\"'> and status = #{status} </if>",
+        "<if test='siteId != null'> and site_id = #{siteId} </if>",
+        "<if test='workstationId != null'> and workstation_id = #{workstationId} </if>",
+        "<if test='memberId != null'> and member_id = #{memberId} </if>",
+        "<if test='orderNo != null and orderNo != \"\"'> and order_no like concat('%', #{orderNo}, '%') </if>",
+        "order by order_id desc limit #{offset}, #{limit}",
+        "</script>"
+    })
+    List<WashSelfwashOrder> selectAdminPage(Map<String, Object> params);
+
+    @Select({
+        "<script>",
+        "select count(*) from wash_selfwash_order where del_flag = '0' ",
+        "<if test='status != null and status != \"\"'> and status = #{status} </if>",
+        "<if test='siteId != null'> and site_id = #{siteId} </if>",
+        "<if test='workstationId != null'> and workstation_id = #{workstationId} </if>",
+        "<if test='memberId != null'> and member_id = #{memberId} </if>",
+        "<if test='orderNo != null and orderNo != \"\"'> and order_no like concat('%', #{orderNo}, '%') </if>",
+        "</script>"
+    })
+    long countAdmin(Map<String, Object> params);
 }

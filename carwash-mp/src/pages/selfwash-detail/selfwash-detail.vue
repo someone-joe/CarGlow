@@ -24,6 +24,10 @@
 
       <!-- 操作 -->
       <view class="ops">
+        <template v-if="order.status === 'WAIT_PAY'">
+          <view class="op primary" @click="goPay">去支付</view>
+          <view class="op danger" @click="doCancel">取消订单</view>
+        </template>
         <view v-if="order.status === 'WAIT_USE'" class="op primary" @click="doActivate">开始服务</view>
         <template v-if="order.status === 'SERVING'">
           <view class="op" @click="doAddTime">加时 10 分钟</view>
@@ -94,6 +98,10 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+function goPay(): void {
+  uni.redirectTo({ url: `/pages/selfwash-pay/selfwash-pay?orderNo=${orderNo.value}` })
 }
 
 async function doActivate(): Promise<void> {

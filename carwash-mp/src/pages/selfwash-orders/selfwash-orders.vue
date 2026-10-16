@@ -36,12 +36,13 @@ import { ref } from 'vue'
 import { fetchSelfwashOrders, type SelfwashOrderVO } from '@/api/selfwash'
 
 const tabs = [
+  { key: 'WAIT_PAY', label: '待支付' },
   { key: 'WAIT_USE', label: '待使用' },
   { key: 'ONGOING', label: '进行中' },
   { key: 'DONE', label: '已完成' },
   { key: 'CANCELED', label: '已取消' },
 ]
-const tab = ref('WAIT_USE')
+const tab = ref('WAIT_PAY')
 const list = ref<SelfwashOrderVO[]>([])
 const loading = ref(true)
 
