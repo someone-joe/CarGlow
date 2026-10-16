@@ -44,6 +44,12 @@
 			}
 		},
 		{
+			"path": "pages/invoice/invoice",
+			"style": {
+				"navigationBarTitleText": "发票申请"
+			}
+		},
+		{
 			"path": "pages/service-detail/service-detail",
 			"style": {
 				"navigationBarTitleText": "服务详情"

@@ -290,6 +290,11 @@ public class WashSelfwashOrderService {
         return data;
     }
 
+    /** 按会员+单号查自助订单（跨模块校验归属用，如发票申请）；不存在返回 null */
+    public WashSelfwashOrder findOwned(Long memberId, String orderNo) {
+        return orderMapper.selectByMemberAndNo(memberId, orderNo);
+    }
+
     /** 后台详情（不按会员隔离） */
     public SelfwashOrderVO adminDetail(String orderNo) {
         WashSelfwashOrder o = orderMapper.selectByOrderNo(orderNo);

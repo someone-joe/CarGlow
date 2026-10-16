@@ -26,6 +26,7 @@
         <module>wash-promo</module>
         <module>wash-worker</module>
         <module>wash-selfwash</module>
+        <module>wash-invoice</module>
     </modules>
 
     <build>

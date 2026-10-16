@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.ruoyi</groupId>
+        <artifactId>ruoyi-wash</artifactId>
+        <version>3.9.2</version>
+    </parent>
+
+    <artifactId>wash-invoice</artifactId>
+    <packaging>jar</packaging>
+
+    <name>wash-invoice</name>
+    <description>发票域：按订单开票申请（C端申请/后台审核开票）</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-common</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-framework</artifactId>
+        </dependency>
+        <!-- 校验订单归属与取开票金额：无感订单在 wash-order，自助订单在 wash-selfwash；二者均不反向依赖本模块 -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-order</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-selfwash</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

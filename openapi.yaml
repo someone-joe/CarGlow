@@ -845,6 +845,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
 
+  # ============================ 发票 ============================
+  /api/v1/invoices:
+    post:
+      tags: [invoice]
+      summary: 申请开票（按订单；金额由后端按订单实付解析，前端不传金额）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderNo, title, email]
+              properties:
+                orderNo: { type: string, description: '无感或自助订单号' }
+                titleType: { type: string, description: 'PERSONAL/COMPANY，企业需填税号' }
+                title: { type: string, description: '发票抬头' }
+                taxNo: { type: string }
+                email: { type: string, description: '接收邮箱' }
+                remark: { type: string }
+      responses:
+        '200':
+          description: 成功（data 为申请ID）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+    get:
+      tags: [invoice]
+      summary: 我的发票申请列表
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/InvoiceVO' }
+
+  /api/v1/invoices/{invoiceId}:
+    get:
+      tags: [invoice]
+      summary: 发票申请详情
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/InvoiceVO' }
+
   # ============================ 订单 ============================
   /api/v1/orders:
     post:
@@ -2629,6 +2693,135 @@ paths:
               schema:
                 $ref: '#/components/schemas/RuoYiResult'
 
+  /admin-api/wash/invoice/status-options:
+    get:
+      tags: [admin-invoice]
+      summary: 发票状态下拉
+      x-permission: wash:invoice:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            value: { type: string }
+                            label: { type: string }
+  /admin-api/wash/invoice/list:
+    get:
+      tags: [admin-invoice]
+      summary: 发票申请分页
+      x-permission: wash:invoice:list
+      parameters:
+        - name: memberId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: orderNo
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/InvoiceVO' }
+                          total: { type: integer, format: int64 }
+  /admin-api/wash/invoice/{invoiceId}:
+    get:
+      tags: [admin-invoice]
+      summary: 发票申请详情
+      x-permission: wash:invoice:list
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/InvoiceVO' }
+  /admin-api/wash/invoice/{invoiceId}/issue:
+    post:
+      tags: [admin-invoice]
+      summary: 开票（回填发票号）
+      x-permission: wash:invoice:audit
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                invoiceNo: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+  /admin-api/wash/invoice/{invoiceId}/reject:
+    post:
+      tags: [admin-invoice]
+      summary: 驳回（原因必填）
+      x-permission: wash:invoice:audit
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
   # ========================= 师傅（工作人员）管理 =========================
   /admin-api/wash/worker/list:
     get:
@@ -3540,6 +3733,27 @@ components:
         couponDiscount: { type: integer, format: int64, description: '优惠券抵扣金额（分）' }
         createTime: { type: string, format: date-time }
         remainingSeconds: { type: integer, format: int64, description: '服务剩余秒（SERVING 时）' }
+
+    InvoiceVO:
+      type: object
+      description: 发票申请。金额单位：分。
+      properties:
+        invoiceId: { type: integer, format: int64 }
+        memberId: { type: integer, format: int64 }
+        orderNo: { type: string }
+        amount: { type: integer, format: int64 }
+        titleType: { type: string, description: 'PERSONAL/COMPANY' }
+        title: { type: string }
+        taxNo: { type: string }
+        email: { type: string }
+        status:
+          type: string
+          enum: [APPLYING, ISSUED, REJECTED]
+        statusLabel: { type: string }
+        invoiceNo: { type: string }
+        rejectReason: { type: string }
+        remark: { type: string }
+        createTime: { type: string, format: date-time }
 
     OrderAction:
       type: object
