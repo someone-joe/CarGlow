@@ -140,7 +140,8 @@ function fen2yuan(fen?: number): string {
 }
 
 function goServices(): void {
-  uni.navigateTo({ url: '/pages/services/services' })
+  // services 是 tabBar 页，必须用 switchTab；navigateTo 会报 "can not navigateTo a tabbar page"
+  uni.switchTab({ url: '/pages/services/services' })
 }
 
 function goSelfWash(): void {
