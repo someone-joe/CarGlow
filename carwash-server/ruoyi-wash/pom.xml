@@ -27,6 +27,7 @@
         <module>wash-worker</module>
         <module>wash-selfwash</module>
         <module>wash-invoice</module>
+        <module>wash-notify</module>
     </modules>
 
     <build>

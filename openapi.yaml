@@ -909,6 +909,53 @@ paths:
                     properties:
                       data: { $ref: '#/components/schemas/InvoiceVO' }
 
+  # ============================ 消息通知 ============================
+  /api/v1/notify/templates:
+    get:
+      tags: [notify]
+      summary: 通知模板列表（枚举名 → 中文名）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: { type: string }
+
+  /api/v1/notify/test:
+    post:
+      tags: [notify]
+      summary: 开发自测推送（x-dev-only；真实推送由业务服务端触发）
+      description: |
+        骨架期走 mock 通道只打点；模板ID配置在 wash.notify.templates.*，
+        未配置且关闭 mock 时会跳过并记录原因（不静默丢消息）。
+      x-dev-only: true
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template: { type: string, description: 'NotifyTemplate 枚举名，默认 ORDER_STATUS' }
+      responses:
+        '200':
+          description: 成功（data 为是否发送）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { type: boolean }
+
   # ============================ 订单 ============================
   /api/v1/orders:
     post:

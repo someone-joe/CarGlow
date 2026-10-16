@@ -188,3 +188,15 @@ wash:
     provider: mock
     # 退款失败自动重试开关（定时任务每 5 分钟扫一次）
     refund-retry-enabled: true
+  notify:
+    # 消息通知总开关（需求 11）
+    enabled: true
+    # 是否走 mock 通道：本地开发只打点，不调微信；置 false 后需 templates.* 有值且已接真实通道
+    mock-enabled: true
+    # 微信订阅消息模板ID：在小程序后台申请后填入。留空时若非 mock 则跳过并记录原因（不静默丢消息）
+    templates:
+      orderStatus:
+      keyReady:
+      couponExpire:
+      balanceLow:
+      activity:

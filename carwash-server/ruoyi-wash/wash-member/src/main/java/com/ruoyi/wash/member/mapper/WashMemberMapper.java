@@ -11,6 +11,11 @@ import java.util.List;
  */
 public interface WashMemberMapper {
 
+    /** 按会员ID查（含 openid，供消息推送解析接收人） */
+    @Select("select member_id, openid, unionid, nickname, phone, create_time from wash_member " +
+            "where member_id = #{memberId} and del_flag = '0' limit 1")
+    WashMember selectById(@Param("memberId") Long memberId);
+
     WashMember selectByOpenid(@Param("openid") String openid);
 
     int insertWashMember(WashMember member);

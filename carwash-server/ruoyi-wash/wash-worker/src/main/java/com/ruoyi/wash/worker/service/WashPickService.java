@@ -13,9 +13,13 @@ import com.ruoyi.wash.network.service.WashCabinetQueryService;
 import com.ruoyi.wash.network.service.WashSlotCodeService;
 import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.dto.OpenCodeVO;
+import com.ruoyi.wash.notify.domain.NotifyTemplate;
+import com.ruoyi.wash.notify.service.NotifyService;
 import com.ruoyi.wash.order.service.WashOrderPaySupportService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.worker.dto.PickTaskVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,7 +28,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 师傅端取送业务：任务池、取车拍照完成、送回停放完成。
@@ -33,6 +39,8 @@ import java.util.List;
  */
 @Service
 public class WashPickService {
+
+    private static final Logger log = LoggerFactory.getLogger(WashPickService.class);
 
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -87,6 +95,10 @@ public class WashPickService {
     /** 按订单号查订单（无登录态查询入口，取钥匙前校验状态用） */
     @Autowired
     private WashOrderPaySupportService orderQuery;
+
+    /** 消息通知（best-effort：推送失败只记日志，不阻断订单流转） */
+    @Autowired
+    private NotifyService notifyService;
 
     /** 开箱码有效期（分钟）：仅用于取码后算不出 TTL 时的兜底，避免倒计时直接归零 */
     @Value("${wash.slot.open-code-ttl-minutes:10}")
@@ -193,7 +205,17 @@ public class WashPickService {
             throw new ApiException(ErrorCode.A0001, "车位号必填");
         }
         mediaService.requireBelongToOrder(fileIds, orderNo, BIZ_TYPE_RETURN);
+        var order = orderQuery.require(orderNo);
         stateService.workerFire(orderNo, OrderEvent.RETURN_DONE, workerId, parkingNo);
+        // 已归位待取钥匙 → 推「车辆已洗好，请到钥匙柜取钥匙」（需求 11.2）
+        try {
+            Map<String, String> data = new HashMap<>();
+            data.put("thing1", "车辆已洗好");
+            data.put("thing2", parkingNo);
+            notifyService.send(order.getMemberId(), NotifyTemplate.KEY_READY, data, orderNo + ":KEY_READY");
+        } catch (Exception e) {
+            log.warn("[送回完成] 推送取钥匙通知失败 order={}", orderNo, e);
+        }
     }
 
     private List<String> resolveStatuses(String stage) {

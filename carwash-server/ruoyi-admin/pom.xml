@@ -100,6 +100,11 @@
             <artifactId>wash-invoice</artifactId>
             <version>${ruoyi.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-notify</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
 
     </dependencies>
 

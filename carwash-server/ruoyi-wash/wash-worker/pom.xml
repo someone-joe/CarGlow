@@ -27,6 +27,11 @@
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-notify</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
         <!-- 师傅端要推进订单状态与查任务池：只依赖 wash-order 的 Service，不直接依赖其 Mapper -->
         <dependency>
             <groupId>com.ruoyi</groupId>
