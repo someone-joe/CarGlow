@@ -68,33 +68,36 @@ public class WashWorkstationService {
         mapper.softDelete(id);
     }
 
-    /** C 端工位列表（带实时状态：服务中剩余秒 / 排队人数）。siteId 由前端传当前站点。 */
+    /** C 端工位列表（带实时状态：服务中剩余秒 / 排队人数 / 当前服务车牌 / 前方排队车牌）。 */
     public List<WorkstationVO> listWithStatus(Long siteId) {
         List<WorkstationVO> out = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (WashWorkstation ws : mapper.selectBySite(siteId)) {
             if (!"Y".equals(ws.getEnabled())) {
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "DISABLED", ws.getEnabled(), 0L, 0));
+                        "DISABLED", ws.getEnabled(), 0L, 0, null, java.util.List.of()));
                 continue;
             }
             List<WashSelfwashOrder> active = orderMapper.selectActiveByWorkstation(ws.getWorkstationId());
             WashSelfwashOrder serving = null;
-            int queue = 0;
+            List<String> aheadPlates = new ArrayList<>();
             for (WashSelfwashOrder o : active) {
                 if (SelfWashStatus.SERVING.name().equals(o.getStatus())) {
                     serving = o;
                 } else if (SelfWashStatus.QUEUING.name().equals(o.getStatus())) {
-                    queue++;
+                    aheadPlates.add((o.getPlateNo() == null || o.getPlateNo().isBlank()) ? "***" : o.getPlateNo());
                 }
             }
+            int queue = aheadPlates.size();
+            String currentPlate = serving == null ? null
+                    : ((serving.getPlateNo() == null || serving.getPlateNo().isBlank()) ? "***" : serving.getPlateNo());
             if (serving != null) {
                 long remain = serving.getExpireAt() != null ? Math.max(0L, (serving.getExpireAt() - now) / 1000L) : 0L;
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "SERVING", ws.getEnabled(), remain, queue));
+                        "SERVING", ws.getEnabled(), remain, queue, currentPlate, aheadPlates));
             } else {
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "IDLE", ws.getEnabled(), 0L, queue));
+                        "IDLE", ws.getEnabled(), 0L, queue, null, aheadPlates));
             }
         }
         return out;

@@ -8,6 +8,7 @@ public class SelfwashOrderVO {
     private Long siteId;
     private Long workstationId;
     private String serviceName;
+    private String plateNo;
     private Integer serviceMinutes;
     private Long payAmount;
     private String payChannel;
@@ -55,6 +56,14 @@ public class SelfwashOrderVO {
 
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
+    }
+
+    public String getPlateNo() {
+        return plateNo;
+    }
+
+    public void setPlateNo(String plateNo) {
+        this.plateNo = plateNo;
     }
 
     public Integer getServiceMinutes() {

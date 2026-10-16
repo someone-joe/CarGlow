@@ -1,10 +1,13 @@
 package com.ruoyi.wash.selfwash.dto;
 
+import java.util.List;
+
 /**
  * 自助工位（C 端，实时）。
  *
  * <p>status：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。
- * remainingSeconds：服务中时的剩余秒；queueCount：该工位当前排队人数。
+ * remainingSeconds：服务中剩余秒；queueCount：排队人数；
+ * currentPlate：当前服务车牌；aheadPlates：前方排队车牌（按排队顺序）。
  */
 public class WorkstationVO {
     private Long workstationId;
@@ -15,12 +18,15 @@ public class WorkstationVO {
     private String enabled;
     private Long remainingSeconds;
     private Integer queueCount;
+    private String currentPlate;
+    private List<String> aheadPlates;
 
     public WorkstationVO() {
     }
 
     public WorkstationVO(Long workstationId, Long siteId, String code, String name, String status,
-                         String enabled, Long remainingSeconds, Integer queueCount) {
+                         String enabled, Long remainingSeconds, Integer queueCount,
+                         String currentPlate, List<String> aheadPlates) {
         this.workstationId = workstationId;
         this.siteId = siteId;
         this.code = code;
@@ -29,6 +35,8 @@ public class WorkstationVO {
         this.enabled = enabled;
         this.remainingSeconds = remainingSeconds;
         this.queueCount = queueCount;
+        this.currentPlate = currentPlate;
+        this.aheadPlates = aheadPlates;
     }
 
     public Long getWorkstationId() {
@@ -93,5 +101,21 @@ public class WorkstationVO {
 
     public void setQueueCount(Integer queueCount) {
         this.queueCount = queueCount;
+    }
+
+    public String getCurrentPlate() {
+        return currentPlate;
+    }
+
+    public void setCurrentPlate(String currentPlate) {
+        this.currentPlate = currentPlate;
+    }
+
+    public List<String> getAheadPlates() {
+        return aheadPlates;
+    }
+
+    public void setAheadPlates(List<String> aheadPlates) {
+        this.aheadPlates = aheadPlates;
     }
 }

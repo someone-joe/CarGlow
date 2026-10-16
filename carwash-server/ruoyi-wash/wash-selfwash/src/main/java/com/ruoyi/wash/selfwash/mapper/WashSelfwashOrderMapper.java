@@ -13,25 +13,25 @@ import java.util.Map;
 /** 自助洗车订单读写。状态流转用条件更新（where 带 from 状态）保证幂等/不越态。 */
 public interface WashSelfwashOrderMapper {
 
-    @Insert("insert into wash_selfwash_order (order_no, member_id, site_id, workstation_id, service_id, service_name, " +
+    @Insert("insert into wash_selfwash_order (order_no, member_id, site_id, workstation_id, service_id, service_name, plate_no, " +
             "service_minutes, pay_amount, pay_channel, status, coupon_user_id, coupon_discount, added_seconds, pay_expire_at, del_flag, create_time) " +
-            "values (#{orderNo}, #{memberId}, #{siteId}, #{workstationId}, #{serviceId}, #{serviceName}, " +
+            "values (#{orderNo}, #{memberId}, #{siteId}, #{workstationId}, #{serviceId}, #{serviceName}, #{plateNo}, " +
             "#{serviceMinutes}, #{payAmount}, #{payChannel}, #{status}, #{couponUserId}, #{couponDiscount}, 0, #{payExpireAt}, '0', sysdate())")
     @Options(useGeneratedKeys = true, keyProperty = "orderId")
     int insert(WashSelfwashOrder order);
 
-    @Select("select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
+    @Select("select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
             "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time " +
             "from wash_selfwash_order where order_no = #{orderNo} and del_flag = '0' limit 1")
     WashSelfwashOrder selectByOrderNo(@Param("orderNo") String orderNo);
 
-    @Select("select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
+    @Select("select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
             "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time " +
             "from wash_selfwash_order where order_no = #{orderNo} and member_id = #{memberId} and del_flag = '0' limit 1")
     WashSelfwashOrder selectByMemberAndNo(@Param("memberId") Long memberId, @Param("orderNo") String orderNo);
 
     @Select({"<script>",
-            "select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, ",
+            "select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, ",
             "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time ",
             "from wash_selfwash_order where member_id = #{memberId} and del_flag = '0' and status in ",
             "<foreach item='s' collection='statuses' open='(' separator=',' close=')'>#{s}</foreach> ",
@@ -67,20 +67,20 @@ public interface WashSelfwashOrderMapper {
     int markDone(@Param("orderNo") String orderNo);
 
     /** 定时任务用：到点仍在服务的订单 */
-    @Select("select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
+    @Select("select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
             "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time " +
             "from wash_selfwash_order where status = 'SERVING' and expire_at is not null and expire_at <= #{now} and del_flag = '0' limit #{limit}")
     List<WashSelfwashOrder> selectExpiredServing(@Param("now") long now, @Param("limit") int limit);
 
     /** 某工位当前占用中的订单（SERVING；QUEUING 由上层另查） */
-    @Select("select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
+    @Select("select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, " +
             "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time " +
             "from wash_selfwash_order where workstation_id = #{workstationId} and status in ('QUEUING', 'SERVING') and del_flag = '0' order by queue_no asc, order_id asc")
     List<WashSelfwashOrder> selectActiveByWorkstation(@Param("workstationId") Long workstationId);
 
     @Select({
         "<script>",
-        "select order_id, order_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, ",
+        "select order_id, order_no, plate_no, member_id, site_id, workstation_id, service_id, service_name, service_minutes, ",
         "pay_amount, pay_channel, coupon_user_id, coupon_discount, status, queue_no, started_at, expire_at, added_seconds, pay_expire_at, cancel_reason, create_time, update_time ",
         "from wash_selfwash_order where del_flag = '0' ",
         "<if test='status != null and status != \"\"'> and status = #{status} </if>",

@@ -59,7 +59,7 @@ public class WashSelfwashOrderService {
 
     /** 选位下单：快照服务价/时长，建 WAIT_PAY 订单。 */
     @Transactional(rollbackFor = Exception.class)
-    public String create(Long memberId, Long workstationId, Long serviceId, Long couponUserId) {
+    public String create(Long memberId, Long workstationId, Long serviceId, Long couponUserId, String plateNo) {
         if (workstationId == null || serviceId == null) {
             throw new ApiException(ErrorCode.A0001, "参数不完整");
         }
@@ -78,6 +78,7 @@ public class WashSelfwashOrderService {
         order.setWorkstationId(workstationId);
         order.setServiceId(serviceId);
         order.setServiceName(service.getServiceName());
+        order.setPlateNo(plateNo);
         order.setServiceMinutes(service.getWorkMinutes() == null ? 0 : service.getWorkMinutes());
         long payAmount = service.getPriceAmount();
         long couponDiscount = 0;
@@ -346,6 +347,7 @@ public class WashSelfwashOrderService {
         vo.setSiteId(o.getSiteId());
         vo.setWorkstationId(o.getWorkstationId());
         vo.setServiceName(o.getServiceName());
+        vo.setPlateNo(o.getPlateNo());
         vo.setServiceMinutes(o.getServiceMinutes());
         vo.setPayAmount(o.getPayAmount());
         vo.setPayChannel(o.getPayChannel());

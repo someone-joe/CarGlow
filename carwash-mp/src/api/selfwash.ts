@@ -10,6 +10,8 @@ export interface WorkstationVO {
   enabled: string
   remainingSeconds: number
   queueCount: number
+  currentPlate?: string
+  aheadPlates?: string[]
 }
 
 export interface SelfwashOrderVO {
@@ -17,6 +19,7 @@ export interface SelfwashOrderVO {
   siteId: number
   workstationId: number
   serviceName?: string
+  plateNo?: string
   serviceMinutes: number
   payAmount: number
   payChannel?: string
@@ -38,7 +41,7 @@ export function fetchWorkstations(siteId: number): Promise<WorkstationVO[]> {
   return request<WorkstationVO[]>({ url: '/api/v1/selfwash/workstations', method: 'GET', data: { siteId } })
 }
 
-export function createSelfwashOrder(data: { workstationId: number; serviceId: number; couponUserId?: number }): Promise<string> {
+export function createSelfwashOrder(data: { workstationId: number; serviceId: number; couponUserId?: number; plateNo?: string }): Promise<string> {
   return request<string>({ url: '/api/v1/selfwash/orders', method: 'POST', data })
 }
 

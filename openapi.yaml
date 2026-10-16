@@ -644,6 +644,11 @@ paths:
                             enabled: { type: string }
                             remainingSeconds: { type: integer, format: int64, description: '服务中剩余秒' }
                             queueCount: { type: integer, description: '该工位当前排队人数' }
+                            currentPlate: { type: string, description: '当前服务车牌（服务中）' }
+                            aheadPlates:
+                              type: array
+                              items: { type: string }
+                              description: '前方排队车牌（按排队顺序，无车牌显示 ***）'
 
   /api/v1/selfwash/orders:
     post:
@@ -660,6 +665,7 @@ paths:
                 workstationId: { type: integer, format: int64 }
                 serviceId: { type: integer, format: int64 }
                 couponUserId: { type: integer, format: int64, description: '选填，使用的优惠券；下单即核销并抵减实付' }
+                plateNo: { type: string, description: '选填，车牌；用于工位排队展示与监控' }
       responses:
         '200':
           description: 成功（data 为订单号）
@@ -3516,6 +3522,7 @@ components:
         siteId: { type: integer, format: int64 }
         workstationId: { type: integer, format: int64 }
         serviceName: { type: string }
+        plateNo: { type: string }
         serviceMinutes: { type: integer, description: '付费时长（分钟）' }
         payAmount: { type: integer, format: int64 }
         payChannel: { type: string, description: 'BALANCE/WECHAT_MOCK' }

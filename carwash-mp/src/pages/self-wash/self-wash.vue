@@ -22,8 +22,8 @@
           </view>
           <view class="ws-right">
             <text class="ws-status" :class="statusClass(w.status)">{{ statusText(w.status) }}</text>
-            <text v-if="w.status === 'SERVING'" class="ws-sub">剩余 {{ fmtRemain(w.remainingSeconds) }} · 排队 {{ w.queueCount }}</text>
-            <text v-else-if="w.status === 'IDLE' && w.queueCount" class="ws-sub">排队 {{ w.queueCount }}</text>
+            <text v-if="w.status === 'SERVING'" class="ws-sub">剩余 {{ fmtRemain(w.remainingSeconds) }}<text v-if="w.currentPlate"> · {{ w.currentPlate }}</text></text>
+            <text v-if="w.queueCount" class="ws-sub">前方排队：{{ (w.aheadPlates || []).join('、') }}</text>
           </view>
         </view>
       </view>
@@ -49,6 +49,11 @@
         <view class="coupon-row" @click="pickCoupon">
           <text class="coupon-label">优惠券</text>
           <text class="coupon-value" :class="{ placeholder: !couponUserId }">{{ couponText }} ›</text>
+        </view>
+
+        <view class="plate-row">
+          <text class="plate-label">车牌</text>
+          <input class="plate-input" v-model="plate" placeholder="选填，如 粤A12345（工位排队展示用）" maxlength="16" />
         </view>
       </view>
     </block>
@@ -76,6 +81,7 @@ const serviceId = ref<number | undefined>(undefined)
 const coupons = ref<CouponUserVO[]>([])
 const couponUserId = ref<number | undefined>(undefined)
 const couponText = ref('未使用优惠券')
+const plate = ref('')
 
 const canSubmit = computed(() => !!workstationId.value && !!serviceId.value && !submitting.value)
 
@@ -154,6 +160,7 @@ async function submit(): Promise<void> {
       workstationId: workstationId.value as number,
       serviceId: serviceId.value as number,
       couponUserId: couponUserId.value,
+      plateNo: plate.value.trim() || undefined,
     })
     uni.redirectTo({ url: `/pages/selfwash-pay/selfwash-pay?orderNo=${orderNo}` })
   } catch {
@@ -330,6 +337,28 @@ onShow(load)
 
 .coupon-value.placeholder {
   color: #8a9a98;
+}
+
+.plate-row {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f2f7f7;
+}
+
+.plate-label {
+  font-size: 27rpx;
+  color: #1b2b2a;
+  margin-right: 20rpx;
+}
+
+.plate-input {
+  flex: 1;
+  background: #f2f7f7;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 27rpx;
 }
 
 .submit {

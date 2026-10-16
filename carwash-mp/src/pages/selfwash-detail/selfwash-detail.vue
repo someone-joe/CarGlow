@@ -16,6 +16,7 @@
       <view class="panel">
         <view class="panel-title">订单信息</view>
         <view class="row"><text class="label">服务</text><text class="value">{{ order.serviceName || '自助洗车' }}</text></view>
+        <view v-if="order.plateNo" class="row"><text class="label">车牌</text><text class="value">{{ order.plateNo }}</text></view>
         <view class="row"><text class="label">时长</text><text class="value">{{ order.serviceMinutes }} 分钟<text v-if="order.addedSeconds">（已加时 {{ Math.floor(order.addedSeconds / 60) }} 分钟）</text></text></view>
         <view class="row"><text class="label">实付</text><text class="value price">¥{{ fen2yuan(order.payAmount) }}</text></view>
         <view v-if="order.couponDiscount" class="row"><text class="label">优惠抵扣</text><text class="value discount">-¥{{ fen2yuan(order.couponDiscount) }}</text></view>
