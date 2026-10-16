@@ -26,6 +26,24 @@
 			}
 		},
 		{
+			"path": "pages/selfwash-pay/selfwash-pay",
+			"style": {
+				"navigationBarTitleText": "自助洗车支付"
+			}
+		},
+		{
+			"path": "pages/selfwash-detail/selfwash-detail",
+			"style": {
+				"navigationBarTitleText": "自助订单详情"
+			}
+		},
+		{
+			"path": "pages/selfwash-orders/selfwash-orders",
+			"style": {
+				"navigationBarTitleText": "我的自助订单"
+			}
+		},
+		{
 			"path": "pages/service-detail/service-detail",
 			"style": {
 				"navigationBarTitleText": "服务详情"
