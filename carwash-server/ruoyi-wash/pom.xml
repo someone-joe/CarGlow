@@ -25,6 +25,7 @@
         <module>wash-pay</module>
         <module>wash-promo</module>
         <module>wash-worker</module>
+        <module>wash-selfwash</module>
     </modules>
 
     <build>

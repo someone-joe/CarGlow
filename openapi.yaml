@@ -608,6 +608,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
 
+  # ============================ 自助洗车 ============================
+  /api/v1/selfwash/workstations:
+    get:
+      tags: [selfwash]
+      summary: 自助工位列表（带实时状态）
+      description: |
+        siteId 传当前站点。status：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。
+        Stage 1 无自助订单，启用即 IDLE；排队人数 / 前方车牌 / 服务剩余时间随自助订单（Stage 2）补充。
+      parameters:
+        - name: siteId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            workstationId: { type: integer, format: int64 }
+                            siteId: { type: integer, format: int64 }
+                            code: { type: string }
+                            name: { type: string }
+                            status: { type: string, description: 'IDLE/SERVING/DISABLED' }
+                            enabled: { type: string }
+
   # ============================ 订单 ============================
   /api/v1/orders:
     post:
@@ -2192,6 +2227,104 @@ paths:
                             type: array
                             items: { type: object }
                           total: { type: integer, format: int64 }
+
+  # ========================= 自助洗车（后台） =========================
+  /admin-api/wash/selfwash/workstation/list:
+    get:
+      tags: [admin-selfwash]
+      summary: 工位列表
+      x-permission: wash:selfwash:list
+      parameters:
+        - name: siteId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - name: keyword
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { type: object }
+  /admin-api/wash/selfwash/workstation:
+    post:
+      tags: [admin-selfwash]
+      summary: 新增工位
+      x-permission: wash:selfwash:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [siteId, code]
+              properties:
+                siteId: { type: integer, format: int64 }
+                code: { type: string }
+                name: { type: string }
+                enabled: { type: string }
+                sortOrder: { type: integer }
+      responses:
+        '200':
+          description: 成功（data 为新建工位ID）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+  /admin-api/wash/selfwash/workstation/{id}:
+    put:
+      tags: [admin-selfwash]
+      summary: 修改工位
+      x-permission: wash:selfwash:edit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                name: { type: string }
+                enabled: { type: string }
+                sortOrder: { type: integer }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+    delete:
+      tags: [admin-selfwash]
+      summary: 删除工位
+      x-permission: wash:selfwash:remove
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
 
   # ========================= 师傅（工作人员）管理 =========================
   /admin-api/wash/worker/list:
