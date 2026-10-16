@@ -45,6 +45,11 @@
           </view>
           <text class="svc-price">¥{{ fen2yuan(s.displayPrice) }}</text>
         </view>
+
+        <view class="coupon-row" @click="pickCoupon">
+          <text class="coupon-label">优惠券</text>
+          <text class="coupon-value" :class="{ placeholder: !couponUserId }">{{ couponText }} ›</text>
+        </view>
       </view>
     </block>
 
@@ -59,6 +64,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { fetchServices, type ServiceVO } from '@/api/catalog'
 import { fetchSiteCurrent } from '@/api/home'
+import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
 import { createSelfwashOrder, fetchWorkstations, type WorkstationVO } from '@/api/selfwash'
 
 const loading = ref(true)
@@ -67,6 +73,9 @@ const workstations = ref<WorkstationVO[]>([])
 const services = ref<ServiceVO[]>([])
 const workstationId = ref<number | undefined>(undefined)
 const serviceId = ref<number | undefined>(undefined)
+const coupons = ref<CouponUserVO[]>([])
+const couponUserId = ref<number | undefined>(undefined)
+const couponText = ref('未使用优惠券')
 
 const canSubmit = computed(() => !!workstationId.value && !!serviceId.value && !submitting.value)
 
@@ -105,12 +114,36 @@ async function load(): Promise<void> {
     ])
     workstations.value = ws || []
     services.value = svc || []
+    fetchMyCoupons('UNUSED')
+      .then((c) => (coupons.value = c || []))
+      .catch(() => {})
   } catch {
     workstations.value = []
     services.value = []
   } finally {
     loading.value = false
   }
+}
+
+function pickCoupon(): void {
+  if (!coupons.value.length) {
+    uni.showToast({ title: '暂无可用优惠券', icon: 'none' })
+    return
+  }
+  const items = ['不使用优惠券', ...coupons.value.map((c) => `${c.name || '优惠券'} 减¥${fen2yuan(c.discount)}`)]
+  uni.showActionSheet({
+    items,
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        couponUserId.value = undefined
+        couponText.value = '未使用优惠券'
+      } else {
+        const c = coupons.value[res.tapIndex - 1]
+        couponUserId.value = c.couponUserId
+        couponText.value = `${c.name || '优惠券'} -¥${fen2yuan(c.discount)}`
+      }
+    },
+  })
 }
 
 async function submit(): Promise<void> {
@@ -120,6 +153,7 @@ async function submit(): Promise<void> {
     const orderNo = await createSelfwashOrder({
       workstationId: workstationId.value as number,
       serviceId: serviceId.value as number,
+      couponUserId: couponUserId.value,
     })
     uni.redirectTo({ url: `/pages/selfwash-pay/selfwash-pay?orderNo=${orderNo}` })
   } catch {
@@ -273,6 +307,29 @@ onShow(load)
   font-size: 32rpx;
   font-weight: 700;
   color: #ff5b4a;
+}
+
+.coupon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f2f7f7;
+}
+
+.coupon-label {
+  font-size: 27rpx;
+  color: #1b2b2a;
+}
+
+.coupon-value {
+  font-size: 26rpx;
+  color: #ff5b4a;
+}
+
+.coupon-value.placeholder {
+  color: #8a9a98;
 }
 
 .submit {

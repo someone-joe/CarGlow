@@ -19,6 +19,8 @@ public class SelfwashOrderVO {
     private Integer addedSeconds;
     private Long payExpireAt;
     private String cancelReason;
+    private Long couponUserId;
+    private Long couponDiscount;
     private Date createTime;
     /** 服务剩余秒（SERVING 时 >0，其余 0） */
     private Long remainingSeconds;
@@ -141,6 +143,22 @@ public class SelfwashOrderVO {
 
     public void setCancelReason(String cancelReason) {
         this.cancelReason = cancelReason;
+    }
+
+    public Long getCouponUserId() {
+        return couponUserId;
+    }
+
+    public void setCouponUserId(Long couponUserId) {
+        this.couponUserId = couponUserId;
+    }
+
+    public Long getCouponDiscount() {
+        return couponDiscount;
+    }
+
+    public void setCouponDiscount(Long couponDiscount) {
+        this.couponDiscount = couponDiscount;
     }
 
     public Date getCreateTime() {

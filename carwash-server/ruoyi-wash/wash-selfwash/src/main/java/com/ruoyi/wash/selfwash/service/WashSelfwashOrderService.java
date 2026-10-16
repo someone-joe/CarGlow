@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.goods.domain.WashService;
 import com.ruoyi.wash.goods.service.WashServiceQueryService;
 import com.ruoyi.wash.pay.service.WashWalletService;
+import com.ruoyi.wash.promo.service.WashCouponService;
 import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
@@ -53,9 +54,12 @@ public class WashSelfwashOrderService {
     @Autowired
     private SelfWashDeviceService deviceService;
 
+    @Autowired
+    private WashCouponService couponService;
+
     /** 选位下单：快照服务价/时长，建 WAIT_PAY 订单。 */
     @Transactional(rollbackFor = Exception.class)
-    public String create(Long memberId, Long workstationId, Long serviceId) {
+    public String create(Long memberId, Long workstationId, Long serviceId, Long couponUserId) {
         if (workstationId == null || serviceId == null) {
             throw new ApiException(ErrorCode.A0001, "参数不完整");
         }
@@ -75,7 +79,16 @@ public class WashSelfwashOrderService {
         order.setServiceId(serviceId);
         order.setServiceName(service.getServiceName());
         order.setServiceMinutes(service.getWorkMinutes() == null ? 0 : service.getWorkMinutes());
-        order.setPayAmount(service.getPriceAmount());
+        long payAmount = service.getPriceAmount();
+        long couponDiscount = 0;
+        if (couponUserId != null) {
+            // 与无感一致：下单即核销券并抵减实付（取消不退券）
+            couponDiscount = couponService.applyToOrder(memberId, couponUserId, payAmount, order.getOrderNo(), System.currentTimeMillis());
+            payAmount = Math.max(0, payAmount - couponDiscount);
+        }
+        order.setPayAmount(payAmount);
+        order.setCouponUserId(couponUserId);
+        order.setCouponDiscount(couponDiscount);
         order.setStatus(SelfWashStatus.WAIT_PAY.name());
         order.setAddedSeconds(0);
         order.setPayExpireAt(System.currentTimeMillis() + PAY_EXPIRE_MS);
@@ -344,6 +357,8 @@ public class WashSelfwashOrderService {
         vo.setAddedSeconds(o.getAddedSeconds());
         vo.setPayExpireAt(o.getPayExpireAt());
         vo.setCancelReason(o.getCancelReason());
+        vo.setCouponUserId(o.getCouponUserId());
+        vo.setCouponDiscount(o.getCouponDiscount());
         vo.setCreateTime(o.getCreateTime());
         long remain = 0L;
         if (SelfWashStatus.SERVING.name().equals(o.getStatus()) && o.getExpireAt() != null) {

@@ -28,6 +28,8 @@ export interface SelfwashOrderVO {
   addedSeconds: number
   payExpireAt?: number
   cancelReason?: string
+  couponUserId?: number
+  couponDiscount?: number
   createTime: string
   remainingSeconds: number
 }
@@ -36,7 +38,7 @@ export function fetchWorkstations(siteId: number): Promise<WorkstationVO[]> {
   return request<WorkstationVO[]>({ url: '/api/v1/selfwash/workstations', method: 'GET', data: { siteId } })
 }
 
-export function createSelfwashOrder(data: { workstationId: number; serviceId: number }): Promise<string> {
+export function createSelfwashOrder(data: { workstationId: number; serviceId: number; couponUserId?: number }): Promise<string> {
   return request<string>({ url: '/api/v1/selfwash/orders', method: 'POST', data })
 }
 

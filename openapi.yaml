@@ -659,6 +659,7 @@ paths:
               properties:
                 workstationId: { type: integer, format: int64 }
                 serviceId: { type: integer, format: int64 }
+                couponUserId: { type: integer, format: int64, description: '选填，使用的优惠券；下单即核销并抵减实付' }
       responses:
         '200':
           description: 成功（data 为订单号）
@@ -3528,6 +3529,8 @@ components:
         addedSeconds: { type: integer }
         payExpireAt: { type: integer, format: int64 }
         cancelReason: { type: string }
+        couponUserId: { type: integer, format: int64 }
+        couponDiscount: { type: integer, format: int64, description: '优惠券抵扣金额（分）' }
         createTime: { type: string, format: date-time }
         remainingSeconds: { type: integer, format: int64, description: '服务剩余秒（SERVING 时）' }
 

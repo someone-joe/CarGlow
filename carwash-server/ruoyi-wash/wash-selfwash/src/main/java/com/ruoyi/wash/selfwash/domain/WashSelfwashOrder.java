@@ -37,6 +37,10 @@ public class WashSelfwashOrder extends BaseEntity {
     /** 支付截止（ms） */
     private Long payExpireAt;
     private String cancelReason;
+    /** 使用的优惠券ID（核销快照） */
+    private Long couponUserId;
+    /** 优惠券抵扣金额（分） */
+    private Long couponDiscount;
 
     public Long getOrderId() {
         return orderId;
@@ -172,5 +176,21 @@ public class WashSelfwashOrder extends BaseEntity {
 
     public void setCancelReason(String cancelReason) {
         this.cancelReason = cancelReason;
+    }
+
+    public Long getCouponUserId() {
+        return couponUserId;
+    }
+
+    public void setCouponUserId(Long couponUserId) {
+        this.couponUserId = couponUserId;
+    }
+
+    public Long getCouponDiscount() {
+        return couponDiscount;
+    }
+
+    public void setCouponDiscount(Long couponDiscount) {
+        this.couponDiscount = couponDiscount;
     }
 }

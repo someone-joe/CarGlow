@@ -18,6 +18,7 @@
         <view class="row"><text class="label">服务</text><text class="value">{{ order.serviceName || '自助洗车' }}</text></view>
         <view class="row"><text class="label">时长</text><text class="value">{{ order.serviceMinutes }} 分钟<text v-if="order.addedSeconds">（已加时 {{ Math.floor(order.addedSeconds / 60) }} 分钟）</text></text></view>
         <view class="row"><text class="label">实付</text><text class="value price">¥{{ fen2yuan(order.payAmount) }}</text></view>
+        <view v-if="order.couponDiscount" class="row"><text class="label">优惠抵扣</text><text class="value discount">-¥{{ fen2yuan(order.couponDiscount) }}</text></view>
         <view class="row"><text class="label">支付方式</text><text class="value">{{ order.payChannel === 'BALANCE' ? '储值余额' : '微信支付' }}</text></view>
         <view class="row"><text class="label">单号</text><text class="value">{{ order.orderNo }}</text></view>
       </view>
@@ -268,6 +269,10 @@ onUnload(() => {
 .value.price {
   color: #ff5b4a;
   font-weight: 700;
+}
+
+.value.discount {
+  color: #ff5b4a;
 }
 
 .ops {
