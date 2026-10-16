@@ -509,6 +509,105 @@ paths:
               schema:
                 $ref: '#/components/schemas/Result'
 
+  # ============================ 常用停车位置 ============================
+  /api/v1/park-locations:
+    get:
+      tags: [park]
+      summary: 我的常用停车位置
+      description: 只返回当前登录会员的位置，默认位置在前。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            locationId: { type: integer, format: int64 }
+                            communityId: { type: integer, format: int64 }
+                            communityName: { type: string }
+                            building: { type: string, description: '楼栋/单元号' }
+                            parkingNo: { type: string, description: '车位号' }
+                            detail: { type: string, description: '具体位置补充' }
+                            isDefault: { type: string, description: 'Y/N' }
+    post:
+      tags: [park]
+      summary: 新增常用停车位置
+      description: communityId 必填（所在小区）；isDefault=Y 时自动取消其它默认。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [communityId]
+              properties:
+                communityId: { type: integer, format: int64 }
+                communityName: { type: string }
+                building: { type: string }
+                parkingNo: { type: string }
+                detail: { type: string }
+                isDefault: { type: string, description: 'Y/N' }
+      responses:
+        '200':
+          description: 成功（data 为新建位置ID）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/park-locations/{locationId}:
+    put:
+      tags: [park]
+      summary: 修改常用停车位置
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                communityId: { type: integer, format: int64 }
+                communityName: { type: string }
+                building: { type: string }
+                parkingNo: { type: string }
+                detail: { type: string }
+                isDefault: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+    delete:
+      tags: [park]
+      summary: 删除常用停车位置
+      parameters:
+        - name: locationId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
   # ============================ 订单 ============================
   /api/v1/orders:
     post:

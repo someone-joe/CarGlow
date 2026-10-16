@@ -41,6 +41,9 @@
 
     <!-- 常用功能 -->
     <view class="list">
+      <view class="list-item" @click="go('/pages/park-location/park-location')">
+        <text>常用停车位置</text><text class="arrow">›</text>
+      </view>
       <view class="list-item" @click="switchTo('/pages/customer-service/customer-service')">
         <text>客服中心</text><text class="arrow">›</text>
       </view>

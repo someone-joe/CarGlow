@@ -56,6 +56,12 @@
 			}
 		},
 		{
+			"path": "pages/park-location/park-location",
+			"style": {
+				"navigationBarTitleText": "常用停车位置"
+			}
+		},
+		{
 			"path": "pages/review/review",
 			"style": {
 				"navigationBarTitleText": "服务评价"
