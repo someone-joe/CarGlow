@@ -87,7 +87,25 @@
         </view>
         <view v-if="!vehicles.length" class="empty">还没有车辆，请先添加车辆</view>
         <view class="manage" @click="goVehicles">管理车辆（添加 / 编辑）›</view>
-        <input class="input" v-model="remark" placeholder="车辆停放位置，如：地库 A 区 23 号" />
+
+        <!-- 常用停车位置：选一个直接填入，免手输（T6 数据） -->
+        <view class="park-block">
+          <view class="park-head">
+            <text class="park-label">常用停车位置</text>
+            <text class="park-manage" @click="goPark">管理 ›</text>
+          </view>
+          <view v-if="parkLocations.length" class="park-chips">
+            <text
+              v-for="p in parkLocations"
+              :key="p.locationId"
+              class="park-chip"
+              :class="{ active: selectedParkId === p.locationId }"
+              @click="pickPark(p)"
+            >{{ parkLabel(p) }}</text>
+          </view>
+          <text v-else class="park-empty" @click="goPark">还没有常用位置，去添加 ›</text>
+          <input v-model="remark" class="input" placeholder="车辆停放位置，如：地库 A 区 23 号" />
+        </view>
       </view>
 
       <!-- STEP 5 拍照留言 -->
@@ -162,6 +180,7 @@ import {
   type ServiceVO,
   type VehicleVO,
 } from '@/api/catalog'
+import { fetchParkLocations, type ParkLocationVO } from '@/api/park'
 import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchCapacity, type CapacityVO } from '@/api/home'
 import SiteBar from '@/components/SiteBar.vue'
@@ -170,6 +189,7 @@ import { orderDraft } from '@/store/orderDraft'
 const services = ref<ServiceVO[]>([])
 const vehicles = ref<VehicleVO[]>([])
 const cabinets = ref<CabinetVO[]>([])
+const parkLocations = ref<ParkLocationVO[]>([])
 
 const serviceId = ref<number | undefined>(undefined)
 const vehicleId = ref<number | undefined>(undefined)
@@ -184,6 +204,7 @@ const submitting = ref(false)
 const loading = ref(true)
 const selectedCouponId = ref<number | undefined>(undefined)
 const pickupRequired = ref(true)
+const selectedParkId = ref<number | undefined>(undefined)
 
 /** 时间浮层 */
 const showTimeSheet = ref(false)
@@ -309,6 +330,21 @@ function goVehicles(): void {
   uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
 
+function goPark(): void {
+  needRefresh.value = true
+  uni.navigateTo({ url: '/pages/park-location/park-location' })
+}
+
+function parkLabel(p: ParkLocationVO): string {
+  return [p.communityName, p.building, p.parkingNo].filter(Boolean).join(' ') || '未命名位置'
+}
+
+/** 选一个常用停车位置：格式化填入停车位置输入，免手输 */
+function pickPark(p: ParkLocationVO): void {
+  selectedParkId.value = p.locationId
+  remark.value = [p.communityName, p.building, p.parkingNo, p.detail].filter(Boolean).join('，')
+}
+
 /** 停放照片上限：与契约 parkPhotoFileIds maxItems、后端校验同值 */
 const MAX_PHOTOS = 6
 
@@ -349,11 +385,12 @@ function removePhoto(i: number): void {
 /** 三个列表一次性拉齐，失败由 request 层统一提示；缺任一选项就不允许提交 */
 function loadOptions(): void {
   loading.value = true
-  Promise.all([fetchServices(), fetchVehicles(), fetchCabinets()])
-    .then(([serviceList, vehicleList, cabinetList]) => {
+  Promise.all([fetchServices(), fetchVehicles(), fetchCabinets(), fetchParkLocations()])
+    .then(([serviceList, vehicleList, cabinetList, parkList]) => {
       services.value = serviceList || []
       vehicles.value = vehicleList || []
       cabinets.value = cabinetList || []
+      parkLocations.value = parkList || []
 
       // 只补全「未选」的项：不能覆盖用户已选，否则刷新一次选择就丢了
       if (serviceId.value == null) {
@@ -592,6 +629,61 @@ onShow(() => {
   font-size: 26rpx;
   color: #00aeb5;
   padding: 12rpx 0;
+}
+
+/* ---- 常用停车位置 ---- */
+.park-block {
+  margin-top: 12rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f2f7f7;
+}
+
+.park-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.park-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1b2b2a;
+}
+
+.park-manage {
+  font-size: 25rpx;
+  color: #00aeb5;
+}
+
+.park-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
+
+.park-chip {
+  font-size: 25rpx;
+  color: #6b7b79;
+  background: #f2f7f7;
+  border: 2rpx solid #eaf1f0;
+  border-radius: 12rpx;
+  padding: 12rpx 20rpx;
+  max-width: 100%;
+}
+
+.park-chip.active {
+  color: #00aeb5;
+  border-color: #00aeb5;
+  background: #eafbfb;
+}
+
+.park-empty {
+  display: block;
+  font-size: 25rpx;
+  color: #00aeb5;
+  margin-bottom: 16rpx;
 }
 
 .svc-price {
