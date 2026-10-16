@@ -47,6 +47,9 @@ public class WashPayService {
     @Autowired
     private WashRefundOrderMapper refundMapper;
 
+    @Autowired
+    private WashWalletService walletService;
+
     /** 下单后获取支付参数 */
     public PrepayVO prepay(String orderNo, Long memberId) {
         WashOrder order = orderSupport.requireOwned(orderNo, memberId);
@@ -57,6 +60,27 @@ public class WashPayService {
             throw new ApiException(ErrorCode.B3001);
         }
         return provider.prepay(order);
+    }
+
+    /**
+     * 储值余额全额支付（本期渠道之一）：校验 → 扣款 → 状态机 PAY_SUCCESS。
+     * 与 handlePaidNotify 同一事务，扣款与状态推进同成功同回滚；余额不足抛 B3004。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void payWithBalance(String orderNo, Long memberId) {
+        WashOrder order = orderSupport.requireOwned(orderNo, memberId);
+        if (!OrderStatus.WAIT_PAY.name().equals(order.getStatus())) {
+            throw new ApiException(ErrorCode.B1002, "订单不是待支付状态，当前：" + order.getStatus());
+        }
+        if (order.getPayExpireAt() != null && order.getPayExpireAt() < System.currentTimeMillis()) {
+            throw new ApiException(ErrorCode.B3001);
+        }
+        long amount = order.getPayAmount() == null ? 0L : order.getPayAmount();
+        if (amount <= 0) {
+            throw new ApiException(ErrorCode.A0001, "订单金额异常");
+        }
+        walletService.deductForOrder(memberId, orderNo, amount);
+        stateService.paySuccess(orderNo, memberId);
     }
 
     /**

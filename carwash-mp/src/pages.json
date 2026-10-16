@@ -74,6 +74,18 @@
 			}
 		},
 		{
+			"path": "pages/wallet/wallet",
+			"style": {
+				"navigationBarTitleText": "我的钱包"
+			}
+		},
+		{
+			"path": "pages/recharge/recharge",
+			"style": {
+				"navigationBarTitleText": "储值充值"
+			}
+		},
+		{
 			"path": "pages/open-box/open-box",
 			"style": {
 				"navigationBarTitleText": "钥匙柜开箱"

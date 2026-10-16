@@ -52,12 +52,34 @@
       </view>
 
       <!-- 支付方式 -->
-      <view class="panel pay-type">
-        <view class="pt-main">
-          <text class="pt-ico">💚</text>
-          <text class="pt-name">微信支付</text>
+      <view class="panel">
+        <view class="panel-title">支付方式</view>
+        <view class="pt-row" :class="{ on: channel === 'wechat' }" @click="channel = 'wechat'">
+          <view class="pt-main">
+            <text class="pt-ico">💚</text>
+            <view class="pt-text">
+              <text class="pt-name">微信支付</text>
+              <text class="pt-hint link" @click.stop="goRecharge">储值充值 · 支付更优惠 ›</text>
+            </view>
+          </view>
+          <text v-if="channel === 'wechat'" class="pt-check">✓</text>
         </view>
-        <text class="pt-check">✓</text>
+        <view
+          class="pt-row"
+          :class="{ on: channel === 'balance', insufficient: balanceNotEnough }"
+          @click="pickBalance"
+        >
+          <view class="pt-main">
+            <text class="pt-ico">💰</text>
+            <view class="pt-text">
+              <text class="pt-name">储值余额抵扣</text>
+              <text class="pt-hint">
+                可用 ¥{{ fen2yuan(walletAvailable) }}{{ balanceNotEnough ? '（余额不足，去充值）' : '' }}
+              </text>
+            </view>
+          </view>
+          <text v-if="channel === 'balance'" class="pt-check">✓</text>
+        </view>
       </view>
     </block>
 
@@ -79,8 +101,9 @@
 
 <script setup lang="ts">
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { cancelOrder, fetchOrderDetail, fetchPrepay, payOrder, type OrderDetailVO } from '@/api/order'
+import { fetchWallet, payByBalance } from '@/api/wallet'
 
 const orderNo = ref('')
 const detail = ref<OrderDetailVO | null>(null)
@@ -89,6 +112,32 @@ const paying = ref(false)
 const countdown = ref('--:--')
 let expireAt = 0
 let timer: ReturnType<typeof setInterval> | null = null
+
+// 支付渠道：微信支付 / 储值余额抵扣
+type PayChannel = 'wechat' | 'balance'
+const channel = ref<PayChannel>('wechat')
+const walletAvailable = ref(0)
+const balanceNotEnough = computed(() => walletAvailable.value < (detail.value?.payAmount ?? 0))
+
+function pickBalance(): void {
+  if (balanceNotEnough.value) {
+    goRecharge()
+    return
+  }
+  channel.value = 'balance'
+}
+
+function goRecharge(): void {
+  uni.showModal({
+    title: '储值充值更优惠',
+    content: '充值不仅有赠送，还能用余额直接抵扣本单，是否前往充值？',
+    confirmText: '去充值',
+    cancelText: '再想想',
+    success: (res) => {
+      if (res.confirm) uni.navigateTo({ url: '/pages/recharge/recharge' })
+    },
+  })
+}
 
 function fen2yuan(fen?: number): string {
   return ((fen ?? 0) / 100).toFixed(2)
@@ -117,6 +166,12 @@ async function load(): Promise<void> {
     const [d, prepay] = await Promise.all([fetchOrderDetail(orderNo.value), fetchPrepay(orderNo.value)])
     detail.value = d
     expireAt = prepay.expireAt ?? 0
+    // 余额非关键路径，单独拉取，失败不影响下单支付
+    fetchWallet()
+      .then((w) => {
+        walletAvailable.value = (w.balance ?? 0) + (w.giftBalance ?? 0)
+      })
+      .catch(() => {})
     tick()
     if (expireAt) {
       timer = setInterval(tick, 1000)
@@ -130,13 +185,21 @@ async function load(): Promise<void> {
 
 async function pay(): Promise<void> {
   if (paying.value) return
+  if (channel.value === 'balance' && balanceNotEnough.value) {
+    goRecharge()
+    return
+  }
   paying.value = true
   try {
-    await payOrder(orderNo.value)
+    if (channel.value === 'balance') {
+      await payByBalance(orderNo.value)
+    } else {
+      await payOrder(orderNo.value)
+    }
     uni.showToast({ title: '支付成功', icon: 'none' })
     uni.redirectTo({ url: `/pages/order-detail/order-detail?orderNo=${orderNo.value}` })
   } catch {
-    // request 层已提示
+    // request 层已提示（余额不足 B3004 等）
   } finally {
     paying.value = false
   }

@@ -11,6 +11,18 @@
       </view>
     </view>
 
+    <!-- 储值余额 -->
+    <view class="wallet-bar" @click="go('/pages/wallet/wallet')">
+      <view class="wb-left">
+        <text class="wb-label">储值余额</text>
+        <text class="wb-value">¥{{ yuan(balance) }}</text>
+      </view>
+      <view class="wb-right">
+        <text class="wb-recharge" @click.stop="go('/pages/recharge/recharge')">充值</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
     <!-- 常用入口：卡券 / 订单 / 车辆 -->
     <view class="quick">
       <view class="quick-item" @click="go('/pages/coupons/coupons')">
@@ -53,10 +65,25 @@
 </template>
 
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import SiteBar from '@/components/SiteBar.vue'
+import { fetchWallet } from '@/api/wallet'
 
 const phoneBound = ref(false)
+const balance = ref(0)
+
+function yuan(fen: number): string {
+  return (fen / 100).toFixed(2)
+}
+
+onShow(() => {
+  fetchWallet()
+    .then((w) => {
+      balance.value = (w.balance ?? 0) + (w.giftBalance ?? 0)
+    })
+    .catch(() => {})
+})
 
 function go(url: string): void {
   uni.navigateTo({ url })
@@ -117,6 +144,49 @@ function about(): void {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: #8a9a98;
+}
+
+.wallet-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #00aeb5, #0e8f94);
+  border-radius: 20rpx;
+  padding: 28rpx 30rpx;
+  margin-bottom: 20rpx;
+  color: #fff;
+}
+
+.wb-label {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.wb-value {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.wb-right {
+  display: flex;
+  align-items: center;
+}
+
+.wb-recharge {
+  background: #fff;
+  color: #0e8f94;
+  font-size: 24rpx;
+  font-weight: 600;
+  padding: 8rpx 26rpx;
+  border-radius: 30rpx;
+  margin-right: 16rpx;
+}
+
+.wallet-bar .arrow {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .quick {

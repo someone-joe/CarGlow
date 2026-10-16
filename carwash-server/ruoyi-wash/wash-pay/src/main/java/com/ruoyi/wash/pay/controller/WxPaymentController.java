@@ -28,6 +28,13 @@ public class WxPaymentController {
         return ApiResult.ok(payService.prepay(orderNo, MemberContext.require()));
     }
 
+    /** 储值余额全额支付（本期渠道之一）。契约：openapi.yaml /api/v1/payments/{orderNo}/balance。 */
+    @PostMapping("/api/v1/payments/{orderNo}/balance")
+    public ApiResult<Void> payByBalance(@PathVariable String orderNo) {
+        payService.payWithBalance(orderNo, MemberContext.require());
+        return ApiResult.ok();
+    }
+
     /**
      * 支付结果回调。真实环境由微信服务器调用（需验签 + 解密，接渠道时补）；
      * 本地 provider=mock 时可直接 POST {"orderNo":"SE..."} 模拟。

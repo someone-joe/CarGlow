@@ -797,6 +797,174 @@ paths:
                       data:
                         $ref: '#/components/schemas/PayResultVO'
 
+  /api/v1/payments/{orderNo}/balance:
+    post:
+      tags: [pay]
+      summary: 储值余额全额支付（本期渠道之一）
+      description: |
+        用钱包余额（充值本金 + 赠送，先赠后本）全额支付订单：扣款 → 状态机 PAY_SUCCESS（WAIT_PAY → WAIT_KEY）。
+        与支付回调同一事务，扣款与状态推进同成功同回滚。余额不足返回 B3004，前端据此弹「充值更优惠」引导。
+        微信支付仍走 prepay / mock-pay（本期不接真实微信）。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  # ============================ 储值钱包 ============================
+  /api/v1/wallet:
+    get:
+      tags: [wallet]
+      summary: 我的钱包（余额）
+      description: 无钱包行时惰性创建。金额单位为分。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          balance: { type: integer, format: int64, description: '充值本金余额（分）' }
+                          giftBalance: { type: integer, format: int64, description: '赠送余额（分）' }
+                          totalRecharge: { type: integer, format: int64, description: '累计充值本金（分）' }
+
+  /api/v1/wallet/recharge-rules:
+    get:
+      tags: [wallet]
+      summary: 充值赠送规则（供「充值更优惠」弹窗）
+      description: 仅返回启用中的规则，按 sortOrder 升序。金额单位为分。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            ruleId: { type: integer, format: int64 }
+                            rechargeFen: { type: integer, format: int64, description: '充值门槛（分）' }
+                            giftFen: { type: integer, format: int64, description: '赠送（分）' }
+
+  /api/v1/wallet/recharge:
+    post:
+      tags: [wallet]
+      summary: 发起充值
+      description: |
+        ruleId（选赠送档）与 amountFen（自定义金额）二选一，ruleId 优先；自定义金额不赠送。
+        生成 INIT 充值单；本地由 mock-pay 到账（微信渠道后补）。金额单位为分。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ruleId: { type: integer, format: int64 }
+                amountFen: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rechargeNo: { type: string }
+                          payAmount: { type: integer, format: int64 }
+                          giftAmount: { type: integer, format: int64 }
+                          expireAt: { type: integer, format: int64, description: '支付截止（毫秒）' }
+
+  /api/v1/wallet/recharge/{rechargeNo}/mock-pay:
+    post:
+      tags: [wallet]
+      summary: 模拟充值到账（仅本地开发）
+      description: 受 wash.pay.mock-enabled 控制，生产必须 false。幂等：重复调用返回当前余额，不重复入账。
+      x-dev-only: true
+      parameters:
+        - name: rechargeNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          balance: { type: integer, format: int64 }
+                          giftBalance: { type: integer, format: int64 }
+                          totalRecharge: { type: integer, format: int64 }
+
+  /api/v1/wallet/flows:
+    get:
+      tags: [wallet]
+      summary: 钱包流水（分页）
+      parameters:
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          list:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                flowNo: { type: string }
+                                bizType: { type: string, description: 'RECHARGE/GIFT/PAY/REFUND' }
+                                changeAmount: { type: integer, format: int64, description: '本金变动（分，正入负出）' }
+                                giftChange: { type: integer, format: int64, description: '赠送变动（分，正入负出）' }
+                                balanceAfter: { type: integer, format: int64 }
+                                giftAfter: { type: integer, format: int64 }
+                                bizNo: { type: string }
+                                remark: { type: string }
+                                createTime: { type: string, format: date-time }
+                          total: { type: integer, format: int64 }
+                          pageNum: { type: integer }
+                          pageSize: { type: integer }
+
   # ============================ 评价 / 售后 ============================
   /api/v1/orders/{orderNo}/reviews:
     post:
@@ -1839,6 +2007,92 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: '#/components/schemas/DashboardStatsVO' }
+
+  # ========================= 储值钱包（后台） =========================
+  /admin-api/wash/wallet/gift-rules:
+    get:
+      tags: [admin-wallet]
+      summary: 充值赠送规则列表（含停用）
+      x-permission: wash:wallet:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            ruleId: { type: integer, format: int64 }
+                            rechargeFen: { type: integer, format: int64, description: '充值门槛（分）' }
+                            giftFen: { type: integer, format: int64, description: '赠送（分）' }
+                            enabled: { type: string, description: 'Y/N' }
+                            sortOrder: { type: integer }
+    put:
+      tags: [admin-wallet]
+      summary: 整体覆盖保存赠送规则
+      description: 充值单已存金额快照，覆盖规则不影响历史单。
+      x-permission: wash:wallet:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [rechargeFen, giftFen]
+                properties:
+                  rechargeFen: { type: integer, format: int64 }
+                  giftFen: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
+  /admin-api/wash/wallet/recharges:
+    get:
+      tags: [admin-wallet]
+      summary: 充值流水分页
+      x-permission: wash:wallet:recharge
+      parameters:
+        - name: memberId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - name: status
+          in: query
+          required: false
+          description: INIT/SUCCESS/FAILED
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { type: object }
+                          total: { type: integer, format: int64 }
 
   # ========================= 师傅（工作人员）管理 =========================
   /admin-api/wash/worker/list:
