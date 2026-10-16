@@ -20,6 +20,12 @@
 			}
 		},
 		{
+			"path": "pages/self-wash/self-wash",
+			"style": {
+				"navigationBarTitleText": "自助洗车"
+			}
+		},
+		{
 			"path": "pages/service-detail/service-detail",
 			"style": {
 				"navigationBarTitleText": "服务详情"
