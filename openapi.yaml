@@ -642,6 +642,8 @@ paths:
                             name: { type: string }
                             status: { type: string, description: 'IDLE/SERVING/DISABLED' }
                             enabled: { type: string }
+                            remainingSeconds: { type: integer, format: int64, description: '服务中剩余秒' }
+                            queueCount: { type: integer, description: '该工位当前排队人数' }
 
   /api/v1/selfwash/orders:
     post:
@@ -760,6 +762,74 @@ paths:
               type: object
               properties:
                 reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/selfwash/orders/{orderNo}/activate:
+    post:
+      tags: [selfwash]
+      summary: 到店激活/开始服务（空闲则通电倒计时，有正在服务则排队）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功（data 为激活后的订单，SERVING 或 QUEUING）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SelfwashOrderVO' }
+
+  /api/v1/selfwash/orders/{orderNo}/add-time:
+    post:
+      tags: [selfwash]
+      summary: 加时（延长服务倒计时，V1 免费）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [minutes]
+              properties:
+                minutes: { type: integer, minimum: 1, maximum: 240 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SelfwashOrderVO' }
+
+  /api/v1/selfwash/orders/{orderNo}/finish:
+    post:
+      tags: [selfwash]
+      summary: 结束服务（断电完成，若有排队自动开始下一单）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
       responses:
         '200':
           description: 成功

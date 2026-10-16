@@ -63,9 +63,30 @@ public class WxSelfwashOrderController {
         return ApiResult.ok();
     }
 
+    @PostMapping("/api/v1/selfwash/orders/{orderNo}/activate")
+    public ApiResult<SelfwashOrderVO> activate(@PathVariable String orderNo) {
+        return ApiResult.ok(service.activate(MemberContext.require(), orderNo));
+    }
+
+    @PostMapping("/api/v1/selfwash/orders/{orderNo}/add-time")
+    public ApiResult<SelfwashOrderVO> addTime(@PathVariable String orderNo,
+                                              @RequestBody(required = false) AddTimeRequest req) {
+        int minutes = req == null ? 0 : (req.minutes() == null ? 0 : req.minutes());
+        return ApiResult.ok(service.addTime(MemberContext.require(), orderNo, minutes));
+    }
+
+    @PostMapping("/api/v1/selfwash/orders/{orderNo}/finish")
+    public ApiResult<Void> finish(@PathVariable String orderNo) {
+        service.finish(MemberContext.require(), orderNo);
+        return ApiResult.ok();
+    }
+
     public record CreateRequest(Long workstationId, Long serviceId) {
     }
 
     public record CancelRequest(String reason) {
+    }
+
+    public record AddTimeRequest(Integer minutes) {
     }
 }

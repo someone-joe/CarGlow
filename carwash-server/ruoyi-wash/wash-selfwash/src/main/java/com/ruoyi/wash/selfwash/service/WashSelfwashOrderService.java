@@ -9,6 +9,7 @@ import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
 import com.ruoyi.wash.selfwash.dto.SelfwashOrderVO;
+import com.ruoyi.wash.selfwash.device.SelfWashDeviceService;
 import com.ruoyi.wash.selfwash.mapper.WashSelfwashOrderMapper;
 import com.ruoyi.wash.selfwash.mapper.WashWorkstationMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,9 @@ public class WashSelfwashOrderService {
 
     @Value("${wash.pay.mock-enabled:false}")
     private boolean mockEnabled;
+
+    @Autowired
+    private SelfWashDeviceService deviceService;
 
     /** 选位下单：快照服务价/时长，建 WAIT_PAY 订单。 */
     @Transactional(rollbackFor = Exception.class)
@@ -132,6 +136,100 @@ public class WashSelfwashOrderService {
         if (SelfWashStatus.WAIT_USE.name().equals(order.getStatus()) && "BALANCE".equals(order.getPayChannel())) {
             walletService.refundToWallet(memberId, orderNo, order.getPayAmount());
         }
+    }
+
+    // ---------------- 到店激活 / 计时 / 结束（Stage 2b） ----------------
+
+    /** 到店激活/开始服务：工位空闲则直接进入服务中（通电 + 倒计时）；有正在服务的则排队。 */
+    @Transactional(rollbackFor = Exception.class)
+    public SelfwashOrderVO activate(Long memberId, String orderNo) {
+        WashSelfwashOrder order = requireOwned(memberId, orderNo, SelfWashStatus.WAIT_USE);
+        List<WashSelfwashOrder> active = orderMapper.selectActiveByWorkstation(order.getWorkstationId());
+        boolean servicing = active.stream().anyMatch(o -> SelfWashStatus.SERVING.name().equals(o.getStatus()));
+        long now = System.currentTimeMillis();
+        if (servicing) {
+            int maxQueue = 0;
+            for (WashSelfwashOrder o : active) {
+                if (SelfWashStatus.QUEUING.name().equals(o.getStatus()) && o.getQueueNo() != null && o.getQueueNo() > maxQueue) {
+                    maxQueue = o.getQueueNo();
+                }
+            }
+            orderMapper.markQueued(orderNo, maxQueue + 1);
+            order.setStatus(SelfWashStatus.QUEUING.name());
+            order.setQueueNo(maxQueue + 1);
+        } else {
+            long expire = now + totalMinutes(order) * 60000L;
+            orderMapper.markStarted(orderNo, now, expire);
+            deviceService.powerOn(order.getWorkstationId(), orderNo);
+            order.setStatus(SelfWashStatus.SERVING.name());
+            order.setStartedAt(now);
+            order.setExpireAt(expire);
+        }
+        return toVO(order);
+    }
+
+    /** 加时：延长服务截止（V1 免费加时，不计费）。 */
+    @Transactional(rollbackFor = Exception.class)
+    public SelfwashOrderVO addTime(Long memberId, String orderNo, int minutes) {
+        if (minutes <= 0 || minutes > 240) {
+            throw new ApiException(ErrorCode.A0001, "加时分钟数不合法（1-240）");
+        }
+        WashSelfwashOrder order = requireOwned(memberId, orderNo, SelfWashStatus.SERVING);
+        long base = order.getExpireAt() == null ? System.currentTimeMillis() : order.getExpireAt();
+        long newExpire = base + minutes * 60000L;
+        orderMapper.addSeconds(orderNo, minutes * 60, newExpire);
+        order.setExpireAt(newExpire);
+        order.setAddedSeconds((order.getAddedSeconds() == null ? 0 : order.getAddedSeconds()) + minutes * 60);
+        return toVO(order);
+    }
+
+    /** 手动结束服务：断电 → 完成 → 若该工位有排队则自动开始下一单。 */
+    @Transactional(rollbackFor = Exception.class)
+    public void finish(Long memberId, String orderNo) {
+        WashSelfwashOrder order = requireOwned(memberId, orderNo, SelfWashStatus.SERVING);
+        orderMapper.markDone(orderNo);
+        deviceService.powerOff(order.getWorkstationId(), orderNo);
+        startNextIfIdle(order.getWorkstationId());
+    }
+
+    /** 定时任务：到点仍在服务的订单，自动断电完成并开始下一单（逐单自动提交，避免长事务）。 */
+    public void processExpiredServing() {
+        List<WashSelfwashOrder> expired = orderMapper.selectExpiredServing(System.currentTimeMillis(), 50);
+        for (WashSelfwashOrder o : expired) {
+            if (orderMapper.markDone(o.getOrderNo()) > 0) {
+                deviceService.powerOff(o.getWorkstationId(), o.getOrderNo());
+                startNextIfIdle(o.getWorkstationId());
+            }
+        }
+    }
+
+    /** 工位无正在服务订单时，开始排队最前的一单（调用方需已在事务内或可自动提交）。 */
+    private void startNextIfIdle(Long workstationId) {
+        List<WashSelfwashOrder> active = orderMapper.selectActiveByWorkstation(workstationId);
+        boolean servicing = false;
+        WashSelfwashOrder next = null;
+        for (WashSelfwashOrder o : active) {
+            if (SelfWashStatus.SERVING.name().equals(o.getStatus())) {
+                servicing = true;
+            } else if (SelfWashStatus.QUEUING.name().equals(o.getStatus())) {
+                if (next == null || (o.getQueueNo() != null && next.getQueueNo() != null && o.getQueueNo() < next.getQueueNo())) {
+                    next = o;
+                }
+            }
+        }
+        if (servicing || next == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long expire = now + totalMinutes(next) * 60000L;
+        orderMapper.markStarted(next.getOrderNo(), now, expire);
+        deviceService.powerOn(workstationId, next.getOrderNo());
+    }
+
+    private long totalMinutes(WashSelfwashOrder o) {
+        int base = o.getServiceMinutes() == null ? 0 : o.getServiceMinutes();
+        int added = o.getAddedSeconds() == null ? 0 : o.getAddedSeconds();
+        return base + added / 60L;
     }
 
     // ---------------- 内部 ----------------

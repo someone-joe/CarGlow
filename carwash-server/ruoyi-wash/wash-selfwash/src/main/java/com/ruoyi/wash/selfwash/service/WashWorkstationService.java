@@ -2,8 +2,11 @@ package com.ruoyi.wash.selfwash.service;
 
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
+import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
+import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
 import com.ruoyi.wash.selfwash.dto.WorkstationVO;
+import com.ruoyi.wash.selfwash.mapper.WashSelfwashOrderMapper;
 import com.ruoyi.wash.selfwash.mapper.WashWorkstationMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,14 +18,15 @@ import java.util.List;
 /**
  * 自助洗车工位。
  *
- * <p>实时状态（空闲/服务中/排队）由自助订单推导：Stage 1 无自助订单，故启用即 IDLE、停用即 DISABLED；
- * Stage 2 引入自助订单后，在此结合进行中订单给出 SERVING 及排队信息（队列人数、前方车牌）。
+ * <p>实时状态由自助订单推导：该工位有 SERVING 单则「服务中」（带剩余秒），否则「空闲」；queueCount 为排队人数。
  */
 @Service
 public class WashWorkstationService {
 
     @Autowired
     private WashWorkstationMapper mapper;
+    @Autowired
+    private WashSelfwashOrderMapper orderMapper;
 
     public List<WashWorkstation> adminList(Long siteId, String keyword) {
         return mapper.selectAdminList(siteId, keyword);
@@ -64,12 +68,34 @@ public class WashWorkstationService {
         mapper.softDelete(id);
     }
 
-    /** C 端工位列表（带实时状态）。siteId 由前端传当前站点。 */
+    /** C 端工位列表（带实时状态：服务中剩余秒 / 排队人数）。siteId 由前端传当前站点。 */
     public List<WorkstationVO> listWithStatus(Long siteId) {
         List<WorkstationVO> out = new ArrayList<>();
+        long now = System.currentTimeMillis();
         for (WashWorkstation ws : mapper.selectBySite(siteId)) {
-            String status = "Y".equals(ws.getEnabled()) ? "IDLE" : "DISABLED";
-            out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(), status, ws.getEnabled()));
+            if (!"Y".equals(ws.getEnabled())) {
+                out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
+                        "DISABLED", ws.getEnabled(), 0L, 0));
+                continue;
+            }
+            List<WashSelfwashOrder> active = orderMapper.selectActiveByWorkstation(ws.getWorkstationId());
+            WashSelfwashOrder serving = null;
+            int queue = 0;
+            for (WashSelfwashOrder o : active) {
+                if (SelfWashStatus.SERVING.name().equals(o.getStatus())) {
+                    serving = o;
+                } else if (SelfWashStatus.QUEUING.name().equals(o.getStatus())) {
+                    queue++;
+                }
+            }
+            if (serving != null) {
+                long remain = serving.getExpireAt() != null ? Math.max(0L, (serving.getExpireAt() - now) / 1000L) : 0L;
+                out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
+                        "SERVING", ws.getEnabled(), remain, queue));
+            } else {
+                out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
+                        "IDLE", ws.getEnabled(), 0L, queue));
+            }
         }
         return out;
     }

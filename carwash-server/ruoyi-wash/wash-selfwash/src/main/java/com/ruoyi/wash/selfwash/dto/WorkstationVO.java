@@ -1,6 +1,11 @@
 package com.ruoyi.wash.selfwash.dto;
 
-/** 自助工位（C 端）。status 为实时状态：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。 */
+/**
+ * 自助工位（C 端，实时）。
+ *
+ * <p>status：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。
+ * remainingSeconds：服务中时的剩余秒；queueCount：该工位当前排队人数。
+ */
 public class WorkstationVO {
     private Long workstationId;
     private Long siteId;
@@ -8,17 +13,22 @@ public class WorkstationVO {
     private String name;
     private String status;
     private String enabled;
+    private Long remainingSeconds;
+    private Integer queueCount;
 
     public WorkstationVO() {
     }
 
-    public WorkstationVO(Long workstationId, Long siteId, String code, String name, String status, String enabled) {
+    public WorkstationVO(Long workstationId, Long siteId, String code, String name, String status,
+                         String enabled, Long remainingSeconds, Integer queueCount) {
         this.workstationId = workstationId;
         this.siteId = siteId;
         this.code = code;
         this.name = name;
         this.status = status;
         this.enabled = enabled;
+        this.remainingSeconds = remainingSeconds;
+        this.queueCount = queueCount;
     }
 
     public Long getWorkstationId() {
@@ -67,5 +77,21 @@ public class WorkstationVO {
 
     public void setEnabled(String enabled) {
         this.enabled = enabled;
+    }
+
+    public Long getRemainingSeconds() {
+        return remainingSeconds;
+    }
+
+    public void setRemainingSeconds(Long remainingSeconds) {
+        this.remainingSeconds = remainingSeconds;
+    }
+
+    public Integer getQueueCount() {
+        return queueCount;
+    }
+
+    public void setQueueCount(Integer queueCount) {
+        this.queueCount = queueCount;
     }
 }
