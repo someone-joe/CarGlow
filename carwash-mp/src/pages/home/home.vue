@@ -185,7 +185,28 @@ onShow(() => {
   fetchBanners()
     .then((b) => (banners.value = b || []))
     .catch(() => (banners.value = []))
+  maybeShowFirstOrderPopup()
 })
+
+/** 新用户首单弹窗（需求 1.4）：只弹一次；不写死价格，引导去领券中心（新人券） */
+const FIRST_POPUP_KEY = 'carglow_firstorder_popup_shown'
+function maybeShowFirstOrderPopup(): void {
+  try {
+    if (uni.getStorageSync(FIRST_POPUP_KEY)) return
+    uni.setStorageSync(FIRST_POPUP_KEY, '1')
+  } catch {
+    // 存储异常不阻塞首页
+  }
+  uni.showModal({
+    title: '新人专享 · 首单立减',
+    content: '新用户首单可领优惠券，自助洗车与无感洗车不重复享受。',
+    confirmText: '去领券',
+    cancelText: '以后再说',
+    success: (res) => {
+      if (res.confirm) uni.navigateTo({ url: '/pages/coupons/coupons' })
+    },
+  })
+}
 </script>
 
 <style>
