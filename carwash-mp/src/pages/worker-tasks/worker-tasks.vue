@@ -21,7 +21,21 @@
         <text class="plate">{{ t.vehiclePlate || '—' }}</text>
         <text class="status">{{ t.statusLabel || t.status }}</text>
       </view>
+      <view class="line">
+        {{ [t.vehicleBrand, t.vehicleColor].filter(Boolean).join(' · ') || '未填车型' }}
+        <text v-if="t.distanceMeters" class="dist"> · 约 {{ Math.round(t.distanceMeters) }} 米</text>
+      </view>
       <view class="line">{{ t.serviceName || '洗车服务' }} · 预约 {{ t.appointmentDate || '—' }}</view>
+      <view v-if="t.pickupAddr" class="line sub">取车位置：{{ t.pickupAddr }}</view>
+      <view v-if="t.returnAddr" class="line sub">还车位置：{{ t.returnAddr }}</view>
+      <view class="line sub">
+        <text v-if="t.pickupDeadline">最晚存钥匙 {{ t.pickupDeadline }}</text>
+        <text v-if="t.promiseReturnTime"> · 承诺还车 {{ t.promiseReturnTime }}</text>
+      </view>
+      <view class="line sub contact">
+        <text>车主：{{ t.customerName || '—' }}<text v-if="t.customerPhone"> · {{ t.customerPhone }}</text></text>
+        <text v-if="t.customerPhone" class="call" @click.stop="call(t.customerPhone)">打电话</text>
+      </view>
       <view class="line sub">单号 {{ t.orderNo }}</view>
       <!-- 按阶段给提示：取车阶段才谈「≥6 张」，送回阶段说的是归柜停车照（bug092407） -->
       <view class="line sub" v-if="t.status === 'PICKING' && t.requiredPhotoCount">取车需拍 ≥{{ t.requiredPhotoCount }} 张</view>
@@ -117,6 +131,11 @@ async function load(): Promise<void> {
 function goOpenBox(orderNo?: string): void {
   if (!orderNo) return
   uni.navigateTo({ url: `/pages/worker-open-box/worker-open-box?orderNo=${orderNo}` })
+}
+
+/** 联系车主：拨号（后端下发脱敏/虚拟号，可直接拨通） */
+function call(phone: string): void {
+  uni.makePhoneCall({ phoneNumber: phone, fail: () => {} })
 }
 
 /**
@@ -382,6 +401,24 @@ function doLogout(): void {
 .line.sub {
   color: #999;
   font-size: 24rpx;
+}
+
+.dist {
+  color: #1a73e8;
+}
+
+.contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.call {
+  color: #1a73e8;
+  font-size: 25rpx;
+  padding: 4rpx 16rpx;
+  border: 1rpx solid #1a73e8;
+  border-radius: 8rpx;
 }
 
 .photos {
