@@ -26,6 +26,16 @@
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-goods</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-pay</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

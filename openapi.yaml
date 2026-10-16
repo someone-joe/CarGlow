@@ -643,6 +643,131 @@ paths:
                             status: { type: string, description: 'IDLE/SERVING/DISABLED' }
                             enabled: { type: string }
 
+  /api/v1/selfwash/orders:
+    post:
+      tags: [selfwash]
+      summary: 选位下单（快照服务价/时长，建待支付订单）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workstationId, serviceId]
+              properties:
+                workstationId: { type: integer, format: int64 }
+                serviceId: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功（data 为订单号）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+    get:
+      tags: [selfwash]
+      summary: 我的自助订单列表
+      parameters:
+        - name: tab
+          in: query
+          required: false
+          description: WAIT_USE 待使用 / ONGOING 进行中 / DONE 已完成 / CANCELED 已取消
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/SelfwashOrderVO' }
+
+  /api/v1/selfwash/orders/{orderNo}:
+    get:
+      tags: [selfwash]
+      summary: 自助订单详情（SERVING 时带剩余秒数）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SelfwashOrderVO' }
+
+  /api/v1/selfwash/orders/{orderNo}/pay-balance:
+    post:
+      tags: [selfwash]
+      summary: 储值余额支付（扣余额 → 待使用）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/selfwash/orders/{orderNo}/mock-pay:
+    post:
+      tags: [selfwash]
+      summary: 模拟微信支付（仅本地开发，受 wash.pay.mock-enabled 控制）
+      x-dev-only: true
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/selfwash/orders/{orderNo}/cancel:
+    post:
+      tags: [selfwash]
+      summary: 取消订单（待支付直接取消；待使用且储值支付退余额；服务中不可取消）
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
   # ============================ 订单 ============================
   /api/v1/orders:
     post:
@@ -3210,6 +3335,30 @@ components:
         orderNo: { type: string }
         status:
           $ref: '#/components/schemas/OrderStatus'
+
+    SelfwashOrderVO:
+      type: object
+      description: 自助洗车订单（C 端）。金额单位：分；时间为 ms。
+      properties:
+        orderNo: { type: string }
+        siteId: { type: integer, format: int64 }
+        workstationId: { type: integer, format: int64 }
+        serviceName: { type: string }
+        serviceMinutes: { type: integer, description: '付费时长（分钟）' }
+        payAmount: { type: integer, format: int64 }
+        payChannel: { type: string, description: 'BALANCE/WECHAT_MOCK' }
+        status:
+          type: string
+          enum: [WAIT_PAY, WAIT_USE, QUEUING, SERVING, PAUSED, DONE, CANCELED]
+        statusLabel: { type: string }
+        queueNo: { type: integer }
+        startedAt: { type: integer, format: int64 }
+        expireAt: { type: integer, format: int64 }
+        addedSeconds: { type: integer }
+        payExpireAt: { type: integer, format: int64 }
+        cancelReason: { type: string }
+        createTime: { type: string, format: date-time }
+        remainingSeconds: { type: integer, format: int64, description: '服务剩余秒（SERVING 时）' }
 
     OrderAction:
       type: object

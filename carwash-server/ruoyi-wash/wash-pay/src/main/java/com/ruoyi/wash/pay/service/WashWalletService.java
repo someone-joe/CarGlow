@@ -171,6 +171,18 @@ public class WashWalletService {
         writeFlow(memberId, "PAY", -principalDeduct, -giftDeduct, wallet, orderNo, "订单余额支付");
     }
 
+    /**
+     * 订单取消退回余额（自助洗车等场景）：按原实付金额退回本金余额 + REFUND 流水。
+     * 调用方需已在事务内且已校验订单归属；幂等由调用方状态机保证（仅取消一次）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void refundToWallet(Long memberId, String orderNo, long amountFen) {
+        WashMemberWallet wallet = ensureWalletForUpdate(memberId);
+        wallet.setBalance(wallet.getBalance() + amountFen);
+        walletMapper.updateBalance(wallet);
+        writeFlow(memberId, "REFUND", amountFen, 0L, wallet, orderNo, "订单取消退回");
+    }
+
     // ---------------- 后台：赠送规则 ----------------
 
     /** 全部赠送规则（含停用），后台编辑用。 */
