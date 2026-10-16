@@ -801,7 +801,7 @@ paths:
   /api/v1/selfwash/orders/{orderNo}/add-time:
     post:
       tags: [selfwash]
-      summary: 加时（延长服务倒计时，V1 免费）
+      summary: 加时（按本单实付/时长折算单价计费，从储值余额扣除后延长服务倒计时；余额不足返回 B3004）
       parameters:
         - name: orderNo
           in: path

@@ -117,16 +117,38 @@ async function doActivate(): Promise<void> {
   }
 }
 
+/** 加时档位（分钟）。费用按本单实付/时长折算，与后端 Same 公式，仅用于展示预估 */
+const ADD_MINUTES = 10
+
+function addTimeCost(): number {
+  const o = order.value
+  if (!o || !o.payAmount || !o.serviceMinutes || o.serviceMinutes <= 0) return 0
+  const unit = Math.max(1, Math.round(o.payAmount / o.serviceMinutes))
+  return unit * ADD_MINUTES
+}
+
 async function doAddTime(): Promise<void> {
-  try {
-    const d = await addSelfwashTime(orderNo.value, 10)
-    order.value = d
-    remain.value = d.remainingSeconds || 0
-    tick()
-    uni.showToast({ title: '已加时 10 分钟', icon: 'none' })
-  } catch {
-    // 已提示
-  }
+  const cost = addTimeCost()
+  uni.showModal({
+    title: '加时',
+    content: cost > 0
+      ? `加时 ${ADD_MINUTES} 分钟，将从储值余额扣除 ¥${fen2yuan(cost)}，倒计时相应延长。`
+      : `加时 ${ADD_MINUTES} 分钟，倒计时相应延长。`,
+    confirmText: cost > 0 ? `确认支付 ¥${fen2yuan(cost)}` : '确认',
+    cancelText: '再想想',
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        const d = await addSelfwashTime(orderNo.value, ADD_MINUTES)
+        order.value = d
+        remain.value = d.remainingSeconds || 0
+        tick()
+        uni.showToast({ title: '已加时', icon: 'none' })
+      } catch {
+        // 已提示（余额不足等由 request 层统一提示）
+      }
+    },
+  })
 }
 
 async function doFinish(): Promise<void> {

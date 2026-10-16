@@ -184,19 +184,36 @@ public class WashSelfwashOrderService {
         return toVO(order);
     }
 
-    /** 加时：延长服务截止（V1 免费加时，不计费）。 */
+    /**
+     * 加时：按本单单价（实付/时长，向上取整到分）计费并从储值余额扣除，再延长截止。
+     * 余额不足抛 B3004，前端据此引导充值后再加时。
+     */
     @Transactional(rollbackFor = Exception.class)
     public SelfwashOrderVO addTime(Long memberId, String orderNo, int minutes) {
         if (minutes <= 0 || minutes > 240) {
             throw new ApiException(ErrorCode.A0001, "加时分钟数不合法（1-240）");
         }
         WashSelfwashOrder order = requireOwned(memberId, orderNo, SelfWashStatus.SERVING);
+        long cost = addTimeCost(order, minutes);
+        if (cost > 0) {
+            // 先扣款再延时：扣款失败则不延时（余额不足会抛 B3004 并被事务回滚）
+            walletService.deductForOrder(memberId, orderNo + "/ADD", cost);
+        }
         long base = order.getExpireAt() == null ? System.currentTimeMillis() : order.getExpireAt();
         long newExpire = base + minutes * 60000L;
         orderMapper.addSeconds(orderNo, minutes * 60, newExpire);
         order.setExpireAt(newExpire);
         order.setAddedSeconds((order.getAddedSeconds() == null ? 0 : order.getAddedSeconds()) + minutes * 60);
         return toVO(order);
+    }
+
+    /** 加时费用（分）：按本单实付/时长折算单价，至少 1 分/分钟。前端用同公式预估展示。 */
+    public long addTimeCost(WashSelfwashOrder order, int minutes) {
+        if (order.getPayAmount() == null || order.getServiceMinutes() == null || order.getServiceMinutes() <= 0) {
+            return 0;
+        }
+        long unit = Math.max(1, Math.round(order.getPayAmount() / (double) order.getServiceMinutes()));
+        return unit * (long) minutes;
     }
 
     /** 手动结束服务：断电 → 完成 → 若该工位有排队则自动开始下一单。 */
