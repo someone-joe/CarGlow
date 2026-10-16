@@ -11,6 +11,7 @@ import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
+import com.ruoyi.wash.promo.service.WashInviteService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,9 @@ public class WashOrderStateService {
     }
 
     /** 支付成功：WAIT_PAY → WAIT_KEY。只校验归属，不校验支付方式（真实支付回调走同一入口）。 */
+    @Autowired
+    private WashInviteService inviteService;
+
     public OrderStatus paySuccess(String orderNo, Long memberId) {
         WashOrder order = requireOwned(orderNo, memberId);
         OrderStateMachine.TransitionContext ctx = OrderStateMachine.TransitionContext.builder()
@@ -80,7 +84,14 @@ public class WashOrderStateService {
                 .operatorId(memberId)
                 .expectFrom(OrderStatus.WAIT_PAY)
                 .build();
-        return stateMachine.fire(ctx);
+        OrderStatus next = stateMachine.fire(ctx);
+        // 邀请好友：被邀请人首次成单 → 给邀请人发奖励券（best-effort，发券失败不影响支付结果）
+        try {
+            inviteService.onFirstPaidOrder(memberId, orderNo);
+        } catch (Exception e) {
+            log.warn("[支付成功] 邀请发奖失败(忽略) order={}", orderNo, e);
+        }
+        return next;
     }
 
     /**

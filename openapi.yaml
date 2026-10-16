@@ -909,6 +909,81 @@ paths:
                     properties:
                       data: { $ref: '#/components/schemas/InvoiceVO' }
 
+  # ============================ 邀请好友 ============================
+  /api/v1/invite/code:
+    get:
+      tags: [invite]
+      summary: 我的邀请码（首次调用生成并落库）
+      responses:
+        '200':
+          description: 成功（data 为邀请码，如 CGAB12XY）
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { type: string }
+
+  /api/v1/invite/bind:
+    post:
+      tags: [invite]
+      summary: 绑定邀请码（被邀请人调用）
+      description: |
+        校验邀请码有效、不能邀请自己、同一被邀请人只能绑定一次。
+        绑定成功后给被邀请人发「新人券」作首单优惠（已领过则忽略）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+
+  /api/v1/invite/list:
+    get:
+      tags: [invite]
+      summary: 我邀请的人 + 统计
+      description: |
+        被邀请人首次成单（支付成功）后，系统给邀请人发一张 INVITE 奖励券（如 10 元），
+        此时该邀请记录状态变为 REWARDED。发奖由订单支付成功处触发，不由此接口触发。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          invitedCount: { type: integer }
+                          rewardedCount: { type: integer }
+                          list:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                inviteId: { type: integer, format: int64 }
+                                inviteeMemberId: { type: integer, format: int64 }
+                                status: { type: string, description: 'BOUND/REWARDED' }
+                                statusLabel: { type: string }
+                                firstOrderNo: { type: string }
+                                createTime: { type: string, format: date-time }
+
   # ============================ 消息通知 ============================
   /api/v1/notify/templates:
     get:

@@ -53,6 +53,9 @@
       <view class="list-item" @click="go('/pages/invoice/invoice')">
         <text>发票申请</text><text class="arrow">›</text>
       </view>
+      <view class="list-item" @click="go('/pages/invite/invite')">
+        <text>邀请好友</text><text class="arrow">›</text>
+      </view>
       <view class="list-item" @click="switchTo('/pages/customer-service/customer-service')">
         <text>客服中心</text><text class="arrow">›</text>
       </view>

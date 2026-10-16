@@ -6,6 +6,7 @@ import com.ruoyi.wash.goods.domain.WashService;
 import com.ruoyi.wash.goods.service.WashServiceQueryService;
 import com.ruoyi.wash.pay.service.WashWalletService;
 import com.ruoyi.wash.promo.service.WashCouponService;
+import com.ruoyi.wash.promo.service.WashInviteService;
 import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
@@ -15,6 +16,8 @@ import com.ruoyi.wash.selfwash.mapper.WashSelfwashOrderMapper;
 import com.ruoyi.wash.selfwash.mapper.WashWorkstationMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,7 @@ import java.util.Map;
 @Service
 public class WashSelfwashOrderService {
 
+    private static final Logger log = LoggerFactory.getLogger(WashSelfwashOrderService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final long PAY_EXPIRE_MS = 30 * 60 * 1000L;
 
@@ -56,6 +60,9 @@ public class WashSelfwashOrderService {
 
     @Autowired
     private WashCouponService couponService;
+
+    @Autowired
+    private WashInviteService inviteService;
 
     /** 选位下单：快照服务价/时长，建 WAIT_PAY 订单。 */
     @Transactional(rollbackFor = Exception.class)
@@ -106,6 +113,7 @@ public class WashSelfwashOrderService {
         if (orderMapper.markPaid(orderNo, "BALANCE") == 0) {
             throw new ApiException(ErrorCode.B1002, "订单状态已变化，请刷新");
         }
+        fireInviteReward(memberId, orderNo);
     }
 
     /** 微信支付（本地 mock，生产由支付回调替代）。受 wash.pay.mock-enabled 控制。 */
@@ -119,6 +127,7 @@ public class WashSelfwashOrderService {
         if (orderMapper.markPaid(orderNo, "WECHAT_MOCK") == 0) {
             throw new ApiException(ErrorCode.B1002, "订单状态已变化，请刷新");
         }
+        fireInviteReward(memberId, orderNo);
     }
 
     /** 列表。tab：WAIT_USE 待使用 / ONGOING 进行中(排队+服务+暂停) / DONE 已完成 / CANCELED 已取消。 */
@@ -151,6 +160,15 @@ public class WashSelfwashOrderService {
         // 条件取消成功，且原为「储值支付的待使用」才退余额，避免重复退
         if (SelfWashStatus.WAIT_USE.name().equals(order.getStatus()) && "BALANCE".equals(order.getPayChannel())) {
             walletService.refundToWallet(memberId, orderNo, order.getPayAmount());
+        }
+    }
+
+    /** 邀请好友：被邀请人首次成单 → 给邀请人发奖励券（best-effort，失败不影响支付） */
+    private void fireInviteReward(Long memberId, String orderNo) {
+        try {
+            inviteService.onFirstPaidOrder(memberId, orderNo);
+        } catch (Exception e) {
+            log.warn("[自助支付成功] 邀请发奖失败(忽略) order={}", orderNo, e);
         }
     }
 

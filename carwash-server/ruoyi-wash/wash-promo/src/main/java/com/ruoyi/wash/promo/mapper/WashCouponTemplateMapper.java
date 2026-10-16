@@ -23,6 +23,14 @@ public interface WashCouponTemplateMapper {
             "from wash_coupon_template where coupon_template_id = #{id} and del_flag = '0'")
     WashCouponTemplate selectById(@Param("id") long id);
 
+    /** 按类型取一个可领模板（NEWBIE 新人券 / INVITE 邀请奖励券） */
+    @Select("select coupon_template_id, name, type, threshold_amount, discount_amount, total, issued, " +
+            "per_limit, start_time, end_time, status " +
+            "from wash_coupon_template " +
+            "where type = #{type} and status = 'Y' and start_time <= #{now} and end_time >= #{now} and del_flag = '0' " +
+            "order by coupon_template_id asc limit 1")
+    WashCouponTemplate selectAvailableByType(@Param("type") String type, @Param("now") long now);
+
     /** 乐观扣减库存：仅当 issued < total 时 +1，返回影响行数（0 = 已领完）。 */
     @Update("update wash_coupon_template set issued = issued + 1 " +
             "where coupon_template_id = #{id} and issued < total")

@@ -50,6 +50,12 @@
 			}
 		},
 		{
+			"path": "pages/invite/invite",
+			"style": {
+				"navigationBarTitleText": "邀请好友"
+			}
+		},
+		{
 			"path": "pages/service-detail/service-detail",
 			"style": {
 				"navigationBarTitleText": "服务详情"

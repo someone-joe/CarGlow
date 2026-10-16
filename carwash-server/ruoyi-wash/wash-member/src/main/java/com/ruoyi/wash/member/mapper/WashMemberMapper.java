@@ -3,6 +3,7 @@ package com.ruoyi.wash.member.mapper;
 import com.ruoyi.wash.member.domain.WashMember;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -11,10 +12,18 @@ import java.util.List;
  */
 public interface WashMemberMapper {
 
-    /** 按会员ID查（含 openid，供消息推送解析接收人） */
-    @Select("select member_id, openid, unionid, nickname, phone, create_time from wash_member " +
+    /** 按会员ID查（含 openid，供消息推送解析接收人；含 invite_code，供邀请好友） */
+    @Select("select member_id, openid, unionid, nickname, phone, invite_code, create_time from wash_member " +
             "where member_id = #{memberId} and del_flag = '0' limit 1")
     WashMember selectById(@Param("memberId") Long memberId);
+
+    /** 首次设置邀请码（幂等：已有则不覆盖） */
+    @Update("update wash_member set invite_code = #{code}, update_time = sysdate() " +
+            "where member_id = #{memberId} and (invite_code is null or invite_code = '') and del_flag = '0'")
+    int initInviteCode(@Param("memberId") Long memberId, @Param("code") String code);
+
+    @Select("select member_id from wash_member where invite_code = #{code} and del_flag = '0' limit 1")
+    Long selectMemberIdByInviteCode(@Param("code") String code);
 
     WashMember selectByOpenid(@Param("openid") String openid);
 

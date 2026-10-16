@@ -26,6 +26,12 @@
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
         </dependency>
+        <!-- 邀请好友需按邀请码反查会员（wash-member 为叶子模块，不反向依赖本模块，无环） -->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>wash-member</artifactId>
+            <version>${ruoyi.version}</version>
+        </dependency>
         <!-- 单元测试 + 接入层测试：JUnit5 + Mockito（与 wash-common / wash-order 一致） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

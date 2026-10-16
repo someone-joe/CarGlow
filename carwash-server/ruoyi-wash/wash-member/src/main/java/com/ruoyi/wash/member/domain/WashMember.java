@@ -13,6 +13,8 @@ public class WashMember extends BaseEntity {
     private String unionid;
     private String nickname;
     private String phone;
+    /** 邀请码（唯一，首次访问惰性生成，供邀请好友） */
+    private String inviteCode;
 
     public Long getMemberId() {
         return memberId;
@@ -44,6 +46,14 @@ public class WashMember extends BaseEntity {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 
     public String getPhone() {
