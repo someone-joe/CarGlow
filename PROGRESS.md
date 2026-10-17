@@ -342,7 +342,10 @@ git clone <仓库地址>      # 或 git pull
 - 影像 `store-path` 默认相对路径（跟着进程工作目录走）——**生产必须配绝对路径**，否则老文件 404（已发生过）。
 - 后台运营功能：商品（服务项）配置、师傅管理、站点/小区管理、优惠券管理。
 - C 端界面改版（对标 `对标产品设计稿/`）。
-- **T13 验收待办**：自动派单需在「会员下单→支付→钥匙入柜」真实链路下跑一次（本次仅用既有 KEY_IN 订单验证了 `claim`→`assignWorker` 派单写入路径；KEY_IN 事件触发自动派单与监听逻辑已编译+接线，建议补一次全链路）。后台 `admin-api/login` 放行是既有基建问题（与 T13 无关），需确认后台登录可用后再验资质审核/排班/派单后台 UI。
+- **T13 后端已实测通过（2026-10-17）**：后台接口全通——资质分页（PENDING / PASSED 均可）、周排班读写、派单候选、待派单池、手动派单/改派（`worker_id` 由 1 改 2 已生效）、师傅进行中订单；师傅端登录 / 档案 / 打卡 / 资质提交与查询 / 待派单池 / 抢单均通过。
+  - ⚠️ **后台登录路径是 `/login`，不是 `/admin-api/login`**：`/admin-api` 前缀写在各后台 Controller 的类级 `@RequestMapping` 上，而 `SecurityConfig` 只放行 `/login`。自测时 curl 打到 `/admin-api/login` 必然 401——**那不是基建缺陷**，曾据此误判过一次，别再踩。
+- **T13 仅剩 1 项未验**：钥匙入柜（`DEPOSIT_KEY` → `KEY_IN`）触发的**自动**派单尚未在真实链路（下单 → mock-pay → 柜机回调 `device-callback/v1/slot/deposit`）跑通。已跑通的是共用同一套 `assignWorker` 写入路径的另外两条线：师傅抢单、后台手动派单/改派。
+- **本地 dev 数据被本次联调改过**（换设备 / 新会话须知）：`W001` / `1111` 口令被改为 `123456`（原 `dev123`）、`community_id` 设为 1、`work_status` 被打卡过；`wash_worker_qualification` 里有一条 worker_id=1 的 PASSED 测试数据（`id_name` 曾因用 `docker exec mysql` 未带 `--default-character-set=utf8mb4` 造成中文双重编码，已按第九节红线修正）。
 
 ### 9.5 测试数据红线
 
