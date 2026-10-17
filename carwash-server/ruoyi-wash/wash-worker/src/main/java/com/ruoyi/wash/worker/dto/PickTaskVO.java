@@ -33,6 +33,12 @@ public class PickTaskVO {
     private String pickupDeadline;
     private Integer requiredPhotoCount;
     private Integer distanceMeters;
+    /** 小区ID：同小区任务在小程序端合并为一张卡片（T13 同小区合并） */
+    private Long communityId;
+    /** 小区名：合并卡片的标题 */
+    private String communityName;
+    /** 派单时间（毫秒） */
+    private Long assignedAt;
 
     public String getOrderNo() {
         return orderNo;
@@ -176,5 +182,29 @@ public class PickTaskVO {
 
     public void setDistanceMeters(Integer distanceMeters) {
         this.distanceMeters = distanceMeters;
+    }
+
+    public Long getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(Long communityId) {
+        this.communityId = communityId;
+    }
+
+    public String getCommunityName() {
+        return communityName;
+    }
+
+    public void setCommunityName(String communityName) {
+        this.communityName = communityName;
+    }
+
+    public Long getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(Long assignedAt) {
+        this.assignedAt = assignedAt;
     }
 }

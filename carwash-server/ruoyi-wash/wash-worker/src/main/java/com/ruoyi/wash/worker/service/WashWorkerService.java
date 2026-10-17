@@ -3,6 +3,7 @@ package com.ruoyi.wash.worker.service;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.worker.domain.WashWorker;
+import com.ruoyi.wash.worker.domain.WorkerWorkStatus;
 import com.ruoyi.wash.worker.domain.WorkerStatus;
 import com.ruoyi.wash.worker.dto.WorkerLoginVO;
 import com.ruoyi.wash.worker.mapper.WashWorkerMapper;
@@ -64,6 +65,29 @@ public class WashWorkerService {
             throw new ApiException(ErrorCode.D4004);
         }
         return worker.getSiteId();
+    }
+
+    /** 按 workerId 取师傅，不存在抛 D4001（派单/打卡等场景复用） */
+    public WashWorker require(Long workerId) {
+        WashWorker worker = workerMapper.selectByWorkerId(workerId);
+        if (worker == null) {
+            throw new ApiException(ErrorCode.D4001);
+        }
+        return worker;
+    }
+
+    /** 打卡上下班：OFFLINE / ONLINE / BUSY */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public String toggleWork(Long workerId, String workStatus) {
+        WorkerWorkStatus status = WorkerWorkStatus.of(workStatus);
+        if (status == null) {
+            throw new ApiException(ErrorCode.A0001, "上下班状态只支持 OFFLINE / ONLINE / BUSY");
+        }
+        WashWorker worker = require(workerId);
+        if (workerMapper.updateWorkStatus(workerId, status.name()) == 0) {
+            throw new ApiException(ErrorCode.A0003, "账号不可用，无法打卡");
+        }
+        return status.name();
     }
 
     /** 明文比对（MVP）。改 BCrypt 时替换本方法即可。 */

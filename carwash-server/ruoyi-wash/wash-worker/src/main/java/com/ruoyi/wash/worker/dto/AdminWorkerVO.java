@@ -20,6 +20,14 @@ public class AdminWorkerVO {
     private Long siteId;
     /** 站点名由服务端关联查出，前端不做 id→名称的映射 */
     private String siteName;
+    /** 服务小区：派单优先派同小区师傅（T13） */
+    private Long communityId;
+    /** 小区名由服务端关联查出 */
+    private String communityName;
+    /** 上下班：OFFLINE / ONLINE / BUSY */
+    private String workStatus;
+    /** 中文上下班状态名，后端枚举给出 */
+    private String workStatusLabel;
     private String status;
     /** 中文状态名，后端枚举给出 */
     private String statusLabel;
@@ -80,6 +88,38 @@ public class AdminWorkerVO {
 
     public void setSiteName(String siteName) {
         this.siteName = siteName;
+    }
+
+    public Long getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(Long communityId) {
+        this.communityId = communityId;
+    }
+
+    public String getCommunityName() {
+        return communityName;
+    }
+
+    public void setCommunityName(String communityName) {
+        this.communityName = communityName;
+    }
+
+    public String getWorkStatus() {
+        return workStatus;
+    }
+
+    public void setWorkStatus(String workStatus) {
+        this.workStatus = workStatus;
+    }
+
+    public String getWorkStatusLabel() {
+        return workStatusLabel;
+    }
+
+    public void setWorkStatusLabel(String workStatusLabel) {
+        this.workStatusLabel = workStatusLabel;
     }
 
     public String getStatus() {

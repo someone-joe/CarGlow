@@ -35,7 +35,7 @@ import java.util.UUID;
 public class WashMediaService {
 
     private static final Logger log = LoggerFactory.getLogger(WashMediaService.class);
-    private static final Set<String> BIZ_TYPES = Set.of("PARK", "PICK", "WASHED", "RETURN", "COMPARE", "VIDEO");
+    private static final Set<String> BIZ_TYPES = Set.of("PARK", "PICK", "WASHED", "RETURN", "COMPARE", "VIDEO", "WORKER_QUAL");
     /** 影像访问地址前缀，只允许在这里定义一处 */
     private static final String MEDIA_RAW_PREFIX = "/api/v1/media/";
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");

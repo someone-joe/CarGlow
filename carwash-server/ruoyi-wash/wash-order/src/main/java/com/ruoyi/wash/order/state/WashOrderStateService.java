@@ -10,6 +10,7 @@ import com.ruoyi.wash.common.statemachine.OrderStatusLog;
 import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
+import com.ruoyi.wash.order.event.OrderKeyInEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
 import com.ruoyi.wash.promo.service.WashInviteService;
 import jakarta.annotation.PostConstruct;
@@ -301,7 +302,13 @@ public class WashOrderStateService {
                 .operatorType(OrderOperatorType.JOB)
                 .reason(reason)
                 .build();
-        return stateMachine.fire(ctx);
+        OrderStatus next = stateMachine.fire(ctx);
+        // 钥匙入柜 = 可以派人取车了：发事件触发自动派单（wash-worker 监听，best-effort）
+        if (event == OrderEvent.DEPOSIT_KEY && next == OrderStatus.KEY_IN) {
+            eventPublisher.publishEvent(new OrderKeyInEvent(order.getOrderNo(), order.getMemberId(),
+                    order.getCommunityId(), order.getSiteId()));
+        }
+        return next;
     }
 
     /** 产能回补：下单时 DECR 过，取消要加回去；key 不存在说明当日未限量，无需处理。 */

@@ -32,6 +32,19 @@ public class WashPickController {
         return ApiResult.ok(pickService.tasks(WorkerContext.require(), stage));
     }
 
+    /** 待派单池：本站点尚未派单的订单，师傅可抢单 */
+    @GetMapping("/api/v1/pick/pool")
+    public ApiResult<List<PickTaskVO>> pool(@RequestParam(required = false) String stage) {
+        return ApiResult.ok(pickService.poolTasks(WorkerContext.require(), stage));
+    }
+
+    /** 抢单：条件更新保证并发下只有一人成功，失败抛 B1002 由前端提示"手慢了" */
+    @PostMapping("/api/v1/pick/orders/{orderNo}/claim")
+    public ApiResult<Void> claim(@PathVariable String orderNo) {
+        pickService.claim(orderNo, WorkerContext.require());
+        return ApiResult.<Void>ok(null);
+    }
+
     /** 取钥匙开箱码。body 可为空（不带 slotNo = 走备用码兜底） */
     @PostMapping("/api/v1/pick/orders/{orderNo}/open-code")
     public ApiResult<OpenCodeVO> openCode(@PathVariable String orderNo,

@@ -74,6 +74,9 @@ public class WashPickService {
     private WashWorkerService workerService;
 
     @Autowired
+    private WashDispatchService dispatchService;
+
+    @Autowired
     private WashOrderPickService pickQuery;
 
     @Autowired
@@ -105,12 +108,26 @@ public class WashPickService {
     private long openCodeTtlMinutes;
 
     /**
-     * 任务池。站点是硬过滤（师傅只看本站点单），stage 决定看待取还是待送。
+     * 我的任务：派给该师傅的订单（自动派单 / 抢单 / 后台改派的结果）。
+     *
+     * <p>站点仍是硬边界：未绑定站点的师傅不给看任务，避免看到不该看的单。
+     * stage 决定看待取还是待送。
      */
     public List<PickTaskVO> tasks(Long workerId, String stage) {
-        Long siteId = workerService.requireSiteId(workerId);
-        List<WashOrder> orders = pickQuery.selectBySiteAndStatuses(siteId, resolveStatuses(stage));
+        workerService.requireSiteId(workerId);
+        return toVos(dispatchService.myTasks(workerId, resolveStatuses(stage)));
+    }
 
+    /**
+     * 待派单池：本站点、尚未派单的订单。自动派单没有合格候选时订单留在这里，
+     * 在线且资质合格的师傅可以抢单，运营也能在后台手动派单。
+     */
+    public List<PickTaskVO> poolTasks(Long workerId, String stage) {
+        Long siteId = workerService.requireSiteId(workerId);
+        return toVos(dispatchService.poolTasks(siteId, resolveStatuses(stage)));
+    }
+
+    private List<PickTaskVO> toVos(List<WashOrder> orders) {
         List<PickTaskVO> list = new ArrayList<>(orders.size());
         for (WashOrder order : orders) {
             PickTaskVO vo = new PickTaskVO();
@@ -125,10 +142,18 @@ public class WashPickService {
             vo.setBizType(PICKUP_STATUSES.contains(order.getStatus()) ? "PICKUP" : "RETURN");
             vo.setAppointmentDate(formatDate(order.getAppointTime()));
             vo.setRequiredPhotoCount(photoMin);
+            // 同小区合并：前端按 communityId 分组为一张卡片；小区名由前端用小区列表解析
+            vo.setCommunityId(order.getCommunityId());
+            vo.setAssignedAt(order.getAssignedAt());
             // 车辆品牌/颜色、客户信息、取送地址、承诺还车时间：等待对应域接入后填充
             list.add(vo);
         }
         return list;
+    }
+
+    /** 抢单：待派单池接单（并发安全，失败抛 B1002） */
+    public void claim(String orderNo, Long workerId) {
+        dispatchService.claim(workerId, orderNo);
     }
 
     /**

@@ -16,6 +16,10 @@ public class WashOrder extends BaseEntity {
     private Long memberId;
     private Long siteId;
     private Long communityId;
+    /** 接单师傅ID（自动派单/抢单/手动派单的结果，T13） */
+    private Long workerId;
+    /** 派单时间（毫秒） */
+    private Long assignedAt;
     private String status;
     private String serviceName;
     /** 预约时间，毫秒时间戳 */
@@ -62,6 +66,22 @@ public class WashOrder extends BaseEntity {
 
     public Long getCommunityId() {
         return communityId;
+    }
+
+    public Long getWorkerId() {
+        return workerId;
+    }
+
+    public void setWorkerId(Long workerId) {
+        this.workerId = workerId;
+    }
+
+    public Long getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(Long assignedAt) {
+        this.assignedAt = assignedAt;
     }
 
     public void setCommunityId(Long communityId) {

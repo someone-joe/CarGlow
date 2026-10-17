@@ -16,8 +16,12 @@ public class WashWorker extends BaseEntity {
     private String name;
     private String phone;
     private Long siteId;
+    /** 服务小区ID：派单时优先派同小区师傅（同小区合并的依据） */
+    private Long communityId;
     /** NORMAL 正常 / DISABLED 禁用 */
     private String status;
+    /** 上下班：OFFLINE 下班 / ONLINE 上班 / BUSY 忙碌（见 WorkerWorkStatus） */
+    private String workStatus;
 
     public Long getWorkerId() {
         return workerId;
@@ -65,6 +69,22 @@ public class WashWorker extends BaseEntity {
 
     public void setSiteId(Long siteId) {
         this.siteId = siteId;
+    }
+
+    public Long getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(Long communityId) {
+        this.communityId = communityId;
+    }
+
+    public String getWorkStatus() {
+        return workStatus;
+    }
+
+    public void setWorkStatus(String workStatus) {
+        this.workStatus = workStatus;
     }
 
     public String getStatus() {

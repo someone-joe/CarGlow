@@ -101,6 +101,7 @@ public interface WashOrderMapper {
      */
     @Select("<script>" +
             "select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id, " +
+            "worker_id, assigned_at, " +
             "status, service_name, appoint_time, pay_amount, plate_no, create_time " +
             "from wash_order where del_flag = '0' and site_id = #{siteId} " +
             "<if test='statuses != null and statuses.size() > 0'> " +
@@ -110,6 +111,49 @@ public interface WashOrderMapper {
             "</script>")
     List<WashOrder> selectBySiteAndStatuses(@Param("siteId") Long siteId,
                                             @Param("statuses") List<String> statuses);
+
+    /** 我的任务：派给该师傅的订单（按预约时间正序） */
+    @Select("<script>" +
+            "select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id, " +
+            "worker_id, assigned_at, " +
+            "status, service_name, appoint_time, pay_amount, plate_no, create_time " +
+            "from wash_order where del_flag = '0' and worker_id = #{workerId} " +
+            "<if test='statuses != null and statuses.size() > 0'> " +
+            "and status in <foreach collection='statuses' item='s' open='(' separator=',' close=')'>#{s}</foreach> " +
+            "</if> " +
+            "order by appoint_time asc, create_time asc" +
+            "</script>")
+    List<WashOrder> selectByWorkerAndStatuses(@Param("workerId") Long workerId,
+                                              @Param("statuses") List<String> statuses);
+
+    /** 待派单池：本站点、尚未派单的订单（自动派单无候选时由在线师傅抢单） */
+    @Select("<script>" +
+            "select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id, " +
+            "worker_id, assigned_at, " +
+            "status, service_name, appoint_time, pay_amount, plate_no, create_time " +
+            "from wash_order where del_flag = '0' and site_id = #{siteId} and worker_id is null " +
+            "<if test='statuses != null and statuses.size() > 0'> " +
+            "and status in <foreach collection='statuses' item='s' open='(' separator=',' close=')'>#{s}</foreach> " +
+            "</if> " +
+            "order by appoint_time asc, create_time asc" +
+            "</script>")
+    List<WashOrder> selectUnassignedBySiteAndStatuses(@Param("siteId") Long siteId,
+                                                      @Param("statuses") List<String> statuses);
+
+    /**
+     * 派单结果落库。条件更新：仅当当前未派单、或已是该师傅时才写，
+     * 返回 0 表示被别人先派走（抢单并发下避免双接单）。
+     */
+    @Update("update wash_order set worker_id = #{workerId}, assigned_at = #{assignedAt}, update_time = sysdate() " +
+            "where order_no = #{orderNo} and del_flag = '0' and (worker_id is null or worker_id = #{workerId})")
+    int assignWorker(@Param("orderNo") String orderNo, @Param("workerId") Long workerId,
+                     @Param("assignedAt") Long assignedAt);
+
+    /** 后台改派：无条件覆盖（含已派给别人的单），返回 0 表示订单不存在 */
+    @Update("update wash_order set worker_id = #{workerId}, assigned_at = #{assignedAt}, update_time = sysdate() " +
+            "where order_no = #{orderNo} and del_flag = '0'")
+    int forceAssignWorker(@Param("orderNo") String orderNo, @Param("workerId") Long workerId,
+                          @Param("assignedAt") Long assignedAt);
 
     /**
      * 超时未支付的订单：给支付超时自动取消任务用。

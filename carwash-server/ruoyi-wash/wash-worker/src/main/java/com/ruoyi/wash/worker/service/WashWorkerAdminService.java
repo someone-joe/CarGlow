@@ -4,9 +4,11 @@ import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
+import com.ruoyi.wash.network.service.WashCommunityAdminService;
 import com.ruoyi.wash.network.service.WashSiteQueryService;
 import com.ruoyi.wash.worker.domain.WashWorker;
 import com.ruoyi.wash.worker.domain.WorkerStatus;
+import com.ruoyi.wash.worker.domain.WorkerWorkStatus;
 import com.ruoyi.wash.worker.dto.AdminWorkerVO;
 import com.ruoyi.wash.worker.mapper.WashWorkerMapper;
 import com.ruoyi.wash.worker.security.WorkerTokenService;
@@ -40,6 +42,10 @@ public class WashWorkerAdminService {
     @Autowired
     private WashSiteQueryService siteQuery;
 
+    /** 服务小区同样是 wash-network 域的数据 */
+    @Autowired
+    private WashCommunityAdminService communityQuery;
+
     @Autowired
     private RedisCache redisCache;
 
@@ -47,7 +53,8 @@ public class WashWorkerAdminService {
         int offset = (pageNum - 1) * pageSize;
         List<AdminWorkerVO> rows = workerMapper.selectAdminList(keyword, siteId, status, offset, pageSize);
         Map<Long, String> siteNames = siteNames();
-        rows.forEach(w -> decorate(w, siteNames));
+        Map<Long, String> communityNames = communityNames();
+        rows.forEach(w -> decorate(w, siteNames, communityNames));
         return rows;
     }
 
@@ -57,7 +64,7 @@ public class WashWorkerAdminService {
 
     public AdminWorkerVO get(Long workerId) {
         AdminWorkerVO vo = require(workerId);
-        decorate(vo, siteNames());
+        decorate(vo, siteNames(), communityNames());
         return vo;
     }
 
@@ -73,6 +80,9 @@ public class WashWorkerAdminService {
         }
         if (worker.getStatus() == null) {
             worker.setStatus(WorkerStatus.NORMAL.name());
+        }
+        if (worker.getWorkStatus() == null) {
+            worker.setWorkStatus(WorkerWorkStatus.OFFLINE.name());
         }
         workerMapper.insertWorker(worker);
         return worker.getWorkerId();
@@ -137,6 +147,9 @@ public class WashWorkerAdminService {
         if (worker.getStatus() != null && WorkerStatus.of(worker.getStatus()) == null) {
             throw new ApiException(ErrorCode.A0001, "未知师傅状态：" + worker.getStatus());
         }
+        if (worker.getWorkStatus() != null && WorkerWorkStatus.of(worker.getWorkStatus()) == null) {
+            throw new ApiException(ErrorCode.A0001, "未知上下班状态：" + worker.getWorkStatus());
+        }
     }
 
     /**
@@ -176,11 +189,21 @@ public class WashWorkerAdminService {
     }
 
     /** 补齐展示用字段，并确保 password 不带出去（VO 兼作入参，出参必须清干净） */
-    private void decorate(AdminWorkerVO vo, Map<Long, String> siteNames) {
+    private void decorate(AdminWorkerVO vo, Map<Long, String> siteNames, Map<Long, String> communityNames) {
         vo.setPassword(null);
         vo.setSiteName(vo.getSiteId() == null ? null : siteNames.get(vo.getSiteId()));
+        vo.setCommunityName(vo.getCommunityId() == null ? null : communityNames.get(vo.getCommunityId()));
         // 中文状态名由后端枚举给出，前端只展示不翻译
         WorkerStatus status = WorkerStatus.of(vo.getStatus());
         vo.setStatusLabel(status == null ? vo.getStatus() : status.getLabel());
+        // 上下班状态同样由后端枚举给中文名
+        WorkerWorkStatus workStatus = WorkerWorkStatus.of(vo.getWorkStatus());
+        vo.setWorkStatusLabel(workStatus == null ? vo.getWorkStatus() : workStatus.getLabel());
+    }
+
+    /** 小区 id → 名称，一次性查好避免逐行查库 */
+    private Map<Long, String> communityNames() {
+        return communityQuery.list(null, null, 1, 200).stream()
+                .collect(Collectors.toMap(c -> c.getCommunityId(), c -> c.getCommunityName(), (a, b) -> a));
     }
 }
