@@ -184,7 +184,8 @@ onShow(() => {
     .catch(() => (services.value = []))
     .finally(() => (loading.value = false))
   fetchBanners()
-    .then((b) => (banners.value = b || []))
+    // 后端 banner 的 subtitle 映射为文字图的 desc；无配置时前端降级为「服务理念」
+    .then((b) => (banners.value = (b || []).map((x) => ({ ...x, desc: x.subtitle }))))
     .catch(() => (banners.value = []))
   maybeShowFirstOrderPopup()
 })

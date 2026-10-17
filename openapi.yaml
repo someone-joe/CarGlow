@@ -3024,6 +3024,132 @@ paths:
               schema:
                 $ref: '#/components/schemas/RuoYiResult'
 
+  # ========================= 首页 Banner（后台） =========================
+  /admin-api/wash/banner/list:
+    get:
+      tags: [admin-banner]
+      summary: Banner 列表
+      x-permission: wash:banner:list
+      parameters:
+        - name: title
+          in: query
+          required: false
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { type: object }
+                          total: { type: integer, format: int64 }
+
+  /admin-api/wash/banner/{bannerId}:
+    get:
+      tags: [admin-banner]
+      summary: Banner 详情
+      x-permission: wash:banner:list
+      parameters:
+        - name: bannerId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+    delete:
+      tags: [admin-banner]
+      summary: 删除 Banner（逻辑删除）
+      x-permission: wash:banner:remove
+      parameters:
+        - name: bannerId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
+  /admin-api/wash/banner:
+    post:
+      tags: [admin-banner]
+      summary: 新增 Banner
+      x-permission: wash:banner:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                subtitle: { type: string }
+                imageUrl: { type: string, description: '为空则渲染文字图' }
+                linkType:
+                  type: string
+                  enum: [NONE, ACTIVITY, RECHARGE, SERVICE]
+                linkValue: { type: string, description: 'SERVICE 时传 serviceId' }
+                sortOrder: { type: integer }
+                startTime: { type: integer, format: int64, description: '生效时间(毫秒)，空=长期' }
+                endTime: { type: integer, format: int64, description: '失效时间(毫秒)，空=长期' }
+                enabled: { type: string, description: 'Y/N' }
+      responses:
+        '200':
+          description: 成功（data 为新建 bannerId）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+    put:
+      tags: [admin-banner]
+      summary: 修改 Banner
+      x-permission: wash:banner:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bannerId, title]
+              properties:
+                bannerId: { type: integer, format: int64 }
+                title: { type: string }
+                subtitle: { type: string }
+                imageUrl: { type: string }
+                linkType: { type: string, enum: [NONE, ACTIVITY, RECHARGE, SERVICE] }
+                linkValue: { type: string }
+                sortOrder: { type: integer }
+                startTime: { type: integer, format: int64 }
+                endTime: { type: integer, format: int64 }
+                enabled: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
   # ========================= 师傅（工作人员）管理 =========================
   /admin-api/wash/worker/list:
     get:
@@ -3648,12 +3774,17 @@ components:
       type: object
       properties:
         bannerId: { type: integer, format: int64 }
-        imageUrl: { type: string }
+        imageUrl:
+          type: string
+          description: 图片URL；为空时 C 端渲染「标题+副标题」文字图
         title: { type: string }
+        subtitle: { type: string, description: 副标题（无图时文字图展示） }
         linkType:
           type: string
           enum: [NONE, ACTIVITY, RECHARGE, SERVICE]
-        linkValue: { type: string }
+        linkValue:
+          type: string
+          description: 跳转值；SERVICE 时传 serviceId，前端据此进服务详情
         sort: { type: integer }
 
     CapacityVO:

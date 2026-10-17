@@ -3742,6 +3742,8 @@ export interface components {
             bannerId?: number;
             imageUrl?: string;
             title?: string;
+            /** 副标题（无图时文字图展示） */
+            subtitle?: string;
             /** @enum {string} */
             linkType?: "NONE" | "ACTIVITY" | "RECHARGE" | "SERVICE";
             linkValue?: string;

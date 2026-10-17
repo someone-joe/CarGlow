@@ -35,3 +35,7 @@ insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame
 select '计价参数保存', 2000, 6, '#', '', 1, 0, 'F', '0', '0', 'wash:selfwash:edit', '#', 'admin', now(), ''
 from dual
 where not exists (select 1 from sys_menu where menu_name = '计价参数保存');
+
+-- 授权：超级管理员默认给全部新菜单（运营/站长角色后续在后台「角色管理」勾选）
+insert ignore into sys_role_menu (role_id, menu_id)
+select 1, menu_id from sys_menu where menu_name in ('自助洗车配置', '计价参数保存');
