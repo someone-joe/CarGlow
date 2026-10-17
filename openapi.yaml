@@ -3382,6 +3382,241 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RuoYiResult' }
 
+  # ============================ 后台：优惠券管理 ============================
+  /admin-api/wash/coupon/template/list:
+    get:
+      tags: [admin-coupon]
+      summary: 优惠券模板分页
+      description: |
+        含已下架的模板（运营要能找回），不含已删除的。
+        remain = total - issued（剩余可领），由后端算好下发，前端不要自己减。
+        金额字段一律**分**，与后端存储一致；表单元→分换算在前端做。
+      x-permission: wash:coupon:list
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema: { type: string }
+        - name: type
+          in: query
+          required: false
+          schema: { type: string, enum: [NORMAL, NEWBIE, INVITE] }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [Y, N] }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/AdminCouponTemplateVO' }
+                          total: { type: integer, format: int64 }
+
+  /admin-api/wash/coupon/template/{templateId}:
+    get:
+      tags: [admin-coupon]
+      summary: 券模板详情
+      x-permission: wash:coupon:list
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminCouponTemplateVO' }
+
+    delete:
+      tags: [admin-coupon]
+      summary: 删除券模板（逻辑删除）
+      description: 与其它表一致不做物理删除：已发出去的券还引用着模板名与金额快照。
+      x-permission: wash:coupon:remove
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/coupon/template:
+    post:
+      tags: [admin-coupon]
+      summary: 新增券模板
+      x-permission: wash:coupon:add
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, thresholdAmount, discountAmount, total, perLimit, startTime, endTime]
+              properties:
+                name: { type: string }
+                type: { type: string, enum: [NORMAL, NEWBIE, INVITE] }
+                thresholdAmount: { type: integer, format: int64, description: 使用门槛（分），0 = 无门槛 }
+                discountAmount: { type: integer, format: int64, description: 减免金额（分） }
+                total: { type: integer, description: 发行总量 }
+                perLimit: { type: integer, description: 每人限领 }
+                startTime: { type: integer, format: int64, description: 毫秒时间戳 }
+                endTime: { type: integer, format: int64, description: 毫秒时间戳 }
+                status: { type: string, enum: [Y, N], description: 不传默认 Y 上架 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+    put:
+      tags: [admin-coupon]
+      summary: 修改券模板
+      description: |
+        **不在这里改 total / issued**：模板一旦发行过，总量与已领量就成了历史账，
+        改这两列会让"已领/剩余"和真实发出的券对不上。要加量请发新模板，别改老的。
+        上下架走专门的 status 接口，与资料修改分开（避免改名字时顺手把券下架了）。
+      x-permission: wash:coupon:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [couponTemplateId, name, type, thresholdAmount, discountAmount, perLimit, startTime, endTime]
+              properties:
+                couponTemplateId: { type: integer, format: int64 }
+                name: { type: string }
+                type: { type: string, enum: [NORMAL, NEWBIE, INVITE] }
+                thresholdAmount: { type: integer, format: int64 }
+                discountAmount: { type: integer, format: int64 }
+                perLimit: { type: integer }
+                startTime: { type: integer, format: int64 }
+                endTime: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/coupon/template/{templateId}/status:
+    post:
+      tags: [admin-coupon]
+      summary: 券模板上架 / 下架
+      x-permission: wash:coupon:edit
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [Y, N] }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/coupon/grant:
+    post:
+      tags: [admin-coupon]
+      summary: 给指定会员发券
+      description: |
+        运营手工发放（补偿、线下活动）。与 C 端自助领取**共用同一套库存扣减**：
+        乐观更新 `issued < total` 才 +1，发不完会明确报错，不会超发。
+        每人限领同样生效（perLimit 对后台发放一样算数，否则等于绕过了规则）。
+      x-permission: wash:coupon:grant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [templateId, memberId]
+              properties:
+                templateId: { type: integer, format: int64 }
+                memberId: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/coupon/record/list:
+    get:
+      tags: [admin-coupon]
+      summary: 领用 / 核销记录分页
+      description: |
+        按模板查"谁领了、谁用了、用在哪一单"。会员手机号一律脱敏返回（个保法最小化，
+        与后台订单 / 会员列表同一口径），前端不要展示明文。
+      x-permission: wash:coupon:list
+      parameters:
+        - name: templateId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - name: phone
+          in: query
+          required: false
+          schema: { type: string, description: 按会员手机号模糊匹配（按明文匹配，返回结果仍脱敏） }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [UNUSED, USED, EXPIRED] }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/AdminCouponRecordVO' }
+                          total: { type: integer, format: int64 }
+
   /admin-api/wash/banner/list:
     get:
       tags: [admin-banner]
@@ -4918,6 +5153,44 @@ components:
           type: array
           items: { type: object }
           description: 具体元素类型在各接口的 allOf 中覆盖
+
+    # ---------------- 后台优惠券 ----------------
+    AdminCouponTemplateVO:
+      type: object
+      description: |
+        后台券模板行。金额一律分，时间一律毫秒时间戳。
+        remain（剩余可领）由后端算好下发，前端不要自己减——避免前后端两套口径。
+      properties:
+        couponTemplateId: { type: integer, format: int64 }
+        name: { type: string }
+        type: { type: string, enum: [NORMAL, NEWBIE, INVITE] }
+        thresholdAmount: { type: integer, format: int64, description: 使用门槛（分），0 = 无门槛 }
+        discountAmount: { type: integer, format: int64, description: 减免金额（分） }
+        total: { type: integer, description: 发行总量 }
+        issued: { type: integer, description: 已领取 }
+        remain: { type: integer, description: 剩余可领 = total - issued }
+        perLimit: { type: integer, description: 每人限领 }
+        startTime: { type: integer, format: int64 }
+        endTime: { type: integer, format: int64 }
+        status: { type: string, enum: [Y, N] }
+        createTime: { type: integer, format: int64 }
+
+    AdminCouponRecordVO:
+      type: object
+      description: |
+        领用 / 核销记录行。会员手机号**一律脱敏**（个保法最小化，与后台订单/会员列表同一口径），
+        前端不得展示明文。金额一律分，时间毫秒时间戳。
+      properties:
+        couponUserId: { type: integer, format: int64 }
+        couponTemplateId: { type: integer, format: int64 }
+        templateName: { type: string }
+        memberId: { type: integer, format: int64 }
+        memberPhone: { type: string, description: 脱敏手机号，如 138****1234 }
+        status: { type: string, enum: [UNUSED, USED, EXPIRED] }
+        orderNo: { type: string, description: 核销所在订单号，未使用为 null }
+        obtainTime: { type: integer, format: int64, description: 领取时间 }
+        usedTime: { type: integer, format: int64, description: 核销时间，未使用为 null }
+        expireTime: { type: integer, format: int64 }
 
     # ---------------- 售后 / 退款 ----------------
     AfterSaleVO:

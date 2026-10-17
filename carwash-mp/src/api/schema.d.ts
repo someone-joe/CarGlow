@@ -5576,6 +5576,388 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin-api/wash/coupon/template/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 优惠券模板分页
+         * @description 含已下架的模板（运营要能找回），不含已删除的。
+         *     remain = total - issued（剩余可领），由后端算好下发，前端不要自己减。
+         *     金额字段一律**分**，与后端存储一致；表单元→分换算在前端做。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    name?: string;
+                    type?: "NORMAL" | "NEWBIE" | "INVITE";
+                    status?: "Y" | "N";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["AdminCouponTemplateVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/template/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 券模板详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminCouponTemplateVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * 删除券模板（逻辑删除）
+         * @description 与其它表一致不做物理删除：已发出去的券还引用着模板名与金额快照。
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 修改券模板
+         * @description **不在这里改 total / issued**：模板一旦发行过，总量与已领量就成了历史账，
+         *     改这两列会让"已领/剩余"和真实发出的券对不上。要加量请发新模板，别改老的。
+         *     上下架走专门的 status 接口，与资料修改分开（避免改名字时顺手把券下架了）。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        couponTemplateId: number;
+                        name: string;
+                        /** @enum {string} */
+                        type: "NORMAL" | "NEWBIE" | "INVITE";
+                        /** Format: int64 */
+                        thresholdAmount: number;
+                        /** Format: int64 */
+                        discountAmount: number;
+                        perLimit: number;
+                        /** Format: int64 */
+                        startTime: number;
+                        /** Format: int64 */
+                        endTime: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /** 新增券模板 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** @enum {string} */
+                        type: "NORMAL" | "NEWBIE" | "INVITE";
+                        /**
+                         * Format: int64
+                         * @description 使用门槛（分），0 = 无门槛
+                         */
+                        thresholdAmount: number;
+                        /**
+                         * Format: int64
+                         * @description 减免金额（分）
+                         */
+                        discountAmount: number;
+                        /** @description 发行总量 */
+                        total: number;
+                        /** @description 每人限领 */
+                        perLimit: number;
+                        /**
+                         * Format: int64
+                         * @description 毫秒时间戳
+                         */
+                        startTime: number;
+                        /**
+                         * Format: int64
+                         * @description 毫秒时间戳
+                         */
+                        endTime: number;
+                        /**
+                         * @description 不传默认 Y 上架
+                         * @enum {string}
+                         */
+                        status?: "Y" | "N";
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/template/{templateId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 券模板上架 / 下架 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "Y" | "N";
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 给指定会员发券
+         * @description 运营手工发放（补偿、线下活动）。与 C 端自助领取**共用同一套库存扣减**：
+         *     乐观更新 `issued < total` 才 +1，发不完会明确报错，不会超发。
+         *     每人限领同样生效（perLimit 对后台发放一样算数，否则等于绕过了规则）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        templateId: number;
+                        /** Format: int64 */
+                        memberId: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/record/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 领用 / 核销记录分页
+         * @description 按模板查"谁领了、谁用了、用在哪一单"。会员手机号一律脱敏返回（个保法最小化，
+         *     与后台订单 / 会员列表同一口径），前端不要展示明文。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    templateId?: number;
+                    phone?: string;
+                    status?: "UNUSED" | "USED" | "EXPIRED";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["AdminCouponRecordVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin-api/wash/banner/list": {
         parameters: {
             query?: never;
@@ -7612,6 +7994,74 @@ export interface components {
             total: number;
             /** @description 具体元素类型在各接口的 allOf 中覆盖 */
             rows: Record<string, never>[];
+        };
+        /**
+         * @description 后台券模板行。金额一律分，时间一律毫秒时间戳。
+         *     remain（剩余可领）由后端算好下发，前端不要自己减——避免前后端两套口径。
+         */
+        AdminCouponTemplateVO: {
+            /** Format: int64 */
+            couponTemplateId?: number;
+            name?: string;
+            /** @enum {string} */
+            type?: "NORMAL" | "NEWBIE" | "INVITE";
+            /**
+             * Format: int64
+             * @description 使用门槛（分），0 = 无门槛
+             */
+            thresholdAmount?: number;
+            /**
+             * Format: int64
+             * @description 减免金额（分）
+             */
+            discountAmount?: number;
+            /** @description 发行总量 */
+            total?: number;
+            /** @description 已领取 */
+            issued?: number;
+            /** @description 剩余可领 = total - issued */
+            remain?: number;
+            /** @description 每人限领 */
+            perLimit?: number;
+            /** Format: int64 */
+            startTime?: number;
+            /** Format: int64 */
+            endTime?: number;
+            /** @enum {string} */
+            status?: "Y" | "N";
+            /** Format: int64 */
+            createTime?: number;
+        };
+        /**
+         * @description 领用 / 核销记录行。会员手机号**一律脱敏**（个保法最小化，与后台订单/会员列表同一口径），
+         *     前端不得展示明文。金额一律分，时间毫秒时间戳。
+         */
+        AdminCouponRecordVO: {
+            /** Format: int64 */
+            couponUserId?: number;
+            /** Format: int64 */
+            couponTemplateId?: number;
+            templateName?: string;
+            /** Format: int64 */
+            memberId?: number;
+            /** @description 脱敏手机号，如 138****1234 */
+            memberPhone?: string;
+            /** @enum {string} */
+            status?: "UNUSED" | "USED" | "EXPIRED";
+            /** @description 核销所在订单号，未使用为 null */
+            orderNo?: string;
+            /**
+             * Format: int64
+             * @description 领取时间
+             */
+            obtainTime?: number;
+            /**
+             * Format: int64
+             * @description 核销时间，未使用为 null
+             */
+            usedTime?: number;
+            /** Format: int64 */
+            expireTime?: number;
         };
         /** @description 售后工单。金额一律单位分，时间一律毫秒时间戳。 */
         AfterSaleVO: {

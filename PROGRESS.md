@@ -343,7 +343,7 @@ git clone <仓库地址>      # 或 git pull
 
 - ~~`admin-api` 契约未入 `openapi.yaml`~~ ✅ 已完成（2026-09-27，E-1）：后台接口已全量入契约（tag `admin-*`）。
 - 影像 `store-path` 默认相对路径（跟着进程工作目录走）——**生产必须配绝对路径**，否则老文件 404（已发生过）。
-- 后台运营功能：商品（服务项）配置、师傅管理、站点/小区管理、优惠券管理。
+- 后台运营功能：商品（服务项）配置 ✅、师傅管理 ✅、站点/小区管理 ✅、优惠券管理 ✅（2026-10-18，见第十四节）。**后台运营补全基本收口**。
 - C 端界面改版（对标 `对标产品设计稿/`）。
 - **T13 后端已实测通过（2026-10-17）**：后台接口全通——资质分页（PENDING / PASSED 均可）、周排班读写、派单候选、待派单池、手动派单/改派（`worker_id` 由 1 改 2 已生效）、师傅进行中订单；师傅端登录 / 档案 / 打卡 / 资质提交与查询 / 待派单池 / 抢单均通过。
   - ⚠️ **后台登录路径是 `/login`，不是 `/admin-api/login`**：`/admin-api` 前缀写在各后台 Controller 的类级 `@RequestMapping` 上，而 `SecurityConfig` 只放行 `/login`。自测时 curl 打到 `/admin-api/login` 必然 401——**那不是基建缺陷**，曾据此误判过一次，别再踩。
@@ -446,7 +446,8 @@ git clone <仓库地址>      # 或 git pull
 - ✅ **站点 / 小区管理已完成（2026-10-08 核实）**：`AdminSiteController` + `WashSiteAdminService`（站点）、
   `AdminCommunityController` + `WashCommunityAdminService`（小区）均已落地，前端 `carwash-admin` 对应表单与列表页已存在。
   站点新增曾因 `deposit_deadline` 静态 insert 报 NOT NULL，已改为动态 SQL 修复（见 `WashSiteMapper`，commit ead7e0c）。
-- 优惠券管理（券模板 + 发放 + 核销记录）
+- ~~**优惠券管理**~~ ✅ 已完成（2026-10-18）：券模板 CRUD + 上下架 + 逻辑删除 + 运营发放 + 领用/核销记录，
+  契约 tag `admin-coupon`，后端 `WashCouponAdminService` / `AdminCouponController`，详见第十四节。
 - 工位（bay）与 SOP 15 步明细（当前无工位表，`station/queue` 的 bayNo/sopStep 为 null）
 - 复盘工单（`qc-fail` 达阈值目前只 WARN，未自动建单）
 
@@ -705,3 +706,47 @@ C 端提交售后（REFUND）
 - **后台前端「售后工单处置」页与「退款单」页** — 后端接口与契约已就绪，页面待做（下一轮）
 - ⚠️ **后台登录路径是 `/login` 不是 `/admin-api/login`**（`/admin-api` 写在各后台 Controller 类级
   `@RequestMapping` 上，`SecurityConfig` 只放行 `/login`）。自测 curl 别打错，曾据此误判为基建缺陷。
+
+---
+
+## 十四、后台优惠券管理（2026-10-18）
+
+> C 端券能力（领券中心 / 领取 / 我的券 / 最优券 / 下单核销）早已存在，本次补的是**运营侧管理**。
+
+### 14.1 接口（契约 tag `admin-coupon`，路径前缀 `/admin-api/wash/coupon`）
+
+| 能力 | 方法 + 路径 | 权限 |
+| --- | --- | --- |
+| 模板分页 | GET `/template/list`（name/type/status） | `wash:coupon:list` |
+| 模板详情 | GET `/template/{templateId}` | `wash:coupon:list` |
+| 新增模板 | POST `/template` | `wash:coupon:add` |
+| 修改资料 | PUT `/template` | `wash:coupon:edit` |
+| 上/下架 | POST `/template/{templateId}/status` | `wash:coupon:edit` |
+| 删除（逻辑） | DELETE `/template/{templateId}` | `wash:coupon:remove` |
+| 发放 | POST `/grant` | `wash:coupon:grant` |
+| 领用/核销记录 | GET `/record/list` | `wash:coupon:list` |
+
+### 14.2 关键口径（别改）
+
+- **编辑接口刻意不接受 `total` / `issued`**：模板一旦发行过，总量就是历史账，
+  改了会让"已领 / 剩余"和真实发出的券对不上。**要加量请发新模板**。
+  SQL 里干脆不出现这两列，是结构性保证而不是靠人记得。（新增时才校验 total。）
+- **发放与 C 端领取共用同一套库存扣减**：`incrementIssued`（乐观更新 `issued < total`）+
+  插入用户券，后台发放不是另一条路。否则迟早出现"后台发了 100 张但库存没扣"。
+- **`perLimit` 对后台发放一样生效**：否则等于绕过限领规则，同一个号能领一叠。
+- **上下架与改资料分成两个接口**：避免"改个名字顺手把券下架了"。
+- **会员手机号在 SQL 层脱敏**（`138****1234`）：不把明文带进 Java 层，
+  与后台订单 / 会员列表同一口径（个保法最小化）。查询按明文匹配、结果脱敏返回。
+- **EXPIRED 是计算值不是库状态**：库里存 UNUSED，只是过了有效期，按 EXPIRED 展示。
+- `remain` 由后端算好下发，前端不要自己减（运营刚改完 total、前端还没刷新时会错）。
+
+### 14.3 实测（2026-10-18）
+
+新增模板（id=4）→ 发放给会员 1 → 超限领被拒（每人限领 1）→ 领用记录返回
+`couponTemplateId=4`、`memberPhone=138****5678`（脱敏生效）→ 改资料（total/issued 未被改动）→
+下架 → 下架后发放被拒 → 倒贴校验被拒（减免 > 门槛）→ 逻辑删除 → 删后详情被拒。
+
+### 14.4 仍未做
+- 批量发放 / 按群发（当前只做单张发放：批量涉及库存与限领核算，容易出错，先不做）
+- 后台前端「优惠券管理」页面（券模板表单 / 发放弹窗 / 核销记录表）——后端与契约已就绪
+- 后台前端「售后工单处置」页与「退款单」页（第十三节 13.4）
