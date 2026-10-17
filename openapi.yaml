@@ -203,6 +203,143 @@ paths:
                       data:
                         $ref: '#/components/schemas/WorkerLoginVO'
 
+  /api/v1/worker/profile:
+    get:
+      tags: [worker]
+      summary: 师傅档案 + 状态聚合（打卡 / 资质 / 在班 / 进行中单量）
+      description: |
+        师傅端「我的」页聚合信息。qualificationPassed 决定是否允许接单；
+        onDutyToday 由排班表算（没配排班视为不限）；activeOrderCount 用于负载展示。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WorkerProfileVO' }
+
+  /api/v1/worker/work-status:
+    post:
+      tags: [worker]
+      summary: 打卡上下班
+      description: |
+        本人操作，OFFLINE / ONLINE / BUSY 三态切换。BUSY 表示在忙但仍在线（可按需派）。
+        只有 ONLINE / BUSY 才进入派单候选；下班后即便资质齐全也不再接单。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workStatus]
+              properties:
+                workStatus: { type: string, enum: [OFFLINE, ONLINE, BUSY] }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          workStatus: { type: string, enum: [OFFLINE, ONLINE, BUSY] }
+
+  /api/v1/worker/qualification:
+    get:
+      tags: [worker]
+      summary: 我的资质（未提交时返回空态 submitted=false）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WorkerQualificationVO' }
+    post:
+      tags: [worker]
+      summary: 提交 / 重新提交资质（身份证 + 驾照）
+      description: |
+        提交后审核回到 PENDING，人脸核身结果保留（本人脸不会变）。
+        重新提交会覆盖证件信息并重新送审。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idName, idNo, idFrontFile, idBackFile]
+              properties:
+                idName: { type: string, description: 身份证姓名 }
+                idNo: { type: string, description: 身份证号 }
+                idFrontFile: { type: string, description: 身份证正面照 fileId }
+                idBackFile: { type: string, description: 身份证反面照 fileId }
+                licenseFile: { type: string, description: 驾照照 fileId（选填） }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Result' }
+
+  /api/v1/worker/media/upload:
+    post:
+      tags: [worker]
+      summary: 师傅影像上传（资质照片）
+      description: 走 worker 鉴权，bizType 仅 WORKER_QUAL；照片不挂订单，由前端在提交资质时带上 fileId。
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, bizType]
+              properties:
+                file: { type: string, format: binary }
+                bizType: { type: string, enum: [WORKER_QUAL] }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/MediaVO' }
+
+  /api/v1/worker/media/{fileId}/raw:
+    get:
+      tags: [worker]
+      summary: 师傅读取已上传的资质照片（worker 鉴权）
+      description: 与会员 / 后台影像读取走不同拦截器；worker 身份才能读取。
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 图片字节流
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        '404':
+          description: 文件不存在
+
   /api/v1/auth/agreements:
     get:
       tags: [auth]
@@ -1617,7 +1754,7 @@ paths:
                 file: { type: string, format: binary }
                 bizType:
                   type: string
-                  enum: [PARK, PICK, WASHED, RETURN, COMPARE, VIDEO]
+                  enum: [PARK, PICK, WASHED, RETURN, COMPARE, VIDEO, WORKER_QUAL]
                 orderNo: { type: string }
       responses:
         '200':
@@ -1901,6 +2038,50 @@ paths:
                   data:
                     type: array
                     items: { $ref: '#/components/schemas/PickTaskVO' }
+
+  /api/v1/pick/pool:
+    get:
+      tags: [master-pick]
+      summary: 待派单池（师傅可抢单）
+      description: |
+        本站点、尚未派单的订单。自动派单没有合格候选（无人在线/资质未过/不在班）时订单留在这里，
+        在线且资质合格的师傅可抢单；运营也可在后台手动派单。
+      parameters:
+        - name: stage
+          in: query
+          schema: { type: string, enum: [PICKUP, RETURN, ALL] }
+      responses:
+        '200':
+          description: 待派单列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/PickTaskVO' }
+
+  /api/v1/pick/orders/{orderNo}/claim:
+    post:
+      tags: [master-pick]
+      summary: 抢单
+      description: |
+        条件更新保证并发下只有一人成功；被别人先抢走返回 B1002，前端提示"手慢了"。
+        要求：账号正常、已打卡上班、资质通过（人脸核身 + 后台审核）、同站点。
+      parameters:
+        - name: orderNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
 
   /api/v1/pick/orders/{orderNo}/pick-car-done:
     post:
@@ -3336,6 +3517,246 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RuoYiResult' }
 
+  # ---------------- 资质审核（T13） ----------------
+  /admin-api/wash/worker/qualification/page:
+    get:
+      tags: [admin-worker]
+      summary: 师傅资质审核分页
+      description: 默认看 PENDING；可按 reviewStatus 筛选（PENDING / PASSED / REJECTED）。
+      x-permission: wash:worker:audit
+      parameters:
+        - name: reviewStatus
+          in: query
+          required: false
+          schema: { type: string, enum: [PENDING, PASSED, REJECTED] }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/WorkerQualificationAdminVO' }
+
+  /admin-api/wash/worker/qualification/review:
+    put:
+      tags: [admin-worker]
+      summary: 审核资质
+      description: |
+        审核结果只支持 PASSED / REJECTED；驳回必须带 reviewRemark（师傅要看到为什么没过）。
+        通过后该师傅才满足派单准入（faceStatus + reviewStatus 均为 PASSED）。
+      x-permission: wash:worker:audit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workerId, reviewStatus]
+              properties:
+                workerId: { type: integer, format: int64 }
+                reviewStatus: { type: string, enum: [PASSED, REJECTED] }
+                reviewRemark: { type: string, description: 驳回原因（驳回时必填） }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/worker/qualification/face:
+    put:
+      tags: [admin-worker]
+      summary: 登记人脸核身结果
+      description: |
+        人脸核身结果回填：PASSED / FAILED。faceProvider 区分 WECHAT（微信核身回调）与
+        MANUAL（后台人工登记）。接入微信核身后同一字段回填 verifyId，数据模型不变。
+      x-permission: wash:worker:audit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workerId, faceStatus]
+              properties:
+                workerId: { type: integer, format: int64 }
+                faceStatus: { type: string, enum: [PASSED, FAILED] }
+                faceProvider: { type: string, enum: [WECHAT, MANUAL] }
+                faceRef: { type: string, description: 核身凭证号（微信返回或人工登记） }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  # ---------------- 周排班（T13） ----------------
+  /admin-api/wash/worker/{workerId}/schedule:
+    get:
+      tags: [admin-worker]
+      summary: 师傅周排班
+      x-permission: wash:worker:schedule
+      parameters:
+        - name: workerId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/WorkerScheduleVO' }
+    put:
+      tags: [admin-worker]
+      summary: 整体覆盖周排班
+      description: |
+        一天可多段；段内时间必须合法（00:00-23:59，最长不超过 24 小时，允许跨天）。
+        传空数组 = 清空（= 不限制派单时段）；「没配排班」与「配了但今天不在班」是两回事。
+      x-permission: wash:worker:schedule
+      parameters:
+        - name: workerId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [weekDay, startMinute, endMinute]
+                properties:
+                  weekDay: { type: integer, description: 星期 1-7（1=周一） }
+                  startMinute: { type: integer, description: 开始（当日分钟数，如 540=09:00） }
+                  endMinute: { type: integer, description: 结束（当日分钟数，如 1320=22:00） }
+                  enabled: { type: string, enum: [Y, N], description: 是否启用 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/worker/{workerId}/tasks:
+    get:
+      tags: [admin-worker]
+      summary: 师傅进行中的订单（后台改派选单用）
+      x-permission: wash:order:dispatch
+      parameters:
+        - name: workerId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminOrderBriefVO' }
+
+  # ---------------- 派单（T13） ----------------
+  /admin-api/wash/worker/dispatch/pool:
+    get:
+      tags: [admin-worker]
+      summary: 后台手动派单：待派单池
+      description: 本站点、尚未派单的进行中状态订单。运营可点选直接指派给当前师傅。
+      x-permission: wash:order:dispatch
+      parameters:
+        - name: siteId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminOrderBriefVO' }
+
+  /admin-api/wash/worker/dispatch/candidates:
+    get:
+      tags: [admin-worker]
+      summary: 派单候选师傅
+      description: 本站点、账号正常、已上班的师傅；按同小区优先 + 负载排序。资质/在班由前端展示，后端只给候选。
+      x-permission: wash:order:dispatch
+      parameters:
+        - name: siteId
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: communityId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/DispatchCandidateVO' }
+
+  /admin-api/wash/worker/dispatch:
+    post:
+      tags: [admin-worker]
+      summary: 手动派单 / 改派
+      description: 无条件覆盖 worker_id（含已派给别人的单），用于纠正自动派单结果。跨站点会被拒绝。
+      x-permission: wash:order:dispatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderNo, workerId]
+              properties:
+                orderNo: { type: string }
+                workerId: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
   /admin-api/wash/site/list:
     get:
       tags: [admin-site]
@@ -3721,6 +4142,92 @@ components:
             $ref: '#/components/schemas/MediaVO'
 
     # ---------------- 师傅端（工作人员） ----------------
+    WorkerProfileVO:
+      type: object
+      description: 师傅档案 + 状态聚合（打卡 / 资质 / 在班 / 进行中单量）
+      properties:
+        workerId: { type: integer, format: int64 }
+        workerNo: { type: string }
+        name: { type: string }
+        phone: { type: string }
+        siteId: { type: integer, format: int64 }
+        communityId: { type: integer, format: int64, description: 服务小区ID（派单优先同小区） }
+        workStatus: { type: string, enum: [OFFLINE, ONLINE, BUSY] }
+        qualificationPassed: { type: boolean, description: 资质是否全过（人脸核身 + 审核），派单准入 }
+        onDutyToday: { type: boolean, description: 今天是否按排班在班（没配排班=true） }
+        activeOrderCount: { type: integer, description: 进行中订单数（负载） }
+
+    WorkerQualificationVO:
+      type: object
+      description: 师傅资质视图（身份证脱敏；人脸 / 审核状态驱动接单资格）
+      properties:
+        submitted: { type: boolean, description: 是否已提交过资质 }
+        idName: { type: string }
+        idNo: { type: string, description: 身份证号（脱敏：中间 ****） }
+        idFrontFile: { type: string, description: 身份证正面照 fileId }
+        idBackFile: { type: string, description: 身份证反面照 fileId }
+        licenseFile: { type: string, description: 驾照照 fileId }
+        faceStatus: { type: string, enum: [PENDING, PASSED, FAILED] }
+        faceProvider: { type: string, enum: [WECHAT, MANUAL] }
+        faceRef: { type: string, description: 核身凭证号 }
+        faceTime: { type: integer, format: int64 }
+        reviewStatus: { type: string, enum: [PENDING, PASSED, REJECTED] }
+        reviewRemark: { type: string, description: 驳回原因 }
+        submitTime: { type: integer, format: int64 }
+        reviewTime: { type: integer, format: int64 }
+
+    WorkerQualificationAdminVO:
+      type: object
+      description: 后台资质审核行（运营需核验证件，idNo 不脱敏）
+      properties:
+        id: { type: integer, format: int64 }
+        workerId: { type: integer, format: int64 }
+        idName: { type: string }
+        idNo: { type: string }
+        idFrontFile: { type: string }
+        idBackFile: { type: string }
+        licenseFile: { type: string }
+        faceStatus: { type: string, enum: [PENDING, PASSED, FAILED] }
+        faceProvider: { type: string, enum: [WECHAT, MANUAL] }
+        faceRef: { type: string }
+        faceTime: { type: integer, format: int64 }
+        reviewStatus: { type: string, enum: [PENDING, PASSED, REJECTED] }
+        reviewRemark: { type: string }
+        submitTime: { type: integer, format: int64 }
+        reviewTime: { type: integer, format: int64 }
+
+    WorkerScheduleVO:
+      type: object
+      description: 师傅周排班单项
+      properties:
+        id: { type: integer, format: int64 }
+        workerId: { type: integer, format: int64 }
+        weekDay: { type: integer, description: 星期 1-7（1=周一） }
+        startMinute: { type: integer, description: 开始（当日分钟数，如 540=09:00） }
+        endMinute: { type: integer, description: 结束（当日分钟数，如 1320=22:00） }
+        enabled: { type: string, enum: [Y, N] }
+
+    DispatchCandidateVO:
+      type: object
+      description: 派单候选师傅（同小区优先 + 负载展示）
+      properties:
+        value: { type: integer, format: int64, description: workerId }
+        label: { type: string, description: 姓名（工号） }
+        communityId: { type: integer, format: int64, description: 服务小区ID }
+        activeCount: { type: integer, description: 进行中订单数 }
+
+    AdminOrderBriefVO:
+      type: object
+      description: 后台订单简表（派单 / 改派选单用）
+      properties:
+        orderNo: { type: string }
+        status: { type: string }
+        statusLabel: { type: string, description: 状态中文名，由后端枚举给出 }
+        serviceName: { type: string }
+        vehiclePlate: { type: string }
+        communityId: { type: integer, format: int64 }
+        assignedAt: { type: integer, format: int64, description: 派单时间（毫秒） }
+
     WorkerLoginVO:
       type: object
       properties:
@@ -4144,6 +4651,12 @@ components:
         vehiclePlate: { type: string, description: 车牌 }
         vehicleBrand: { type: string }
         vehicleColor: { type: string }
+        communityId:
+          type: integer
+          format: int64
+          description: 小区ID。同小区任务在小程序端合并为一张卡片（T13 同小区合并）
+        communityName: { type: string }
+        assignedAt: { type: integer, format: int64, description: 派单时间（毫秒） }
         customerName: { type: string, description: 客户称呼，脱敏 }
         customerPhone: { type: string, description: 联系电话，脱敏 }
         pickupAddr: { type: string }

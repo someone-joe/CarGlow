@@ -105,6 +105,275 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/worker/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 师傅档案 + 状态聚合（打卡 / 资质 / 在班 / 进行中单量）
+         * @description 师傅端「我的」页聚合信息。qualificationPassed 决定是否允许接单；
+         *     onDutyToday 由排班表算（没配排班视为不限）；activeOrderCount 用于负载展示。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["WorkerProfileVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker/work-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 打卡上下班
+         * @description 本人操作，OFFLINE / ONLINE / BUSY 三态切换。BUSY 表示在忙但仍在线（可按需派）。
+         *     只有 ONLINE / BUSY 才进入派单候选；下班后即便资质齐全也不再接单。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        workStatus: "OFFLINE" | "ONLINE" | "BUSY";
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /** @enum {string} */
+                                workStatus?: "OFFLINE" | "ONLINE" | "BUSY";
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker/qualification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的资质（未提交时返回空态 submitted=false） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["WorkerQualificationVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * 提交 / 重新提交资质（身份证 + 驾照）
+         * @description 提交后审核回到 PENDING，人脸核身结果保留（本人脸不会变）。
+         *     重新提交会覆盖证件信息并重新送审。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 身份证姓名 */
+                        idName: string;
+                        /** @description 身份证号 */
+                        idNo: string;
+                        /** @description 身份证正面照 fileId */
+                        idFrontFile: string;
+                        /** @description 身份证反面照 fileId */
+                        idBackFile: string;
+                        /** @description 驾照照 fileId（选填） */
+                        licenseFile?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker/media/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 师傅影像上传（资质照片）
+         * @description 走 worker 鉴权，bizType 仅 WORKER_QUAL；照片不挂订单，由前端在提交资质时带上 fileId。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                        /** @enum {string} */
+                        bizType: "WORKER_QUAL";
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["MediaVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker/media/{fileId}/raw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 师傅读取已上传的资质照片（worker 鉴权）
+         * @description 与会员 / 后台影像读取走不同拦截器；worker 身份才能读取。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 图片字节流 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description 文件不存在 */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/agreements": {
         parameters: {
             query?: never;
@@ -404,6 +673,11 @@ export interface paths {
             parameters: {
                 query?: {
                     categoryId?: number;
+                    /**
+                     * @description 入口场景。UNSENSITIVE 无感洗车（按次/套餐计价）/ SELFWASH 自助洗车（按计时计价，价格见 /api/v1/selfwash/pricing）。
+                     *     传场景时返回该场景专属 + ALL 通用；不传返回全部。
+                     */
+                    scene?: "UNSENSITIVE" | "SELFWASH";
                 };
                 header?: never;
                 path?: never;
@@ -637,6 +911,996 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/park-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 我的常用停车位置
+         * @description 只返回当前登录会员的位置，默认位置在前。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /** Format: int64 */
+                                locationId?: number;
+                                /** Format: int64 */
+                                communityId?: number;
+                                communityName?: string;
+                                /** @description 楼栋/单元号 */
+                                building?: string;
+                                /** @description 车位号 */
+                                parkingNo?: string;
+                                /** @description 具体位置补充 */
+                                detail?: string;
+                                /** @description Y/N */
+                                isDefault?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * 新增常用停车位置
+         * @description communityId 必填（所在小区）；isDefault=Y 时自动取消其它默认。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        communityId: number;
+                        communityName?: string;
+                        building?: string;
+                        parkingNo?: string;
+                        detail?: string;
+                        /** @description Y/N */
+                        isDefault?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为新建位置ID） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/park-locations/{locationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改常用停车位置 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        communityId?: number;
+                        communityName?: string;
+                        building?: string;
+                        parkingNo?: string;
+                        detail?: string;
+                        isDefault?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** 删除常用停车位置 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    locationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 自助洗车计时计价参数（免登录）
+         * @description 自助按计时收费（与无感的「按次/套餐」不同）：
+         *     baseAmount 分 / baseMinutes 分钟 起收，超过后按 overtimeAmount 分 / overtimeMinutes 分钟 计。
+         *     金额单位分，时长单位分钟。默认 2000 分 / 30 分钟，超时 800 分 / 10 分钟；后台可改。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /**
+                                 * Format: int64
+                                 * @description 基础金额（分）
+                                 */
+                                baseAmount?: number;
+                                /** @description 基础时长（分钟） */
+                                baseMinutes?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 超时金额（分）
+                                 */
+                                overtimeAmount?: number;
+                                /** @description 超时时长（分钟） */
+                                overtimeMinutes?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/workstations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 自助工位列表（带实时状态）
+         * @description siteId 传当前站点。status：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。
+         *     Stage 1 无自助订单，启用即 IDLE；排队人数 / 前方车牌 / 服务剩余时间随自助订单（Stage 2）补充。
+         */
+        get: {
+            parameters: {
+                query: {
+                    siteId: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /** Format: int64 */
+                                workstationId?: number;
+                                /** Format: int64 */
+                                siteId?: number;
+                                code?: string;
+                                name?: string;
+                                /** @description IDLE/SERVING/DISABLED */
+                                status?: string;
+                                enabled?: string;
+                                /**
+                                 * Format: int64
+                                 * @description 服务中剩余秒
+                                 */
+                                remainingSeconds?: number;
+                                /** @description 该工位当前排队人数 */
+                                queueCount?: number;
+                                /** @description 当前服务车牌（服务中） */
+                                currentPlate?: string;
+                                /** @description 前方排队车牌（按排队顺序，无车牌显示 ***） */
+                                aheadPlates?: string[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的自助订单列表 */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description WAIT_USE 待使用 / ONGOING 进行中 / DONE 已完成 / CANCELED 已取消 */
+                    tab?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["SelfwashOrderVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 选位下单（快照服务价/时长，建待支付订单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        workstationId: number;
+                        /** Format: int64 */
+                        serviceId: number;
+                        /**
+                         * Format: int64
+                         * @description 选填，使用的优惠券；下单即核销并抵减实付
+                         */
+                        couponUserId?: number;
+                        /** @description 选填，车牌；用于工位排队展示与监控 */
+                        plateNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为订单号） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自助订单详情（SERVING 时带剩余秒数） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["SelfwashOrderVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/pay-balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 储值余额支付（扣余额 → 待使用） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/mock-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 模拟微信支付（仅本地开发，受 wash.pay.mock-enabled 控制） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 取消订单（待支付直接取消；待使用且储值支付退余额；服务中不可取消） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 到店激活/开始服务（空闲则通电倒计时，有正在服务则排队） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功（data 为激活后的订单，SERVING 或 QUEUING） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["SelfwashOrderVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/add-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 加时（按本单实付/时长折算单价计费，从储值余额扣除后延长服务倒计时；余额不足返回 B3004） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        minutes: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["SelfwashOrderVO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/selfwash/orders/{orderNo}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 结束服务（断电完成，若有排队自动开始下一单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的发票申请列表 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["InvoiceVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** 申请开票（按订单；金额由后端按订单实付解析，前端不传金额） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description 无感或自助订单号 */
+                        orderNo: string;
+                        /** @description PERSONAL/COMPANY，企业需填税号 */
+                        titleType?: string;
+                        /** @description 发票抬头 */
+                        title: string;
+                        taxNo?: string;
+                        /** @description 接收邮箱 */
+                        email: string;
+                        remark?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为申请ID） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{invoiceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发票申请详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["InvoiceVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invite/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 我的邀请码（首次调用生成并落库） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功（data 为邀请码，如 CGAB12XY） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invite/bind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 绑定邀请码（被邀请人调用）
+         * @description 校验邀请码有效、不能邀请自己、同一被邀请人只能绑定一次。
+         *     绑定成功后给被邀请人发「新人券」作首单优惠（已领过则忽略）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invite/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 我邀请的人 + 统计
+         * @description 被邀请人首次成单（支付成功）后，系统给邀请人发一张 INVITE 奖励券（如 10 元），
+         *     此时该邀请记录状态变为 REWARDED。发奖由订单支付成功处触发，不由此接口触发。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                invitedCount?: number;
+                                rewardedCount?: number;
+                                list?: {
+                                    /** Format: int64 */
+                                    inviteId?: number;
+                                    /** Format: int64 */
+                                    inviteeMemberId?: number;
+                                    /** @description BOUND/REWARDED */
+                                    status?: string;
+                                    statusLabel?: string;
+                                    firstOrderNo?: string;
+                                    /** Format: date-time */
+                                    createTime?: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notify/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 通知模板列表（枚举名 → 中文名） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notify/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 开发自测推送（x-dev-only；真实推送由业务服务端触发）
+         * @description 骨架期走 mock 通道只打点；模板ID配置在 wash.notify.templates.*，
+         *     未配置且关闭 mock 时会跳过并记录原因（不静默丢消息）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description NotifyTemplate 枚举名，默认 ORDER_STATUS */
+                        template?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为是否发送） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1128,6 +2392,341 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/{orderNo}/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 储值余额全额支付（本期渠道之一）
+         * @description 用钱包余额（充值本金 + 赠送，先赠后本）全额支付订单：扣款 → 状态机 PAY_SUCCESS（WAIT_PAY → WAIT_KEY）。
+         *     与支付回调同一事务，扣款与状态推进同成功同回滚。余额不足返回 B3004，前端据此弹「充值更优惠」引导。
+         *     微信支付仍走 prepay / mock-pay（本期不接真实微信）。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 我的钱包（余额）
+         * @description 无钱包行时惰性创建。金额单位为分。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /**
+                                 * Format: int64
+                                 * @description 充值本金余额（分）
+                                 */
+                                balance?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 赠送余额（分）
+                                 */
+                                giftBalance?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 累计充值本金（分）
+                                 */
+                                totalRecharge?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/recharge-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 充值赠送规则（供「充值更优惠」弹窗）
+         * @description 仅返回启用中的规则，按 sortOrder 升序。金额单位为分。
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /** Format: int64 */
+                                ruleId?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 充值门槛（分）
+                                 */
+                                rechargeFen?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 赠送（分）
+                                 */
+                                giftFen?: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/recharge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 发起充值
+         * @description ruleId（选赠送档）与 amountFen（自定义金额）二选一，ruleId 优先；自定义金额不赠送。
+         *     生成 INIT 充值单；本地由 mock-pay 到账（微信渠道后补）。金额单位为分。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        ruleId?: number;
+                        /** Format: int64 */
+                        amountFen?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                rechargeNo?: string;
+                                /** Format: int64 */
+                                payAmount?: number;
+                                /** Format: int64 */
+                                giftAmount?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 支付截止（毫秒）
+                                 */
+                                expireAt?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/recharge/{rechargeNo}/mock-pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 模拟充值到账（仅本地开发）
+         * @description 受 wash.pay.mock-enabled 控制，生产必须 false。幂等：重复调用返回当前余额，不重复入账。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    rechargeNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                /** Format: int64 */
+                                balance?: number;
+                                /** Format: int64 */
+                                giftBalance?: number;
+                                /** Format: int64 */
+                                totalRecharge?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 钱包流水（分页） */
+        get: {
+            parameters: {
+                query?: {
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: {
+                                list?: {
+                                    flowNo?: string;
+                                    /** @description RECHARGE/GIFT/PAY/REFUND */
+                                    bizType?: string;
+                                    /**
+                                     * Format: int64
+                                     * @description 本金变动（分，正入负出）
+                                     */
+                                    changeAmount?: number;
+                                    /**
+                                     * Format: int64
+                                     * @description 赠送变动（分，正入负出）
+                                     */
+                                    giftChange?: number;
+                                    /** Format: int64 */
+                                    balanceAfter?: number;
+                                    /** Format: int64 */
+                                    giftAfter?: number;
+                                    bizNo?: string;
+                                    remark?: string;
+                                    /** Format: date-time */
+                                    createTime?: string;
+                                }[];
+                                /** Format: int64 */
+                                total?: number;
+                                pageNum?: number;
+                                pageSize?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{orderNo}/reviews": {
         parameters: {
             query?: never;
@@ -1262,7 +2861,7 @@ export interface paths {
                         /** Format: binary */
                         file: string;
                         /** @enum {string} */
-                        bizType: "PARK" | "PICK" | "WASHED" | "RETURN" | "COMPARE" | "VIDEO";
+                        bizType: "PARK" | "PICK" | "WASHED" | "RETURN" | "COMPARE" | "VIDEO" | "WORKER_QUAL";
                         orderNo?: string;
                     };
                 };
@@ -1381,10 +2980,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 客服配置（企微二维码、双电话、夜间提示）
+         * 客服配置（企微二维码、双电话、夜间提示、常见问题）
          * @description 取值优先级：后台「系统管理 → 参数设置」（key：wash.cs.platform-phone / wash.cs.station-phone /
          *     wash.cs.night-tip / wash.cs.wecom-qrcode-url）→ application.yml 兜底 → 代码默认。
          *     platformPhone 默认 10086：客服入口任何时候都必须能拨通（bug092203）。
+         *     faqs（您可能会遇到的问题）由后台「客服配置」页维护，存于 wash_cs_faq 表；
+         *     未配置时返回空数组，前端自行决定是否展示占位。
          */
         get: {
             parameters: {
@@ -1407,6 +3008,13 @@ export interface paths {
                                 platformPhone?: string;
                                 stationPhone?: string;
                                 nightTip?: string;
+                                /** @description 常见问题（您可能会遇到的问题），按 sortOrder 升序 */
+                                faqs?: {
+                                    /** @description 问题文案 */
+                                    question?: string;
+                                    /** @description 解答文案，可空；空则前端弹通用占位 */
+                                    answer?: string;
+                                }[];
                             };
                         };
                     };
@@ -1735,6 +3343,93 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pick/pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 待派单池（师傅可抢单）
+         * @description 本站点、尚未派单的订单。自动派单没有合格候选（无人在线/资质未过/不在班）时订单留在这里，
+         *     在线且资质合格的师傅可抢单；运营也可在后台手动派单。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    stage?: "PICKUP" | "RETURN" | "ALL";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 待派单列表 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: number;
+                            data?: components["schemas"]["PickTaskVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pick/orders/{orderNo}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 抢单
+         * @description 条件更新保证并发下只有一人成功；被别人先抢走返回 B1002，前端提示"手慢了"。
+         *     要求：账号正常、已打卡上班、资质通过（人脸核身 + 后台审核）、同站点。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2859,6 +4554,974 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin-api/wash/wallet/gift-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 充值赠送规则列表（含停用） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                /** Format: int64 */
+                                ruleId?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 充值门槛（分）
+                                 */
+                                rechargeFen?: number;
+                                /**
+                                 * Format: int64
+                                 * @description 赠送（分）
+                                 */
+                                giftFen?: number;
+                                /** @description Y/N */
+                                enabled?: string;
+                                sortOrder?: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * 整体覆盖保存赠送规则
+         * @description 充值单已存金额快照，覆盖规则不影响历史单。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        rechargeFen: number;
+                        /** Format: int64 */
+                        giftFen: number;
+                    }[];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/wallet/recharges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 充值流水分页 */
+        get: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                    /** @description INIT/SUCCESS/FAILED */
+                    status?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: Record<string, never>[];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/workstation/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 工位列表 */
+        get: {
+            parameters: {
+                query?: {
+                    siteId?: number;
+                    keyword?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: Record<string, never>[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/workstation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 新增工位 */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        siteId: number;
+                        code: string;
+                        name?: string;
+                        enabled?: string;
+                        sortOrder?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为新建工位ID） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/workstation/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改工位 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        code?: string;
+                        name?: string;
+                        enabled?: string;
+                        sortOrder?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** 删除工位 */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自助洗车计时计价参数 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                /** Format: int64 */
+                                baseAmount?: number;
+                                baseMinutes?: number;
+                                /** Format: int64 */
+                                overtimeAmount?: number;
+                                overtimeMinutes?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        /** 保存自助洗车计时计价参数 */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: int64
+                         * @description 基础金额（分）
+                         */
+                        baseAmount: number;
+                        /** @description 基础时长（分钟） */
+                        baseMinutes: number;
+                        /**
+                         * Format: int64
+                         * @description 超时金额（分）
+                         */
+                        overtimeAmount: number;
+                        /** @description 超时时长（分钟） */
+                        overtimeMinutes: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/order/status-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自助订单状态下拉 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                value?: string;
+                                label?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/order/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自助订单分页（监控） */
+        get: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                    siteId?: number;
+                    workstationId?: number;
+                    status?: string;
+                    orderNo?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["SelfwashOrderVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/order/{orderNo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自助订单详情（监控） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["SelfwashOrderVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/selfwash/order/{orderNo}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 强制结束（仅服务中订单） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    orderNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/invoice/status-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发票状态下拉 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                value?: string;
+                                label?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/invoice/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发票申请分页 */
+        get: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                    status?: string;
+                    orderNo?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["InvoiceVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/invoice/{invoiceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 发票申请详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["InvoiceVO"];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/invoice/{invoiceId}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 开票（回填发票号） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        invoiceNo?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/invoice/{invoiceId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 驳回（原因必填） */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/banner/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Banner 列表 */
+        get: {
+            parameters: {
+                query?: {
+                    title?: string;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: Record<string, never>[];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/banner/{bannerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Banner 详情 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    bannerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** 删除 Banner（逻辑删除） */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    bannerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/banner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 修改 Banner */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        bannerId: number;
+                        title: string;
+                        subtitle?: string;
+                        imageUrl?: string;
+                        /** @enum {string} */
+                        linkType?: "NONE" | "ACTIVITY" | "RECHARGE" | "SERVICE";
+                        linkValue?: string;
+                        sortOrder?: number;
+                        /** Format: int64 */
+                        startTime?: number;
+                        /** Format: int64 */
+                        endTime?: number;
+                        enabled?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        /** 新增 Banner */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title: string;
+                        subtitle?: string;
+                        /** @description 为空则渲染文字图 */
+                        imageUrl?: string;
+                        /** @enum {string} */
+                        linkType?: "NONE" | "ACTIVITY" | "RECHARGE" | "SERVICE";
+                        /** @description SERVICE 时传 serviceId */
+                        linkValue?: string;
+                        sortOrder?: number;
+                        /**
+                         * Format: int64
+                         * @description 生效时间(毫秒)，空=长期
+                         */
+                        startTime?: number;
+                        /**
+                         * Format: int64
+                         * @description 失效时间(毫秒)，空=长期
+                         */
+                        endTime?: number;
+                        /** @description Y/N */
+                        enabled?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功（data 为新建 bannerId） */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin-api/wash/worker/list": {
         parameters: {
             query?: never;
@@ -3157,6 +5820,411 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["AdminWorkerPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/qualification/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 师傅资质审核分页
+         * @description 默认看 PENDING；可按 reviewStatus 筛选（PENDING / PASSED / REJECTED）。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    reviewStatus?: "PENDING" | "PASSED" | "REJECTED";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["WorkerQualificationAdminVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/qualification/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 审核资质
+         * @description 审核结果只支持 PASSED / REJECTED；驳回必须带 reviewRemark（师傅要看到为什么没过）。
+         *     通过后该师傅才满足派单准入（faceStatus + reviewStatus 均为 PASSED）。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        workerId: number;
+                        /** @enum {string} */
+                        reviewStatus: "PASSED" | "REJECTED";
+                        /** @description 驳回原因（驳回时必填） */
+                        reviewRemark?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/qualification/face": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 登记人脸核身结果
+         * @description 人脸核身结果回填：PASSED / FAILED。faceProvider 区分 WECHAT（微信核身回调）与
+         *     MANUAL（后台人工登记）。接入微信核身后同一字段回填 verifyId，数据模型不变。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: int64 */
+                        workerId: number;
+                        /** @enum {string} */
+                        faceStatus: "PASSED" | "FAILED";
+                        /** @enum {string} */
+                        faceProvider?: "WECHAT" | "MANUAL";
+                        /** @description 核身凭证号（微信返回或人工登记） */
+                        faceRef?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/{workerId}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 师傅周排班 */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["WorkerScheduleVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * 整体覆盖周排班
+         * @description 一天可多段；段内时间必须合法（00:00-23:59，最长不超过 24 小时，允许跨天）。
+         *     传空数组 = 清空（= 不限制派单时段）；「没配排班」与「配了但今天不在班」是两回事。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description 星期 1-7（1=周一） */
+                        weekDay: number;
+                        /** @description 开始（当日分钟数，如 540=09:00） */
+                        startMinute: number;
+                        /** @description 结束（当日分钟数，如 1320=22:00） */
+                        endMinute: number;
+                        /**
+                         * @description 是否启用
+                         * @enum {string}
+                         */
+                        enabled?: "Y" | "N";
+                    }[];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/{workerId}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 师傅进行中的订单（后台改派选单用） */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    workerId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminOrderBriefVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/dispatch/pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 后台手动派单：待派单池
+         * @description 本站点、尚未派单的进行中状态订单。运营可点选直接指派给当前师傅。
+         */
+        get: {
+            parameters: {
+                query: {
+                    siteId: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["AdminOrderBriefVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/dispatch/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 派单候选师傅
+         * @description 本站点、账号正常、已上班的师傅；按同小区优先 + 负载排序。资质/在班由前端展示，后端只给候选。
+         */
+        get: {
+            parameters: {
+                query: {
+                    siteId: number;
+                    communityId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: components["schemas"]["DispatchCandidateVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/worker/dispatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 手动派单 / 改派
+         * @description 无条件覆盖 worker_id（含已派给别人的单），用于纠正自动派单结果。跨站点会被拒绝。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        orderNo: string;
+                        /** Format: int64 */
+                        workerId: number;
+                    };
                 };
             };
             responses: {
@@ -3686,6 +6754,133 @@ export interface components {
             /** @description 该节点的照片等证据 */
             evidences?: components["schemas"]["MediaVO"][];
         };
+        /** @description 师傅档案 + 状态聚合（打卡 / 资质 / 在班 / 进行中单量） */
+        WorkerProfileVO: {
+            /** Format: int64 */
+            workerId?: number;
+            workerNo?: string;
+            name?: string;
+            phone?: string;
+            /** Format: int64 */
+            siteId?: number;
+            /**
+             * Format: int64
+             * @description 服务小区ID（派单优先同小区）
+             */
+            communityId?: number;
+            /** @enum {string} */
+            workStatus?: "OFFLINE" | "ONLINE" | "BUSY";
+            /** @description 资质是否全过（人脸核身 + 审核），派单准入 */
+            qualificationPassed?: boolean;
+            /** @description 今天是否按排班在班（没配排班=true） */
+            onDutyToday?: boolean;
+            /** @description 进行中订单数（负载） */
+            activeOrderCount?: number;
+        };
+        /** @description 师傅资质视图（身份证脱敏；人脸 / 审核状态驱动接单资格） */
+        WorkerQualificationVO: {
+            /** @description 是否已提交过资质 */
+            submitted?: boolean;
+            idName?: string;
+            /** @description 身份证号（脱敏：中间 ****） */
+            idNo?: string;
+            /** @description 身份证正面照 fileId */
+            idFrontFile?: string;
+            /** @description 身份证反面照 fileId */
+            idBackFile?: string;
+            /** @description 驾照照 fileId */
+            licenseFile?: string;
+            /** @enum {string} */
+            faceStatus?: "PENDING" | "PASSED" | "FAILED";
+            /** @enum {string} */
+            faceProvider?: "WECHAT" | "MANUAL";
+            /** @description 核身凭证号 */
+            faceRef?: string;
+            /** Format: int64 */
+            faceTime?: number;
+            /** @enum {string} */
+            reviewStatus?: "PENDING" | "PASSED" | "REJECTED";
+            /** @description 驳回原因 */
+            reviewRemark?: string;
+            /** Format: int64 */
+            submitTime?: number;
+            /** Format: int64 */
+            reviewTime?: number;
+        };
+        /** @description 后台资质审核行（运营需核验证件，idNo 不脱敏） */
+        WorkerQualificationAdminVO: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            workerId?: number;
+            idName?: string;
+            idNo?: string;
+            idFrontFile?: string;
+            idBackFile?: string;
+            licenseFile?: string;
+            /** @enum {string} */
+            faceStatus?: "PENDING" | "PASSED" | "FAILED";
+            /** @enum {string} */
+            faceProvider?: "WECHAT" | "MANUAL";
+            faceRef?: string;
+            /** Format: int64 */
+            faceTime?: number;
+            /** @enum {string} */
+            reviewStatus?: "PENDING" | "PASSED" | "REJECTED";
+            reviewRemark?: string;
+            /** Format: int64 */
+            submitTime?: number;
+            /** Format: int64 */
+            reviewTime?: number;
+        };
+        /** @description 师傅周排班单项 */
+        WorkerScheduleVO: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            workerId?: number;
+            /** @description 星期 1-7（1=周一） */
+            weekDay?: number;
+            /** @description 开始（当日分钟数，如 540=09:00） */
+            startMinute?: number;
+            /** @description 结束（当日分钟数，如 1320=22:00） */
+            endMinute?: number;
+            /** @enum {string} */
+            enabled?: "Y" | "N";
+        };
+        /** @description 派单候选师傅（同小区优先 + 负载展示） */
+        DispatchCandidateVO: {
+            /**
+             * Format: int64
+             * @description workerId
+             */
+            value?: number;
+            /** @description 姓名（工号） */
+            label?: string;
+            /**
+             * Format: int64
+             * @description 服务小区ID
+             */
+            communityId?: number;
+            /** @description 进行中订单数 */
+            activeCount?: number;
+        };
+        /** @description 后台订单简表（派单 / 改派选单用） */
+        AdminOrderBriefVO: {
+            orderNo?: string;
+            status?: string;
+            /** @description 状态中文名，由后端枚举给出 */
+            statusLabel?: string;
+            serviceName?: string;
+            vehiclePlate?: string;
+            /** Format: int64 */
+            communityId?: number;
+            /**
+             * Format: int64
+             * @description 派单时间（毫秒）
+             */
+            assignedAt?: number;
+        };
         WorkerLoginVO: {
             token?: string;
             /** Format: int64 */
@@ -3740,12 +6935,14 @@ export interface components {
         BannerVO: {
             /** Format: int64 */
             bannerId?: number;
+            /** @description 图片URL；为空时 C 端渲染「标题+副标题」文字图 */
             imageUrl?: string;
             title?: string;
-            /** 副标题（无图时文字图展示） */
+            /** @description 副标题（无图时文字图展示） */
             subtitle?: string;
             /** @enum {string} */
             linkType?: "NONE" | "ACTIVITY" | "RECHARGE" | "SERVICE";
+            /** @description 跳转值；SERVICE 时传 serviceId，前端据此进服务详情 */
             linkValue?: string;
             sort?: number;
         };
@@ -3777,6 +6974,11 @@ export interface components {
             serviceId?: number;
             /** Format: int64 */
             categoryId?: number;
+            /**
+             * @description 入口场景，UNSENSITIVE 无感 / SELFWASH 自助 / ALL 两入口通用
+             * @enum {string}
+             */
+            scene?: "UNSENSITIVE" | "SELFWASH" | "ALL";
             name?: string;
             subtitle?: string;
             /** @description 原价，单位分 */
@@ -3945,6 +7147,71 @@ export interface components {
             orderNo?: string;
             status?: components["schemas"]["OrderStatus"];
         };
+        /** @description 自助洗车订单（C 端）。金额单位：分；时间为 ms。 */
+        SelfwashOrderVO: {
+            orderNo?: string;
+            /** Format: int64 */
+            siteId?: number;
+            /** Format: int64 */
+            workstationId?: number;
+            serviceName?: string;
+            plateNo?: string;
+            /** @description 付费时长（分钟） */
+            serviceMinutes?: number;
+            /** Format: int64 */
+            payAmount?: number;
+            /** @description BALANCE/WECHAT_MOCK */
+            payChannel?: string;
+            /** @enum {string} */
+            status?: "WAIT_PAY" | "WAIT_USE" | "QUEUING" | "SERVING" | "PAUSED" | "DONE" | "CANCELED";
+            statusLabel?: string;
+            queueNo?: number;
+            /** Format: int64 */
+            startedAt?: number;
+            /** Format: int64 */
+            expireAt?: number;
+            addedSeconds?: number;
+            /** Format: int64 */
+            payExpireAt?: number;
+            cancelReason?: string;
+            /** Format: int64 */
+            couponUserId?: number;
+            /**
+             * Format: int64
+             * @description 优惠券抵扣金额（分）
+             */
+            couponDiscount?: number;
+            /** Format: date-time */
+            createTime?: string;
+            /**
+             * Format: int64
+             * @description 服务剩余秒（SERVING 时）
+             */
+            remainingSeconds?: number;
+        };
+        /** @description 发票申请。金额单位：分。 */
+        InvoiceVO: {
+            /** Format: int64 */
+            invoiceId?: number;
+            /** Format: int64 */
+            memberId?: number;
+            orderNo?: string;
+            /** Format: int64 */
+            amount?: number;
+            /** @description PERSONAL/COMPANY */
+            titleType?: string;
+            title?: string;
+            taxNo?: string;
+            email?: string;
+            /** @enum {string} */
+            status?: "APPLYING" | "ISSUED" | "REJECTED";
+            statusLabel?: string;
+            invoiceNo?: string;
+            rejectReason?: string;
+            remark?: string;
+            /** Format: date-time */
+            createTime?: string;
+        };
         /** @description 按钮随状态机变化，前端不得自行推断，一律用后端返回值 */
         OrderAction: {
             /** @enum {string} */
@@ -3988,6 +7255,17 @@ export interface components {
             vehiclePlate?: string;
             vehicleBrand?: string;
             vehicleColor?: string;
+            /**
+             * Format: int64
+             * @description 小区ID。同小区任务在小程序端合并为一张卡片（T13 同小区合并）
+             */
+            communityId?: number;
+            communityName?: string;
+            /**
+             * Format: int64
+             * @description 派单时间（毫秒）
+             */
+            assignedAt?: number;
             /** @description 客户称呼，脱敏 */
             customerName?: string;
             /** @description 联系电话，脱敏 */
