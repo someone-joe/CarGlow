@@ -8,6 +8,11 @@
       <text class="logout" @click="doLogout">退出</text>
     </view>
 
+    <view class="modes">
+      <text :class="['mode', mode === 'tasks' && 'on']" @click="switchMode('tasks')">我的任务</text>
+      <text :class="['mode', mode === 'pool' && 'on']" @click="switchMode('pool')">待派单池</text>
+    </view>
+
     <view class="tabs">
       <text :class="['tab', stage === 'PICKUP' && 'on']" @click="switchStage('PICKUP')">待取车</text>
       <text :class="['tab', stage === 'RETURN' && 'on']" @click="switchStage('RETURN')">待送回</text>
@@ -74,6 +79,8 @@
       </view>
 
       <view class="ops">
+        <!-- 待派单池里的单，在线且资质合格的师傅可抢；抢成功后自动归入「我的任务」 -->
+        <text v-if="mode === 'pool'" class="op op-claim" @click="doClaim(t.orderNo)">抢单</text>
         <!-- 取钥匙必须先开箱：跳开箱页取码，确认取出后才推进状态（PRD 6.4：开箱 → 校验 → 确认） -->
         <text v-if="t.status === 'KEY_IN'" class="op" @click="goOpenBox(t.orderNo)">取钥匙开箱</text>
         <template v-if="t.status === 'PICKING'">
@@ -96,10 +103,11 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import WorkerTabBar from '@/components/WorkerTabBar.vue'
 import { uploadMedia, type MediaBizType, type MediaVO, MAX_UPLOAD_MB } from '@/api/media'
-import { fetchPickTasks, pickCarDone, returnDone, type PickStage, type PickTaskVO } from '@/api/worker'
+import { fetchPickTasks, fetchPickPool, claimOrder, pickCarDone, returnDone, type PickStage, type PickTaskVO } from '@/api/worker'
 import { logoutWorker, restoreWorker, workerState } from '@/store/worker'
 import { BASE_URL, getToken } from '@/utils/request'
 
+const mode = ref<'tasks' | 'pool'>('tasks')
 const stage = ref<PickStage>('ALL')
 const tasks = ref<PickTaskVO[]>([])
 
@@ -111,6 +119,12 @@ onShow(() => {
   load()
 })
 
+function switchMode(next: 'tasks' | 'pool'): void {
+  if (mode.value === next) return
+  mode.value = next
+  load()
+}
+
 function switchStage(next: PickStage): void {
   stage.value = next
   load()
@@ -118,10 +132,24 @@ function switchStage(next: PickStage): void {
 
 async function load(): Promise<void> {
   try {
-    tasks.value = await fetchPickTasks(stage.value)
+    tasks.value = mode.value === 'pool'
+      ? await fetchPickPool(stage.value)
+      : await fetchPickTasks(stage.value)
   } catch {
     // 失败已有统一 toast（10002 会自动跳登录页）
   }
+}
+
+/** 抢单：成功后自动跳回「我的任务」并刷新，让师傅立刻看到刚接的单 */
+async function doClaim(orderNo?: string): Promise<void> {
+  const no = orderNo
+  if (!no) return
+  await guard(async () => {
+    await claimOrder(no)
+    uni.showToast({ title: '抢单成功', icon: 'none' })
+    mode.value = 'tasks'
+    await load()
+  })
 }
 
 /**
@@ -339,6 +367,28 @@ function doLogout(): void {
   color: #d9534f;
 }
 
+.modes {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+}
+
+.mode {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.mode.on {
+  color: #1a73e8;
+  font-weight: 600;
+  border-bottom: 4rpx solid #1a73e8;
+}
+
 .tabs {
   display: flex;
   background: #fff;
@@ -458,5 +508,9 @@ function doLogout(): void {
 
 .op-disabled {
   opacity: 0.5;
+}
+
+.op-claim {
+  background: #ff7a18;
 }
 </style>

@@ -8,11 +8,15 @@
       <text class="wtab-ico">🚿</text>
       <text class="wtab-text">作业台</text>
     </view>
+    <view :class="['wtab-item', current === 'mine' && 'on']" @click="go('/pages/worker-mine/worker-mine')">
+      <text class="wtab-ico">👤</text>
+      <text class="wtab-text">我的</text>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ current: 'tasks' | 'station' }>()
+const props = defineProps<{ current: 'tasks' | 'station' | 'mine' }>()
 
 /**
  * 师傅端底部导航。
@@ -21,7 +25,7 @@ const props = defineProps<{ current: 'tasks' | 'station' }>()
  * 故师傅端页面不走 tabBar，用本组件保持底部导航一致，切换用 redirectTo。
  */
 function go(url: string): void {
-  const target = url.includes('station') ? 'station' : 'tasks'
+  const target = url.includes('station') ? 'station' : url.includes('mine') ? 'mine' : 'tasks'
   if (target === props.current) {
     return
   }

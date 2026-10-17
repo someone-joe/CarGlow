@@ -5,6 +5,9 @@ export type WorkerLoginVO = components['schemas']['WorkerLoginVO']
 export type PickTaskVO = components['schemas']['PickTaskVO']
 export type StationQueueVO = components['schemas']['StationQueueVO']
 export type OpenCodeVO = components['schemas']['OpenCodeVO']
+export type WorkerProfileVO = components['schemas']['WorkerProfileVO']
+export type WorkerQualificationVO = components['schemas']['WorkerQualificationVO']
+export type WorkerWorkStatus = 'OFFLINE' | 'ONLINE' | 'BUSY'
 
 /**
  * 师傅端接口。契约：openapi.yaml /api/v1/worker|pick|station/**。
@@ -71,6 +74,50 @@ export function returnDone(orderNo: string, fileIds: string[], parkingNo: string
     method: 'POST',
     data: { fileIds, parkingNo },
   })
+}
+
+/** 契约：GET /api/v1/worker/profile（档案 + 打卡 / 资质 / 在班 / 负载聚合） */
+export function fetchWorkerProfile(): Promise<WorkerProfileVO> {
+  return request<WorkerProfileVO>({ url: '/api/v1/worker/profile', method: 'GET' })
+}
+
+/** 契约：POST /api/v1/worker/work-status（打卡上下班，本人操作） */
+export function setWorkerWorkStatus(workStatus: WorkerWorkStatus): Promise<{ workStatus: WorkerWorkStatus }> {
+  return request<{ workStatus: WorkerWorkStatus }>({
+    url: '/api/v1/worker/work-status',
+    method: 'POST',
+    data: { workStatus },
+  })
+}
+
+/** 契约：GET /api/v1/worker/qualification（我的资质，未提交返回空态） */
+export function fetchMyQualification(): Promise<WorkerQualificationVO> {
+  return request<WorkerQualificationVO>({ url: '/api/v1/worker/qualification', method: 'GET' })
+}
+
+/** 契约：POST /api/v1/worker/qualification（提交 / 重新提交资质） */
+export function submitQualification(payload: {
+  idName: string
+  idNo: string
+  idFrontFile: string
+  idBackFile: string
+  licenseFile?: string
+}): Promise<void> {
+  return request<void>({ url: '/api/v1/worker/qualification', method: 'POST', data: payload })
+}
+
+/** 契约：GET /api/v1/pick/pool（待派单池，可抢单） */
+export function fetchPickPool(stage: PickStage = 'ALL'): Promise<PickTaskVO[]> {
+  return request<PickTaskVO[]>({
+    url: '/api/v1/pick/pool',
+    method: 'GET',
+    data: { stage },
+  })
+}
+
+/** 契约：POST /api/v1/pick/orders/{orderNo}/claim（抢单，并发下失败返 B1002） */
+export function claimOrder(orderNo: string): Promise<void> {
+  return request<void>({ url: `/api/v1/pick/orders/${orderNo}/claim`, method: 'POST' })
 }
 
 /** 契约：GET /api/v1/station/queue（单个看板对象，师傅只属一个站点） */
