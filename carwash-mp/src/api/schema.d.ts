@@ -2786,7 +2786,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * 我的售后单列表
+         * @description 只返回本人提交的工单，按创建时间倒序。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "INIT" | "PROCESSING" | "DONE" | "REJECTED";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["AfterSaleVO"][];
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         /** 提交售后（重洗 / 退款 / 理赔） */
         post: {
@@ -2823,6 +2850,50 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 我的退款单列表
+         * @description 只返回本人的退款单。**钱是否真的退回去，以本表 status 为准**，订单状态 REFUNDING 只是"处理中"。
+         *     status 来自渠道结果：INIT 待退款 / SUCCESS 已退 / FAILED 失败（系统在跑自动重试）。
+         */
+        get: {
+            parameters: {
+                query?: {
+                    orderNo?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Result"] & {
+                            data?: components["schemas"]["RefundVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5315,6 +5386,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin-api/wash/after-sale/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 售后工单分页 */
+        get: {
+            parameters: {
+                query?: {
+                    afterSaleNo?: string;
+                    type?: "REWASH" | "REFUND" | "CLAIM";
+                    status?: "INIT" | "PROCESSING" | "DONE" | "REJECTED";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["AdminAfterSaleVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/after-sale/{afterSaleNo}/handle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 处置售后工单
+         * @description 同意退款（accept=true 且工单 type=REFUND）时才进入退款链路：服务端发退款事件 →
+         *     支付域建退款单并调渠道。**本接口返回成功只表示已受理，不代表钱已到账**，
+         *     钱是否退回以退款单 status 为准（退失败会留在 FAILED 由任务重试）。
+         *     驳回必须带处置说明，师傅/客户要看到原因。处置人取当前后台登录账号，由服务端写入，前端不传。
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    afterSaleNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description true 同意 / false 驳回 */
+                        accept: boolean;
+                        /** @description 驳回时必填；同意时也建议填写处理说明 */
+                        remark?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/refund/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 退款单分页 */
+        get: {
+            parameters: {
+                query?: {
+                    orderNo?: string;
+                    status?: "INIT" | "SUCCESS" | "FAILED";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"] & {
+                            data?: {
+                                rows?: components["schemas"]["RefundVO"][];
+                                /** Format: int64 */
+                                total?: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/refund/{refundNo}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 人工重试退款
+         * @description 超过自动重试上限、或运营催办时用。仍走一次真实渠道调用，失败会累加 retryCount。
+         *     SUCCESS 的单不允许重退（重退等于重复打款），会直接拒绝。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    refundNo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin-api/wash/banner/list": {
         parameters: {
             query?: never;
@@ -7351,6 +7612,77 @@ export interface components {
             total: number;
             /** @description 具体元素类型在各接口的 allOf 中覆盖 */
             rows: Record<string, never>[];
+        };
+        /** @description 售后工单。金额一律单位分，时间一律毫秒时间戳。 */
+        AfterSaleVO: {
+            afterSaleNo?: string;
+            orderNo?: string;
+            /** @enum {string} */
+            type?: "REWASH" | "REFUND" | "CLAIM";
+            reason?: string;
+            /** @enum {string} */
+            status?: "INIT" | "PROCESSING" | "DONE" | "REJECTED";
+            /**
+             * Format: int64
+             * @description 售后涉及金额（分）；退款类为订单实付
+             */
+            amount?: number;
+            /** @description 处置人（后台账号），未处置为 null */
+            handlerBy?: string;
+            /** @description 处置说明，驳回时必填 */
+            handleRemark?: string;
+            /**
+             * Format: int64
+             * @description 毫秒时间戳
+             */
+            handleTime?: number;
+            /**
+             * Format: int64
+             * @description 毫秒时间戳
+             */
+            createTime?: number;
+        };
+        /**
+         * @description 退款单。**钱是否真的退回去了以本表 status 为准**，订单状态 REFUNDING 只是"处理中"。
+         *     金额单位分，时间毫秒时间戳。
+         */
+        RefundVO: {
+            refundNo?: string;
+            orderNo?: string;
+            /**
+             * Format: int64
+             * @description 退款金额（分）
+             */
+            amount?: number;
+            reason?: string;
+            /** @enum {string} */
+            status?: "INIT" | "SUCCESS" | "FAILED";
+            /** @description 渠道：mock / wechat */
+            provider?: string;
+            /** @description 渠道退款流水号 */
+            providerTradeNo?: string;
+            /** @description 最近一次失败原因 */
+            failReason?: string;
+            /** @description 已重试次数 */
+            retryCount?: number;
+            /**
+             * Format: int64
+             * @description 毫秒时间戳
+             */
+            createTime?: number;
+            /**
+             * Format: int64
+             * @description 毫秒时间戳
+             */
+            updateTime?: number;
+        };
+        /** @description 后台售后列表行 = C 端字段 + 订单上下文（会员手机号不返回，个保法最小化） */
+        AdminAfterSaleVO: components["schemas"]["AfterSaleVO"] & {
+            /** Format: int64 */
+            memberId?: number;
+            /** @description 订单当前状态，取自 OrderStatus 枚举，前端不得自带名单 */
+            orderStatus?: string;
+            serviceName?: string;
         };
         /** @description 后台订单列表行。手机号等敏感字段一律不返回（个保法最小化）。 */
         AdminOrderVO: {

@@ -1730,6 +1730,57 @@ paths:
                         properties:
                           ticketNo: { type: string }
 
+    get:
+      tags: [aftersale]
+      summary: 我的售后单列表
+      description: 只返回本人提交的工单，按创建时间倒序。
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [INIT, PROCESSING, DONE, REJECTED]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AfterSaleVO' }
+
+  /api/v1/refunds:
+    get:
+      tags: [order]
+      summary: 我的退款单列表
+      description: |
+        只返回本人的退款单。**钱是否真的退回去，以本表 status 为准**，订单状态 REFUNDING 只是"处理中"。
+        status 来自渠道结果：INIT 待退款 / SUCCESS 已退 / FAILED 失败（系统在跑自动重试）。
+      parameters:
+        - name: orderNo
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/RefundVO' }
+
   # ============================ 影像证据 ============================
   /api/v1/media/upload:
     post:
@@ -3206,6 +3257,131 @@ paths:
                 $ref: '#/components/schemas/RuoYiResult'
 
   # ========================= 首页 Banner（后台） =========================
+  # ============================ 后台：售后处置 / 退款单 ============================
+  /admin-api/wash/after-sale/list:
+    get:
+      tags: [admin-aftersale]
+      summary: 售后工单分页
+      x-permission: wash:aftersale:list
+      parameters:
+        - name: afterSaleNo
+          in: query
+          required: false
+          schema: { type: string }
+        - name: type
+          in: query
+          required: false
+          schema: { type: string, enum: [REWASH, REFUND, CLAIM] }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [INIT, PROCESSING, DONE, REJECTED] }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/AdminAfterSaleVO' }
+                          total: { type: integer, format: int64 }
+
+  /admin-api/wash/after-sale/{afterSaleNo}/handle:
+    put:
+      tags: [admin-aftersale]
+      summary: 处置售后工单
+      description: |
+        同意退款（accept=true 且工单 type=REFUND）时才进入退款链路：服务端发退款事件 →
+        支付域建退款单并调渠道。**本接口返回成功只表示已受理，不代表钱已到账**，
+        钱是否退回以退款单 status 为准（退失败会留在 FAILED 由任务重试）。
+        驳回必须带处置说明，师傅/客户要看到原因。处置人取当前后台登录账号，由服务端写入，前端不传。
+      x-permission: wash:aftersale:handle
+      parameters:
+        - name: afterSaleNo
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accept]
+              properties:
+                accept: { type: boolean, description: 'true 同意 / false 驳回' }
+                remark: { type: string, description: '驳回时必填；同意时也建议填写处理说明' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  /admin-api/wash/refund/list:
+    get:
+      tags: [admin-refund]
+      summary: 退款单分页
+      x-permission: wash:refund:list
+      parameters:
+        - name: orderNo
+          in: query
+          required: false
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [INIT, SUCCESS, FAILED] }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          rows:
+                            type: array
+                            items: { $ref: '#/components/schemas/RefundVO' }
+                          total: { type: integer, format: int64 }
+
+  /admin-api/wash/refund/{refundNo}/retry:
+    post:
+      tags: [admin-refund]
+      summary: 人工重试退款
+      description: |
+        超过自动重试上限、或运营催办时用。仍走一次真实渠道调用，失败会累加 retryCount。
+        SUCCESS 的单不允许重退（重退等于重复打款），会直接拒绝。
+      x-permission: wash:refund:edit
+      parameters:
+        - name: refundNo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
   /admin-api/wash/banner/list:
     get:
       tags: [admin-banner]
@@ -4742,6 +4918,50 @@ components:
           type: array
           items: { type: object }
           description: 具体元素类型在各接口的 allOf 中覆盖
+
+    # ---------------- 售后 / 退款 ----------------
+    AfterSaleVO:
+      type: object
+      description: 售后工单。金额一律单位分，时间一律毫秒时间戳。
+      properties:
+        afterSaleNo: { type: string }
+        orderNo: { type: string }
+        type: { type: string, enum: [REWASH, REFUND, CLAIM] }
+        reason: { type: string }
+        status: { type: string, enum: [INIT, PROCESSING, DONE, REJECTED] }
+        amount: { type: integer, format: int64, description: 售后涉及金额（分）；退款类为订单实付 }
+        handlerBy: { type: string, description: 处置人（后台账号），未处置为 null }
+        handleRemark: { type: string, description: 处置说明，驳回时必填 }
+        handleTime: { type: integer, format: int64, description: 毫秒时间戳 }
+        createTime: { type: integer, format: int64, description: 毫秒时间戳 }
+
+    RefundVO:
+      type: object
+      description: |
+        退款单。**钱是否真的退回去了以本表 status 为准**，订单状态 REFUNDING 只是"处理中"。
+        金额单位分，时间毫秒时间戳。
+      properties:
+        refundNo: { type: string }
+        orderNo: { type: string }
+        amount: { type: integer, format: int64, description: 退款金额（分） }
+        reason: { type: string }
+        status: { type: string, enum: [INIT, SUCCESS, FAILED] }
+        provider: { type: string, description: '渠道：mock / wechat' }
+        providerTradeNo: { type: string, description: 渠道退款流水号 }
+        failReason: { type: string, description: 最近一次失败原因 }
+        retryCount: { type: integer, description: 已重试次数 }
+        createTime: { type: integer, format: int64, description: 毫秒时间戳 }
+        updateTime: { type: integer, format: int64, description: 毫秒时间戳 }
+
+    AdminAfterSaleVO:
+      description: 后台售后列表行 = C 端字段 + 订单上下文（会员手机号不返回，个保法最小化）
+      allOf:
+        - $ref: '#/components/schemas/AfterSaleVO'
+        - type: object
+          properties:
+            memberId: { type: integer, format: int64 }
+            orderStatus: { type: string, description: 订单当前状态，取自 OrderStatus 枚举，前端不得自带名单 }
+            serviceName: { type: string }
 
     # ---------------- 后台订单 ----------------
     AdminOrderVO:

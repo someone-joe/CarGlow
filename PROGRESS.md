@@ -265,8 +265,11 @@ docker compose -f docker/docker-compose.dev.yml down -v # 连数据一起删，�
   实测：首次支付成功、重复支付 `21002`、订单不存在 `21001`、日志落库 `WAIT_PAY→WAIT_KEY/PAY_SUCCESS/CUSTOMER`
 - **真实微信支付未接**：`mock-pay` 是 x-dev-only 接口，由 `wash.pay.mock-enabled` 控制（生产必须 false）。
   真支付接入只需在回调里调 `WashOrderStateService.paySuccess()`，状态机与日志零改动
-- **退款只到 `REFUNDING`**：状态机已推进到"退款中"，但**没有真正调微信退款 API**，
-  也没有退款单表/定时任务重试机制——生产前必须补齐，否则钱退不出去
+- ~~**退款只到 `REFUNDING`**~~ ✅ 已补齐（2026-10-18）：`wash_order_refund` 表、`RefundRetryJob`
+  （5 分钟一轮、上限 5 次）与 `PaymentProvider` 三件套早期就已存在，第七节与第十二节
+  "无退款单表/无重试"的描述**已过时**。本次补的是**售后退款闭环**：工单处置（同意）→ 事件 →
+  建退款单 → 调渠道 → 状态机 `APPLY_REFUND`+`REFUND_SUCCESS` → 订单 `REFUNDED`、工单自动收尾 `DONE`。
+  实测全链路通过，详见第十三节。**唯一未接的是真实微信渠道**（仍占位，依赖商户号，挂起）。
 - **格口始终未预占**：下单不预占、取消不释放，因柜机模块未开工（契约要求下单即预占）
 - **后台"人工推进"是双刃剑**：现在客服可以一步把订单推到"已完成"（实测就是这么走完链路的）。
   上线前必须：① 限制哪些事件允许后台触发 ② 关键节点（如 FINISHED）要求二次确认 ③ 操作审计可查（日志已有）
@@ -647,6 +650,58 @@ CarGlow 后台基于 RuoYi-Vue3，但侧边栏菜单由后端 `sys_menu` 驱动�
 - **后台登录验证码（本地已关，上线必须开）**：`sys_config.sys.account.captchaEnabled` 当前为 `false`（2026-10-08 本地开发关掉，方便登录）。
   注意 RuoYi 把 `sys_config` 缓存在 Redis（key `sys_config:sys.account.captchaEnabled`），改 DB 后需清该缓存键或重启后端才生效。上线前设为 `true`。
 - **mock-pay 必须关**：`wash.pay.mock-enabled` 生产必须 `false`，否则钱不会真收到（见第七节）。
-- **退款必须真正调微信**：目前订单只推到 `REFUNDING`，未接微信退款 API、无退款单表/重试，生产前必须补齐，否则退款退不出去（见第七节）。
+- **退款骨架已就绪，但真实微信渠道仍未接**：退款单 + 重试 + 售后闭环已落地（2026-10-18，见第十三节），
+  但 `WechatPayProvider.refund` 仍是**会明确报错的占位实现**（不是假装成功）。接真实退款仍需
+  商户号 + API 证书 + 备案回调域名，属外部依赖挂起。**接渠道前退款均为 mock，生产前必须替换，
+  否则钱退不出去**。
 - **影像存储路径必须绝对路径**：`wash.media.store-path` 默认相对路径（跟进程工作目录走），生产必须配绝对路径，否则老文件 404（已发生过，见第九节）。
 - ~~**admin-api 契约补入 openapi.yaml**~~ ✅ 已完成（2026-09-27，E-1）：后台 4 个控制器共 13 路径 / 15 操作已全部落契约（tag `admin-*`），详见第十节 10.6。本条已从上线阻断项移除。
+
+---
+
+## 十三、退款落地（2026-10-18）
+
+> 结论先行：**退款骨架早就存在，本次补的是「售后 → 退款」这一段闭环；真实微信渠道仍挂起。**
+
+前情 `wash_order_refund` 表、`RefundRetryJob`（5 分钟重试、上限 5 次）、
+`PaymentProvider` 三件套（mock 可用 / wechat 占位报错）早期均已落地，
+第七节与第十二节"无退款单表 / 无重试"的描述**已过时**；真正的断点是售后——
+`WashAfterSaleMapper` 原先只有一个 `insertAfterSale`，工单插进去就没人管了。
+
+### 13.1 本次补的链路
+
+```
+C 端提交售后（REFUND）
+  → 后台列表可见（带订单上下文：orderStatus / serviceName）
+  → 后台处置 accept=true
+  → wash-order 发 AfterSaleRefundEvent
+  → wash-pay 监听：建退款单 + 调渠道
+  → 成功：状态机 APPLY_REFUND → REFUND_SUCCESS，订单置 REFUNDED
+  → wash-pay 发 RefundSucceededEvent
+  → wash-order 监听：售后工单收尾 DONE
+```
+
+### 13.2 关键口径（别改）
+
+- **"运营点了同意" ≠ "钱已退"**：钱是否到账以 `wash_order_refund.status` 为准（SUCCESS 才是真退了），
+  订单状态 `REFUNDING` 只表示处理中。处置接口返回成功也只表示已受理。
+- **退款成功后必须收尾，且绝不能回滚退款结果**：`WashPayService.advanceAfterRefund` 单独 try 兜住异常——
+  钱在渠道已经扣了，若让事务回滚，退款单会退回 INIT 并被定时任务**再退一次**，
+  那是真正的重复打款事故。宁可让订单状态暂时没跟上（运营在退款单页看得到 SUCCESS）。
+- **依赖方向单向 `wash-pay → wash-order`**：售后→退款、退款到账→工单收尾，两个方向都用应用事件，
+  与 T13 的 `OrderKeyInEvent` 同一套路。订单域永远不知道渠道长什么样。
+- **幂等**：处置 SQL 带 `status = 'INIT'`（两个运营同时点只有一次生效）；SUCCESS 退款单拒绝重复退款。
+
+### 13.3 实测（2026-10-18，mock 渠道）
+
+会员提交 REFUND 工单（200000 分）→ 后台同意 → 退款单 SUCCESS → 订单 `FINISHED → REFUNDED`
+→ 工单自动 `DONE`（处置人 admin、留痕时间齐全）。
+另验：重复处置被拒、SUCCESS 重退被拒、驳回不填原因被拒、CLAIM 类不触发退款。
+
+### 13.4 仍未做
+
+- **真实微信退款 API**（`WechatPayProvider.refund` 占位，需商户号 + API 证书 + 备案域名）— **挂起**
+- **部分退款**（规则表第七节决策 1：仅生成退款单、订单状态不变）— 当前无部分退款场景，未开工
+- **后台前端「售后工单处置」页与「退款单」页** — 后端接口与契约已就绪，页面待做（下一轮）
+- ⚠️ **后台登录路径是 `/login` 不是 `/admin-api/login`**（`/admin-api` 写在各后台 Controller 类级
+  `@RequestMapping` 上，`SecurityConfig` 只放行 `/login`）。自测 curl 别打错，曾据此误判为基建缺陷。
