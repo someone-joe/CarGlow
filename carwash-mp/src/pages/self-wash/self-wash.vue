@@ -28,6 +28,15 @@
         </view>
       </view>
 
+      <!-- 计时计价说明：自助按时间收费，价格来自后台配置 -->
+      <view v-if="pricing" class="panel pricing">
+        <view class="panel-title">计时收费</view>
+        <view class="pricing-row">
+          <text class="pricing-main">¥{{ fen2yuan(pricing.baseAmount) }} / {{ pricing.baseMinutes }} 分钟</text>
+          <text class="pricing-sub">超时 ¥{{ fen2yuan(pricing.overtimeAmount) }} / {{ pricing.overtimeMinutes }} 分钟（不足一档按一档）</text>
+        </view>
+      </view>
+
       <!-- 服务选择 -->
       <view class="panel">
         <view class="panel-title">选择服务</view>
@@ -41,9 +50,10 @@
         >
           <view class="svc-main">
             <text class="svc-name">{{ s.name }}</text>
-            <text class="svc-sub">约 {{ s.workMinutes || '—' }} 分钟</text>
+            <text class="svc-sub">按时长计费，不限项目</text>
           </view>
-          <text class="svc-price">¥{{ fen2yuan(s.displayPrice) }}</text>
+          <text v-if="s.scene === 'SELFWASH'" class="svc-price">计时</text>
+          <text v-else class="svc-price">¥{{ fen2yuan(s.displayPrice) }}</text>
         </view>
 
         <view class="coupon-row" @click="pickCoupon">
@@ -70,12 +80,14 @@ import { onShow } from '@dcloudio/uni-app'
 import { fetchServices, type ServiceVO } from '@/api/catalog'
 import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
-import { createSelfwashOrder, fetchWorkstations, type WorkstationVO } from '@/api/selfwash'
+import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
 
 const loading = ref(true)
 const submitting = ref(false)
 const workstations = ref<WorkstationVO[]>([])
 const services = ref<ServiceVO[]>([])
+/** 计时计价参数（后台可配）：自助按时间收费 */
+const pricing = ref<SelfwashPricingVO | null>(null)
 const workstationId = ref<number | undefined>(undefined)
 const serviceId = ref<number | undefined>(undefined)
 const coupons = ref<CouponUserVO[]>([])
@@ -116,10 +128,14 @@ async function load(): Promise<void> {
     const siteId = site?.siteId
     const [ws, svc] = await Promise.all([
       siteId ? fetchWorkstations(siteId) : Promise.resolve([]),
-      fetchServices(),
+      fetchServices('SELFWASH'),
     ])
     workstations.value = ws || []
     services.value = svc || []
+    // 计时计价参数：单独拉，失败不阻塞工位/服务展示
+    fetchSelfwashPricing()
+      .then((p) => (pricing.value = p))
+      .catch(() => {})
     fetchMyCoupons('UNUSED')
       .then((c) => (coupons.value = c || []))
       .catch(() => {})
@@ -208,6 +224,27 @@ onShow(load)
   padding-bottom: 18rpx;
   border-bottom: 2rpx solid #eaf1f0;
   margin-bottom: 12rpx;
+}
+
+.pricing {
+  background: linear-gradient(135deg, #e8f6f6, #f2fbfb);
+}
+
+.pricing-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-main {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #0e8f94;
+}
+
+.pricing-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #6d8580;
 }
 
 .empty {

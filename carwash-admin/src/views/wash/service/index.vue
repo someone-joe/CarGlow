@@ -25,6 +25,11 @@
     <el-table v-loading="loading" :data="serviceList">
       <el-table-column label="服务ID" prop="serviceId" width="90" />
       <el-table-column label="服务名称" prop="serviceName" min-width="160" show-overflow-tooltip />
+      <el-table-column label="入口" width="130">
+        <template #default="{ row }">
+          <el-tag :type="sceneTagType(row.scene)" size="small">{{ sceneLabel(row.scene) }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="分类" width="120">
         <template #default="scope">{{ categoryLabel(scope.row.categoryId) }}</template>
       </el-table-column>
@@ -62,6 +67,17 @@
           <el-select v-model="form.categoryId" placeholder="请选择分类" style="width: 100%">
             <el-option v-for="c in categoryList" :key="c.value" :label="c.label" :value="c.value" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="入口场景" prop="scene">
+          <el-select v-model="form.scene" placeholder="请选择入口场景" style="width: 100%">
+            <el-option v-for="s in sceneOptions" :key="s.value" :label="s.label" :value="s.value">
+              <span>{{ s.label }}</span>
+              <span style="color: #909399; font-size: 12px; margin-left: 8px">{{ s.desc }}</span>
+            </el-option>
+          </el-select>
+          <div style="color: #909399; font-size: 12px; line-height: 1.6">
+            无感=按次/套餐计价（价格取本表单）；自助=按计时计价（价格取「自助洗车配置」，此处价格仅作展示参考）
+          </div>
         </el-form-item>
         <el-form-item label="价格(元)" prop="priceYuan">
           <el-input-number v-model="form.priceYuan" :min="0" :precision="2" :step="1" style="width: 100%" />
@@ -149,6 +165,24 @@ function categoryLabel(categoryId) {
   return hit ? hit.label : '-'
 }
 
+/** 入口场景选项：决定该服务在小程序哪个入口展示 */
+const sceneOptions = [
+  { value: 'UNSENSITIVE', label: '无感洗车', desc: '按次/套餐计价' },
+  { value: 'SELFWASH', label: '自助洗车', desc: '按计时计价' },
+  { value: 'ALL', label: '两个入口通用', desc: '无感+自助都展示' }
+]
+
+function sceneLabel(scene) {
+  const hit = sceneOptions.find((s) => s.value === scene)
+  return hit ? hit.label : scene || '-'
+}
+
+function sceneTagType(scene) {
+  if (scene === 'SELFWASH') return 'warning'
+  if (scene === 'UNSENSITIVE') return 'success'
+  return 'info'
+}
+
 function getList() {
   loading.value = true
   listService(queryParams.value).then(res => {
@@ -174,6 +208,7 @@ function reset() {
     serviceId: undefined,
     serviceName: undefined,
     categoryId: undefined,
+    scene: 'UNSENSITIVE',
     priceYuan: 0,
     workMinutes: 40,
     enabled: 'Y',
@@ -209,6 +244,7 @@ function handleUpdate(row) {
     serviceId: row.serviceId,
     serviceName: row.serviceName,
     categoryId: row.categoryId,
+    scene: row.scene || 'UNSENSITIVE',
     priceYuan: Number(((row.priceAmount || 0) / 100).toFixed(2)),
     workMinutes: row.workMinutes,
     enabled: row.enabled,
@@ -231,6 +267,7 @@ function submitForm() {
       serviceId: form.value.serviceId,
       serviceName: form.value.serviceName,
       categoryId: form.value.categoryId,
+      scene: form.value.scene,
       priceAmount: Math.round((form.value.priceYuan || 0) * 100),
       workMinutes: form.value.workMinutes,
       enabled: form.value.enabled,

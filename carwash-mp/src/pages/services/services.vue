@@ -80,7 +80,7 @@ function fen2yuan(fen?: number): string {
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const [cats, list] = await Promise.all([fetchServiceCategories(), fetchServiceList()])
+    const [cats, list] = await Promise.all([fetchServiceCategories(), fetchServiceList('UNSENSITIVE')])
     categories.value = cats || []
     services.value = list || []
     activeCat.value = categories.value[0]?.categoryId ?? services.value[0]?.categoryId

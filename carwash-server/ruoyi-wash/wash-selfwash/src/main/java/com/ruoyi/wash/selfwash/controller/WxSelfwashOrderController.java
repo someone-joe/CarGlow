@@ -5,7 +5,9 @@ import com.ruoyi.wash.common.api.ApiResult;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.security.MemberContext;
 import com.ruoyi.wash.selfwash.dto.SelfwashOrderVO;
+import com.ruoyi.wash.selfwash.dto.SelfwashPricingVO;
 import com.ruoyi.wash.selfwash.service.WashSelfwashOrderService;
+import com.ruoyi.wash.selfwash.service.WashSelfwashPricingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +28,20 @@ public class WxSelfwashOrderController {
 
     @Autowired
     private WashSelfwashOrderService service;
+
+    @Autowired
+    private WashSelfwashPricingService pricingService;
+
+    /**
+     * 自助洗车计时计价参数（C 端展示用，免登录）。
+     *
+     * <p>自助按计时收费：baseAmount 分 / baseMinutes 分钟起，超时 overtimeAmount 分 / overtimeMinutes 分钟。
+     * 契约：openapi.yaml GET /api/v1/selfwash/pricing。
+     */
+    @GetMapping("/api/v1/selfwash/pricing")
+    public ApiResult<SelfwashPricingVO> pricing() {
+        return ApiResult.ok(pricingService.get());
+    }
 
     @PostMapping("/api/v1/selfwash/orders")
     public ApiResult<String> create(@RequestBody(required = false) CreateRequest req) {

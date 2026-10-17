@@ -13,6 +13,8 @@ public class ServiceVO {
 
     private Long serviceId;
     private Long categoryId;
+    /** 入口场景：UNSENSITIVE / SELFWASH / ALL */
+    private String scene;
     private String name;
     private String subtitle;
     private Long originPrice;
@@ -28,6 +30,14 @@ public class ServiceVO {
 
     public void setServiceId(Long serviceId) {
         this.serviceId = serviceId;
+    }
+
+    public String getScene() {
+        return scene;
+    }
+
+    public void setScene(String scene) {
+        this.scene = scene;
     }
 
     public Long getCategoryId() {

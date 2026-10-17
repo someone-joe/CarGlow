@@ -9,6 +9,8 @@ public class WashService extends BaseEntity {
 
     private Long serviceId;
     private Long categoryId;
+    /** 入口场景：UNSENSITIVE 无感(按次/套餐) / SELFWASH 自助(计时) / ALL 两入口通用 */
+    private String scene;
     private String serviceName;
     private Long priceAmount;
     private Integer workMinutes;
@@ -26,6 +28,14 @@ public class WashService extends BaseEntity {
     private String applicableModels;
     /** 封面图 URL（对应 cover_url） */
     private String cover;
+
+    public String getScene() {
+        return scene;
+    }
+
+    public void setScene(String scene) {
+        this.scene = scene;
+    }
 
     public Long getServiceId() {
         return serviceId;

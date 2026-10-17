@@ -35,13 +35,19 @@ public class WashServiceQueryService {
         return service;
     }
 
-    /** C 端可下单的服务项列表 */
-    public List<ServiceVO> listEnabled() {
+    /**
+     * C 端可下单的服务项列表。
+     *
+     * @param scene 入口场景：UNSENSITIVE 无感（按次/套餐）/ SELFWASH 自助（计时）/ null 全部。
+     *              传场景时返回该场景专属 + ALL 通用，两个入口都能看到通用服务。
+     */
+    public List<ServiceVO> listEnabled(String scene) {
         List<ServiceVO> list = new ArrayList<>();
-        for (WashService service : serviceMapper.selectEnabledList()) {
+        for (WashService service : serviceMapper.selectEnabledListByScene(scene)) {
             ServiceVO vo = new ServiceVO();
             vo.setServiceId(service.getServiceId());
             vo.setCategoryId(service.getCategoryId());
+            vo.setScene(service.getScene());
             vo.setName(service.getServiceName());
             vo.setDisplayPrice(service.getPriceAmount());
             vo.setWorkMinutes(service.getWorkMinutes());
@@ -58,8 +64,7 @@ public class WashServiceQueryService {
         ServiceDetailVO vo = new ServiceDetailVO();
         vo.setServiceId(service.getServiceId());
         vo.setCategoryId(service.getCategoryId());
-        vo.setName(service.getServiceName());
-        vo.setDisplayPrice(service.getPriceAmount());
+        vo.setName(service.getServiceName());        vo.setDisplayPrice(service.getPriceAmount());
         vo.setWorkMinutes(service.getWorkMinutes());
         vo.setPickupFee(PICKUP_FEE_FREE);
         // 明细字段：由后台「服务详情配置」维护，缺失时给空集合/空串，前端有空态兜底

@@ -5,11 +5,17 @@ export type ServiceVO = components['schemas']['ServiceVO']
 export type VehicleVO = components['schemas']['VehicleVO']
 export type CabinetVO = components['schemas']['CabinetVO']
 
-/** 契约：openapi.yaml GET /api/v1/services（只出上架服务项） */
-export function fetchServices(): Promise<ServiceVO[]> {
+/**
+ * 契约：openapi.yaml GET /api/v1/services（只出上架服务项）。
+ *
+ * @param scene 入口场景：'UNSENSITIVE' 无感洗车（按次/套餐）/ 'SELFWASH' 自助洗车（按计时计价）。
+ *              传场景时返回该场景专属 + ALL 通用；不传返回全部。
+ */
+export function fetchServices(scene?: 'UNSENSITIVE' | 'SELFWASH'): Promise<ServiceVO[]> {
   return request<ServiceVO[]>({
     url: '/api/v1/services',
-    method: 'GET'
+    method: 'GET',
+    data: scene ? { scene } : {}
   })
 }
 

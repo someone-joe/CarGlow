@@ -37,6 +37,18 @@ export interface SelfwashOrderVO {
   remainingSeconds: number
 }
 
+/** 契约：openapi.yaml GET /api/v1/selfwash/pricing（计时计价参数，单位分/分钟） */
+export interface SelfwashPricingVO {
+  baseAmount: number
+  baseMinutes: number
+  overtimeAmount: number
+  overtimeMinutes: number
+}
+
+export function fetchSelfwashPricing(): Promise<SelfwashPricingVO> {
+  return request<SelfwashPricingVO>({ url: '/api/v1/selfwash/pricing', method: 'GET' })
+}
+
 export function fetchWorkstations(siteId: number): Promise<WorkstationVO[]> {
   return request<WorkstationVO[]>({ url: '/api/v1/selfwash/workstations', method: 'GET', data: { siteId } })
 }

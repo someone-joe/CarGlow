@@ -11,6 +11,7 @@ import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
 import com.ruoyi.wash.selfwash.dto.SelfwashOrderVO;
+import com.ruoyi.wash.selfwash.dto.SelfwashPricingVO;
 import com.ruoyi.wash.selfwash.device.SelfWashDeviceService;
 import com.ruoyi.wash.selfwash.mapper.WashSelfwashOrderMapper;
 import com.ruoyi.wash.selfwash.mapper.WashWorkstationMapper;
@@ -52,6 +53,9 @@ public class WashSelfwashOrderService {
     @Autowired
     private WashWalletService walletService;
 
+    @Autowired
+    private WashSelfwashPricingService pricingService;
+
     @Value("${wash.pay.mock-enabled:false}")
     private boolean mockEnabled;
 
@@ -75,8 +79,25 @@ public class WashSelfwashOrderService {
             throw new ApiException(ErrorCode.A0001, "工位不存在或已停用");
         }
         WashService service = serviceQuery.requireEnabled(serviceId);
-        if (service.getPriceAmount() == null || service.getPriceAmount() <= 0) {
-            throw new ApiException(ErrorCode.A0001, "服务价格异常");
+        // 入口隔离：无感套餐（按次收费）不能在自助计时入口下单
+        String scene = service.getScene();
+        if ("UNSENSITIVE".equals(scene)) {
+            throw new ApiException(ErrorCode.A0001, "该服务仅支持无感洗车下单");
+        }
+        long payAmount;
+        int minutes;
+        if ("SELFWASH".equals(scene)) {
+            // 自助 = 计时收费：价格取后台配置（默认 20 元/30 分钟），与套餐价无关
+            SelfwashPricingVO pricing = pricingService.get();
+            payAmount = pricing.baseAmount();
+            minutes = pricing.baseMinutes();
+        } else {
+            // ALL 通用服务仍按套餐价（兼容）
+            if (service.getPriceAmount() == null || service.getPriceAmount() <= 0) {
+                throw new ApiException(ErrorCode.A0001, "服务价格异常");
+            }
+            payAmount = service.getPriceAmount();
+            minutes = service.getWorkMinutes() == null ? 0 : service.getWorkMinutes();
         }
         WashSelfwashOrder order = new WashSelfwashOrder();
         order.setOrderNo(generateNo("SW"));
@@ -86,8 +107,7 @@ public class WashSelfwashOrderService {
         order.setServiceId(serviceId);
         order.setServiceName(service.getServiceName());
         order.setPlateNo(plateNo);
-        order.setServiceMinutes(service.getWorkMinutes() == null ? 0 : service.getWorkMinutes());
-        long payAmount = service.getPriceAmount();
+        order.setServiceMinutes(minutes);
         long couponDiscount = 0;
         if (couponUserId != null) {
             // 与无感一致：下单即核销券并抵减实付（取消不退券）
@@ -203,7 +223,7 @@ public class WashSelfwashOrderService {
     }
 
     /**
-     * 加时：按本单单价（实付/时长，向上取整到分）计费并从储值余额扣除，再延长截止。
+     * 加时：按后台配置的「超时价 / 超时时长」整档计费并从储值余额扣除，再延长截止。
      * 余额不足抛 B3004，前端据此引导充值后再加时。
      */
     @Transactional(rollbackFor = Exception.class)
@@ -212,7 +232,7 @@ public class WashSelfwashOrderService {
             throw new ApiException(ErrorCode.A0001, "加时分钟数不合法（1-240）");
         }
         WashSelfwashOrder order = requireOwned(memberId, orderNo, SelfWashStatus.SERVING);
-        long cost = addTimeCost(order, minutes);
+        long cost = pricingService.overtimeCost(minutes);
         if (cost > 0) {
             // 先扣款再延时：扣款失败则不延时（余额不足会抛 B3004 并被事务回滚）
             walletService.deductForOrder(memberId, orderNo + "/ADD", cost);
@@ -225,13 +245,9 @@ public class WashSelfwashOrderService {
         return toVO(order);
     }
 
-    /** 加时费用（分）：按本单实付/时长折算单价，至少 1 分/分钟。前端用同公式预估展示。 */
+    /** 加时费用（分）：按配置的「超时价 / 超时时长」整档计，不足一档按一档。前端用同接口预估展示。 */
     public long addTimeCost(WashSelfwashOrder order, int minutes) {
-        if (order.getPayAmount() == null || order.getServiceMinutes() == null || order.getServiceMinutes() <= 0) {
-            return 0;
-        }
-        long unit = Math.max(1, Math.round(order.getPayAmount() / (double) order.getServiceMinutes()));
-        return unit * (long) minutes;
+        return pricingService.overtimeCost(minutes);
     }
 
     /** 手动结束服务：断电 → 完成 → 若该工位有排队则自动开始下一单。 */

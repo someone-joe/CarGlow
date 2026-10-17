@@ -366,6 +366,14 @@ paths:
         - name: categoryId
           in: query
           schema: { type: integer, format: int64 }
+        - name: scene
+          in: query
+          description: |
+            入口场景。UNSENSITIVE 无感洗车（按次/套餐计价）/ SELFWASH 自助洗车（按计时计价，价格见 /api/v1/selfwash/pricing）。
+            传场景时返回该场景专属 + ALL 通用；不传返回全部。
+          schema:
+            type: string
+            enum: [UNSENSITIVE, SELFWASH]
       responses:
         '200':
           description: 成功
@@ -609,6 +617,32 @@ paths:
                 $ref: '#/components/schemas/Result'
 
   # ============================ 自助洗车 ============================
+  /api/v1/selfwash/pricing:
+    get:
+      tags: [selfwash]
+      summary: 自助洗车计时计价参数（免登录）
+      description: |
+        自助按计时收费（与无感的「按次/套餐」不同）：
+        baseAmount 分 / baseMinutes 分钟 起收，超过后按 overtimeAmount 分 / overtimeMinutes 分钟 计。
+        金额单位分，时长单位分钟。默认 2000 分 / 30 分钟，超时 800 分 / 10 分钟；后台可改。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          baseAmount: { type: integer, format: int64, description: '基础金额（分）' }
+                          baseMinutes: { type: integer, description: '基础时长（分钟）' }
+                          overtimeAmount: { type: integer, format: int64, description: '超时金额（分）' }
+                          overtimeMinutes: { type: integer, description: '超时时长（分钟）' }
+
   /api/v1/selfwash/workstations:
     get:
       tags: [selfwash]
@@ -2714,6 +2748,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/RuoYiResult'
 
+  /admin-api/wash/selfwash/pricing:
+    get:
+      tags: [admin-selfwash]
+      summary: 自助洗车计时计价参数
+      x-permission: wash:selfwash:list
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          baseAmount: { type: integer, format: int64 }
+                          baseMinutes: { type: integer }
+                          overtimeAmount: { type: integer, format: int64 }
+                          overtimeMinutes: { type: integer }
+    put:
+      tags: [admin-selfwash]
+      summary: 保存自助洗车计时计价参数
+      x-permission: wash:selfwash:edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [baseAmount, baseMinutes, overtimeAmount, overtimeMinutes]
+              properties:
+                baseAmount: { type: integer, format: int64, description: '基础金额（分）' }
+                baseMinutes: { type: integer, description: '基础时长（分钟）' }
+                overtimeAmount: { type: integer, format: int64, description: '超时金额（分）' }
+                overtimeMinutes: { type: integer, description: '超时时长（分钟）' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuoYiResult'
+
   /admin-api/wash/selfwash/order/status-options:
     get:
       tags: [admin-selfwash]
@@ -3612,6 +3692,10 @@ components:
       properties:
         serviceId: { type: integer, format: int64 }
         categoryId: { type: integer, format: int64 }
+        scene:
+          type: string
+          description: 入口场景，UNSENSITIVE 无感 / SELFWASH 自助 / ALL 两入口通用
+          enum: [UNSENSITIVE, SELFWASH, ALL]
         name: { type: string }
         subtitle: { type: string }
         originPrice: { type: integer, description: 原价，单位分 }

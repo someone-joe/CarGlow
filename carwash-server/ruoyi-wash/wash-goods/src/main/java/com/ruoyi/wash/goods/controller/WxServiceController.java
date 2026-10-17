@@ -8,6 +8,7 @@ import com.ruoyi.wash.goods.service.WashServiceQueryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,9 +25,15 @@ public class WxServiceController {
     @Autowired
     private WashServiceQueryService serviceQuery;
 
+    /**
+     * C 端服务项列表。
+     *
+     * @param scene 入口场景：UNSENSITIVE 无感 / SELFWASH 自助；不传返回全部（兼容）。
+     *              无感按套餐计价（priceAmount），自助按计时计价（见 /api/v1/selfwash/pricing）。
+     */
     @GetMapping("/api/v1/services")
-    public ApiResult<List<ServiceVO>> list() {
-        return ApiResult.ok(serviceQuery.listEnabled());
+    public ApiResult<List<ServiceVO>> list(@RequestParam(required = false) String scene) {
+        return ApiResult.ok(serviceQuery.listEnabled(scene));
     }
 
     /** 契约：openapi.yaml GET /api/v1/service-categories */

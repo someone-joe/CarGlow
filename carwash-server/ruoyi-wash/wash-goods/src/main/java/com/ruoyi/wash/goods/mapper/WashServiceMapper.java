@@ -17,7 +17,7 @@ import java.util.List;
 /** 服务项读写。下单时按 serviceId 取名称与价格做快照。 */
 public interface WashServiceMapper {
 
-    @Select("select service_id, category_id, service_name, price_amount, work_minutes, enabled, " +
+    @Select("select service_id, category_id, scene, service_name, price_amount, work_minutes, enabled, " +
             "detail_items as items, detail_not_included as notIncluded, detail_notices as notices, " +
             "detail_sample_images as sampleImages, applicable_models as applicableModels, cover_url as cover " +
             "from wash_service where service_id = #{serviceId} and enabled = 'Y' and del_flag = '0' limit 1")
@@ -30,12 +30,27 @@ public interface WashServiceMapper {
     WashService selectEnabledById(@Param("serviceId") Long serviceId);
 
     /** C 端服务项列表：只出上架且未删除的 */
-    @Select("select service_id, category_id, service_name, price_amount, work_minutes, enabled, " +
+    @Select("select service_id, category_id, scene, service_name, price_amount, work_minutes, enabled, " +
             "detail_items as items, detail_not_included as notIncluded, detail_notices as notices, " +
             "detail_sample_images as sampleImages, applicable_models as applicableModels, cover_url as cover " +
             "from wash_service where enabled = 'Y' and del_flag = '0' order by service_id asc")
     @ResultMap("washServiceDetail")
     List<WashService> selectEnabledList();
+
+    /**
+     * C 端服务项列表（按入口）：scene 为 null 时返回全部；
+     * 否则返回该场景专属 + ALL 通用（两个入口都能看到通用服务）。
+     */
+    @Select("<script>" +
+            "select service_id, category_id, scene, service_name, price_amount, work_minutes, enabled, " +
+            "detail_items as items, detail_not_included as notIncluded, detail_notices as notices, " +
+            "detail_sample_images as sampleImages, applicable_models as applicableModels, cover_url as cover " +
+            "from wash_service where enabled = 'Y' and del_flag = '0' " +
+            "<if test='scene != null and scene != \"\"'> and scene in (#{scene}, 'ALL') </if> " +
+            "order by service_id asc" +
+            "</script>")
+    @ResultMap("washServiceDetail")
+    List<WashService> selectEnabledListByScene(@Param("scene") String scene);
 
     @Select("select category_id, category_name, sort_num from wash_service_category " +
             "where del_flag = '0' order by sort_num asc, category_id asc")
@@ -47,7 +62,7 @@ public interface WashServiceMapper {
      * 后台列表：与 C 端的区别是不限 enabled —— 后台要能看到并重新上架已下架的服务。
      */
     @Select("<script>" +
-            "select service_id, category_id, service_name, price_amount, work_minutes, enabled, " +
+            "select service_id, category_id, scene, service_name, price_amount, work_minutes, enabled, " +
             "detail_items as items, detail_not_included as notIncluded, detail_notices as notices, " +
             "detail_sample_images as sampleImages, applicable_models as applicableModels, cover_url as cover " +
             "from wash_service where del_flag = '0' " +
@@ -70,16 +85,16 @@ public interface WashServiceMapper {
             "</script>")
     long countAdmin(@Param("serviceName") String serviceName, @Param("categoryId") Long categoryId);
 
-    @Select("select service_id, category_id, service_name, price_amount, work_minutes, enabled, " +
+    @Select("select service_id, category_id, scene, service_name, price_amount, work_minutes, enabled, " +
             "detail_items as items, detail_not_included as notIncluded, detail_notices as notices, " +
             "detail_sample_images as sampleImages, applicable_models as applicableModels, cover_url as cover " +
             "from wash_service where service_id = #{serviceId} and del_flag = '0' limit 1")
     @ResultMap("washServiceDetail")
     WashService selectById(@Param("serviceId") Long serviceId);
 
-    @Insert("insert into wash_service (category_id, service_name, price_amount, work_minutes, enabled, " +
+    @Insert("insert into wash_service (category_id, scene, service_name, price_amount, work_minutes, enabled, " +
             "detail_items, detail_not_included, detail_notices, detail_sample_images, applicable_models, cover_url, " +
-            "del_flag, create_time) values (#{categoryId}, #{serviceName}, #{priceAmount}, #{workMinutes}, " +
+            "del_flag, create_time) values (#{categoryId}, #{scene}, #{serviceName}, #{priceAmount}, #{workMinutes}, " +
             "#{enabled}, #{items, typeHandler=com.ruoyi.wash.common.mybatis.JsonStringListTypeHandler}, " +
             "#{notIncluded, typeHandler=com.ruoyi.wash.common.mybatis.JsonStringListTypeHandler}, " +
             "#{notices, typeHandler=com.ruoyi.wash.common.mybatis.JsonStringListTypeHandler}, " +
@@ -88,7 +103,7 @@ public interface WashServiceMapper {
     @Options(useGeneratedKeys = true, keyProperty = "serviceId")
     int insertService(WashService service);
 
-    @Update("update wash_service set category_id = #{categoryId}, service_name = #{serviceName}, " +
+    @Update("update wash_service set category_id = #{categoryId}, scene = #{scene}, service_name = #{serviceName}, " +
             "price_amount = #{priceAmount}, work_minutes = #{workMinutes}, enabled = #{enabled}, " +
             "detail_items = #{items, typeHandler=com.ruoyi.wash.common.mybatis.JsonStringListTypeHandler}, " +
             "detail_not_included = #{notIncluded, typeHandler=com.ruoyi.wash.common.mybatis.JsonStringListTypeHandler}, " +
