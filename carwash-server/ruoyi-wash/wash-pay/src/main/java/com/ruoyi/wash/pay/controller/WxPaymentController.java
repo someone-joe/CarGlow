@@ -3,13 +3,17 @@ package com.ruoyi.wash.pay.controller;
 import com.ruoyi.wash.common.api.ApiResult;
 import com.ruoyi.wash.common.security.MemberContext;
 import com.ruoyi.wash.pay.dto.PrepayVO;
+import com.ruoyi.wash.pay.dto.RefundVO;
 import com.ruoyi.wash.pay.service.WashPayService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,5 +51,11 @@ public class WxPaymentController {
         }
         boolean advanced = payService.handlePaidNotify(orderNo);
         return Map.of("code", "SUCCESS", "message", advanced ? "已处理" : "重复通知已忽略");
+    }
+
+    /** 我的退款单：契约 openapi.yaml GET /api/v1/refunds（钱是否退回以退款单 status 为准） */
+    @GetMapping("/api/v1/refunds")
+    public ApiResult<List<RefundVO>> myRefunds(@RequestParam(required = false) String orderNo) {
+        return ApiResult.ok(payService.listMine(MemberContext.require(), orderNo));
     }
 }

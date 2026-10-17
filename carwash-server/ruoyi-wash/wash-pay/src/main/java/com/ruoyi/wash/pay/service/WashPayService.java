@@ -5,16 +5,20 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.statemachine.OrderEvent;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.order.event.AfterSaleRefundEvent;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
+import com.ruoyi.wash.order.event.RefundSucceededEvent;
 import com.ruoyi.wash.order.service.WashOrderPaySupportService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
 import com.ruoyi.wash.pay.domain.WashRefundOrder;
 import com.ruoyi.wash.pay.dto.PrepayVO;
+import com.ruoyi.wash.pay.dto.RefundVO;
 import com.ruoyi.wash.pay.mapper.WashRefundOrderMapper;
 import com.ruoyi.wash.pay.provider.PaymentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +53,9 @@ public class WashPayService {
 
     @Autowired
     private WashWalletService walletService;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     /** 下单后获取支付参数 */
     public PrepayVO prepay(String orderNo, Long memberId) {
@@ -106,12 +113,26 @@ public class WashPayService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void refundForCanceled(OrderCanceledEvent event) {
+        createThenRefund(event.orderNo(), event.memberId(), event.amount(), event.reason());
+    }
+
+    /**
+     * 售后同意退款。与取消退款共用同一套"建单 + 调渠道"逻辑——两者只有来源不同
+     * （reason 与后续对账口径），**钱怎么退出去必须只有一条路**，否则两边逻辑早晚漂移。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void refundForAfterSale(AfterSaleRefundEvent event) {
+        createThenRefund(event.orderNo(), event.memberId(), event.amount(), event.reason());
+    }
+
+    /** 退款单先落库再调渠道：渠道失败也留得住，由 RefundRetryJob 兜底重试 */
+    private void createThenRefund(String orderNo, Long memberId, Long amount, String reason) {
         WashRefundOrder refund = new WashRefundOrder();
         refund.setRefundNo(generateRefundNo());
-        refund.setOrderNo(event.orderNo());
-        refund.setMemberId(event.memberId());
-        refund.setAmount(event.amount());
-        refund.setReason(event.reason());
+        refund.setOrderNo(orderNo);
+        refund.setMemberId(memberId);
+        refund.setAmount(amount);
+        refund.setReason(reason);
         refund.setProvider(provider.code());
         refundMapper.insertRefund(refund);
 
@@ -132,9 +153,7 @@ public class WashPayService {
 
         if (result.success()) {
             refundMapper.updateResult(refund.getRefundNo(), "SUCCESS", result.tradeNo(), null, retryCount);
-            // 退款成功：先置退款中，再置已退款（两步都在规则表内，留痕完整）
-            stateService.systemFire(refund.getOrderNo(), OrderEvent.APPLY_REFUND, "退款成功");
-            stateService.systemFire(refund.getOrderNo(), OrderEvent.REFUND_SUCCESS, "退款成功");
+            advanceAfterRefund(refund);
             log.info("[退款成功] refundNo={} orderNo={}", refund.getRefundNo(), refund.getOrderNo());
             return;
         }
@@ -146,6 +165,56 @@ public class WashPayService {
     /** 定时任务调用：重试未成功的退款单 */
     public List<WashRefundOrder> listPending(int maxRetry, int limit) {
         return refundMapper.selectPending(maxRetry, limit);
+    }
+
+    // ------------------------------------------------------------------ 查询
+
+    /** C 端「我的退款单」：一律按会员过滤，不给越权留口子 */
+    public List<RefundVO> listMine(Long memberId, String orderNo) {
+        return refundMapper.selectVOByMember(memberId, orderNo);
+    }
+
+    public List<RefundVO> adminList(String orderNo, String status, int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        return refundMapper.selectAdminList(orderNo, status, offset, pageSize);
+    }
+
+    public long countAdmin(String orderNo, String status) {
+        return refundMapper.countAdmin(orderNo, status);
+    }
+
+    /** 人工重试（超过自动重试上限或运营催办）。SUCCESS 的单坚决不退第二次。 */
+    public void manualRetry(String refundNo) {
+        WashRefundOrder refund = refundMapper.selectByRefundNo(refundNo);
+        if (refund == null) {
+            throw new ApiException(ErrorCode.A0001, "退款单不存在：" + refundNo);
+        }
+        if ("SUCCESS".equals(refund.getStatus())) {
+            throw new ApiException(ErrorCode.A0001, "该退款单已退款成功，不能重复退款");
+        }
+        doRefund(refund);
+    }
+
+    // ------------------------------------------------------------------ 内部
+
+    /**
+     * 退款到账后的收尾：推进订单状态机，并通知订单域把售后工单收尾。
+     *
+     * <p>为什么这里必须单独 try 兜住异常：钱已经在渠道退掉了，如果抛异常让外层事务回滚，
+     * 退款单会退回 INIT/FAILED，定时任务下一轮就会**再退一次**——那是真正的重复打款事故。
+     * 宁可让订单状态暂时没跟上（运营在退款单页能看到 SUCCESS），也不能把同一笔钱退两遍。
+     */
+    private void advanceAfterRefund(WashRefundOrder refund) {
+        try {
+            // 先置退款中，再置已退款（两步都在规则表内，留痕完整）
+            stateService.systemFire(refund.getOrderNo(), OrderEvent.APPLY_REFUND, "退款成功");
+            stateService.systemFire(refund.getOrderNo(), OrderEvent.REFUND_SUCCESS, "退款成功");
+            eventPublisher.publishEvent(new RefundSucceededEvent(
+                    refund.getOrderNo(), refund.getRefundNo(), refund.getAmount()));
+        } catch (Exception e) {
+            log.error("[退款已到账但收尾失败] 需人工处理 refundNo={} orderNo={} amount={}分",
+                    refund.getRefundNo(), refund.getOrderNo(), refund.getAmount(), e);
+        }
     }
 
     /** 退款单号：RF + yyyyMMddHHmmss + 6 位随机 */

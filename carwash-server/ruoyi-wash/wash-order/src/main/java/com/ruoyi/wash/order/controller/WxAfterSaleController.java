@@ -2,10 +2,13 @@ package com.ruoyi.wash.order.controller;
 
 import com.ruoyi.wash.common.api.ApiResult;
 import com.ruoyi.wash.common.security.MemberContext;
+import com.ruoyi.wash.order.dto.AfterSaleVO;
 import com.ruoyi.wash.order.service.WashAfterSaleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -47,5 +50,11 @@ public class WxAfterSaleController {
     }
 
     public record AfterSaleRequest(String orderNo, String type, String reason, List<String> images) {
+    }
+
+    /** 我的售后单列表：契约 openapi.yaml GET /api/v1/after-sales（只返回本人） */
+    @GetMapping("/api/v1/after-sales")
+    public ApiResult<List<AfterSaleVO>> myAfterSales(@RequestParam(required = false) String status) {
+        return ApiResult.ok(afterSaleService.listMine(MemberContext.require(), status));
     }
 }

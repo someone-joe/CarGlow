@@ -1,6 +1,7 @@
 package com.ruoyi.wash.pay.mapper;
 
 import com.ruoyi.wash.pay.domain.WashRefundOrder;
+import com.ruoyi.wash.pay.dto.RefundVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -40,4 +41,34 @@ public interface WashRefundOrderMapper {
                      @Param("providerTradeNo") String providerTradeNo,
                      @Param("failReason") String failReason,
                      @Param("retryCount") Integer retryCount);
+
+    // ---------------- 对外查询（时间统一转毫秒，实体继承 BaseEntity 的 Date 不满足口径） ----------------
+
+    /** C 端「我的退款」：一律带 member_id 过滤，不给越权留口子 */
+    @Select("<script>" +
+            "select refund_no, order_no, amount, reason, status, provider, provider_trade_no, fail_reason, retry_count, " +
+            "UNIX_TIMESTAMP(create_time) * 1000 as create_time, UNIX_TIMESTAMP(update_time) * 1000 as update_time " +
+            "from wash_order_refund where member_id = #{memberId} and del_flag = '0' " +
+            "<if test='orderNo != null'> and order_no = #{orderNo} </if>" +
+            "order by create_time desc" +
+            "</script>")
+    List<RefundVO> selectVOByMember(@Param("memberId") Long memberId, @Param("orderNo") String orderNo);
+
+    @Select("<script>" +
+            "select refund_no, order_no, amount, reason, status, provider, provider_trade_no, fail_reason, retry_count, " +
+            "UNIX_TIMESTAMP(create_time) * 1000 as create_time, UNIX_TIMESTAMP(update_time) * 1000 as update_time " +
+            "from wash_order_refund where del_flag = '0' " +
+            "<if test='orderNo != null'> and order_no = #{orderNo} </if>" +
+            "<if test='status != null'> and status = #{status} </if>" +
+            "order by create_time desc limit #{offset}, #{pageSize}" +
+            "</script>")
+    List<RefundVO> selectAdminList(@Param("orderNo") String orderNo, @Param("status") String status,
+                                   @Param("offset") int offset, @Param("pageSize") int pageSize);
+
+    @Select("<script>" +
+            "select count(*) from wash_order_refund where del_flag = '0' " +
+            "<if test='orderNo != null'> and order_no = #{orderNo} </if>" +
+            "<if test='status != null'> and status = #{status} </if>" +
+            "</script>")
+    long countAdmin(@Param("orderNo") String orderNo, @Param("status") String status);
 }
