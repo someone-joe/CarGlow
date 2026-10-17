@@ -45,6 +45,8 @@ export default defineConfig(({ mode, command }) => {
       // 用 1024：非管理员账号起不了 80 端口
       port: 1024,
       host: true,
+      // cpolar 内网穿透用随机域名访问 dev server，vite 默认校验 host 会拦截，放行
+      allowedHosts: true,
       open: true,
       proxy: {
         // https://cn.vitejs.dev/config/#server-proxy

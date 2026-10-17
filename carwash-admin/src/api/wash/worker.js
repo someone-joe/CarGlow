@@ -63,3 +63,76 @@ export function workerSiteOptions() {
     method: 'get'
   })
 }
+
+// ---------------- 资质审核（T13） ----------------
+export function qualificationPage(query) {
+  return request({
+    url: '/admin-api/wash/worker/qualification/page',
+    method: 'get',
+    params: query
+  })
+}
+
+export function reviewQualification(data) {
+  return request({
+    url: '/admin-api/wash/worker/qualification/review',
+    method: 'put',
+    data
+  })
+}
+
+export function updateFace(data) {
+  return request({
+    url: '/admin-api/wash/worker/qualification/face',
+    method: 'put',
+    data
+  })
+}
+
+// ---------------- 周排班（T13） ----------------
+export function getSchedule(workerId) {
+  return request({
+    url: '/admin-api/wash/worker/' + workerId + '/schedule',
+    method: 'get'
+  })
+}
+
+export function saveSchedule(workerId, data) {
+  return request({
+    url: '/admin-api/wash/worker/' + workerId + '/schedule',
+    method: 'put',
+    data
+  })
+}
+
+// ---------------- 派单（T13） ----------------
+export function dispatchCandidates(siteId, communityId) {
+  return request({
+    url: '/admin-api/wash/worker/dispatch/candidates',
+    method: 'get',
+    params: { siteId, communityId }
+  })
+}
+
+export function dispatchOrder(data) {
+  return request({
+    url: '/admin-api/wash/worker/dispatch',
+    method: 'post',
+    data
+  })
+}
+
+export function getDispatchPool(siteId) {
+  return request({
+    url: '/admin-api/wash/worker/dispatch/pool',
+    method: 'get',
+    params: { siteId }
+  })
+}
+
+export function getWorkerTasks(workerId) {
+  return request({
+    url: '/admin-api/wash/worker/' + workerId + '/tasks',
+    method: 'get'
+  })
+}
