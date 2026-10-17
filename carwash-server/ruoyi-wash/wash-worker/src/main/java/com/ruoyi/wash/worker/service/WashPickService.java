@@ -232,6 +232,20 @@ public class WashPickService {
         mediaService.requireBelongToOrder(fileIds, orderNo, BIZ_TYPE_RETURN);
         var order = orderQuery.require(orderNo);
         stateService.workerFire(orderNo, OrderEvent.RETURN_DONE, workerId, parkingNo);
+        // 钥匙随车送回并放回钥匙柜：必须重新占用一个格口，否则客户"取钥匙"时
+        // 查不到本单格口（takeKey 已释放），会误报"钥匙柜离线"（B2001）。
+        // 幂等：本单已占用格口则跳过，避免重复送回时绑定多个格口。
+        boolean hasSlot;
+        try {
+            slotService.require(orderNo);
+            hasSlot = true;
+        } catch (ApiException e) {
+            hasSlot = false;
+        }
+        if (!hasSlot) {
+            slotService.reserve(order.getCabinetId(), orderNo, order.getMemberId());
+            slotService.occupy(orderNo);
+        }
         // 已归位待取钥匙 → 推「车辆已洗好，请到钥匙柜取钥匙」（需求 11.2）
         try {
             Map<String, String> data = new HashMap<>();
