@@ -4876,6 +4876,7 @@ components:
         communityName: { type: string }
         plateNo: { type: string }
         payAmount: { type: integer }
+        createTime: { type: integer, format: int64, description: '下单时间（毫秒）。两类订单（无感 / 自助）融合列表时按它排序，故必须下发' }
         workerId: { type: integer, format: int64, description: 接单师傅ID；未派单为 null }
         workerName: { type: string, description: 派单师傅姓名快照（钥匙入柜后客户要知道谁接的单）；未派单为 null }
         assignedAt: { type: integer, format: int64, description: 派单时间（毫秒）；未派单为 null }

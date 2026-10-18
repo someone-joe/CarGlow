@@ -4740,12 +4740,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: Record<string, never>[];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: Record<string, never>[];
                         };
                     };
                 };
@@ -5072,12 +5068,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["SelfwashOrderVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["SelfwashOrderVO"][];
                         };
                     };
                 };
@@ -5239,12 +5231,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["InvoiceVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["InvoiceVO"][];
                         };
                     };
                 };
@@ -5415,12 +5403,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["AdminAfterSaleVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminAfterSaleVO"][];
                         };
                     };
                 };
@@ -5515,12 +5499,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["RefundVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["RefundVO"][];
                         };
                     };
                 };
@@ -5610,12 +5590,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["AdminCouponTemplateVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminCouponTemplateVO"][];
                         };
                     };
                 };
@@ -5939,12 +5915,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: components["schemas"]["AdminCouponRecordVO"][];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminCouponRecordVO"][];
                         };
                     };
                 };
@@ -5985,12 +5957,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuoYiResult"] & {
-                            data?: {
-                                rows?: Record<string, never>[];
-                                /** Format: int64 */
-                                total?: number;
-                            };
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: Record<string, never>[];
                         };
                     };
                 };
@@ -7756,6 +7724,11 @@ export interface components {
             communityName?: string;
             plateNo?: string;
             payAmount?: number;
+            /**
+             * Format: int64
+             * @description 下单时间（毫秒）。两类订单（无感 / 自助）融合列表时按它排序，故必须下发
+             */
+            createTime?: number;
             /**
              * Format: int64
              * @description 接单师傅ID；未派单为 null

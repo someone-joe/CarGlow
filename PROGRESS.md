@@ -825,3 +825,43 @@ C 端提交售后（REFUND）
 
 ⚠️ 上线阻断项不变：`wash.wx.appid/secret` 为空时所有用户共用 `dev-openid`，
 **不配置的话线上数据全串**；`wash.pay.provider` 生产必须为 `wechat`。
+
+---
+
+## 十六、订单列表融合自助洗车（2026-10-18）
+
+> 需求：自助洗车与无感洗车**逻辑隔离不变**，但订单要融成一个列表展示，用户不感知两类区别。
+
+### 16.1 为什么放前端融合，而不是后端合并查询
+
+`wash-selfwash` 不依赖 `wash-order`；若让订单域去聚合自助订单，就得让 `wash-order` 反向依赖
+`wash-selfwash`（新增耦合，且订单域从此知道"自助洗车"的存在）。
+融合纯是展示层的事，放前端即**零模块耦合**，隔离性完全保持。
+类比：这与第十三节「事件解耦」是同一个思路——能不建立依赖就不建立。
+
+### 16.2 做法
+
+- `orders.vue` 的 PENDING/SERVING/DONE 三个 tab **同时拉两类订单**再合并，按下单时间倒序：
+  - 无感：`GET /api/v1/orders?tab={PENDING|SERVING|DONE}`
+  - 自助：`GET /api/v1/selfwash/orders?tab={WAIT_PAY,WAIT_USE|ONGOING|DONE,CANCELED}`（单值参数，多查几次）
+- 融合项用 `bizType`（`UNSENSITIVE` / `SELFWASH`）分派：卡片渲染、点击跳各自详情页
+  （`order-detail` vs `selfwash-detail`）。
+- **排序键**：两类统一用「下单时间」。为此给 `OrderListItemVO` 增加了 `createTime`（毫秒）——
+  mapper 本就查了 `create_time`，只是没往 VO 暴露。
+  注意两边 createTime 形态不同：无感是毫秒数，自助是若依 Date 序列化的 `yyyy-MM-dd HH:mm:ss` 字符串，
+  前端 `sortKey` 两种都兼容（字符串按本地时间解析，后端时区 Asia/Shanghai）。
+- 无感订单保留原有操作按钮（PAY / DEPOSIT_KEY / TAKE_KEY / REVIEW / CANCEL…）；
+  自助订单只显示「查看详情」，操作仍在其详情页内完成（与改版前 `selfwash-orders` 行为一致）。
+- 翻页只翻无感侧（自助一次性全量返回），**追加后必须重新排序**，
+  否则新一页的无感单会排在自助单后面，看起来像"加载失败"。
+
+### 16.3 保留未动
+
+- `pages/selfwash-orders/selfwash-orders.vue` 与「我的 → 我的自助洗车」入口保留：
+  主动想看自助专项明细时仍可用，不影响主列表融合。
+- 两类订单的表、状态机（`OrderStatus` 15 态 vs `SelfWashStatus` 7 态）、接口完全不变。
+
+### 16.4 实测
+
+无感列表返回 `createTime=1792243746000`（毫秒）；自助返回 `createTime=2026-10-17 23:24:25`（字符串），
+两种形态均被 `sortKey` 正确处理。类型检查与 `build:mp-weixin` 通过。
