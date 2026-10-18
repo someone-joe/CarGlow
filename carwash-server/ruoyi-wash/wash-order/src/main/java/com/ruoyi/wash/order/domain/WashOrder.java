@@ -20,6 +20,8 @@ public class WashOrder extends BaseEntity {
     private Long workerId;
     /** 派单时间（毫秒） */
     private Long assignedAt;
+    /** 派单师傅姓名快照（C 端展示「谁接单」用；订单域不反向依赖师傅域，与 service_name 快照同一思路） */
+    private String workerName;
     private String status;
     private String serviceName;
     /** 预约时间，毫秒时间戳 */
@@ -82,6 +84,14 @@ public class WashOrder extends BaseEntity {
 
     public void setAssignedAt(Long assignedAt) {
         this.assignedAt = assignedAt;
+    }
+
+    public String getWorkerName() {
+        return workerName;
+    }
+
+    public void setWorkerName(String workerName) {
+        this.workerName = workerName;
     }
 
     public void setCommunityId(Long communityId) {

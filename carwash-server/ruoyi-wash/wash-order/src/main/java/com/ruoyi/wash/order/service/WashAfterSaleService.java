@@ -3,6 +3,7 @@ package com.ruoyi.wash.order.service;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
+import com.ruoyi.wash.order.domain.AfterSaleStatus;
 import com.ruoyi.wash.order.domain.WashAfterSale;
 import com.ruoyi.wash.order.domain.WashOrder;
 import com.ruoyi.wash.order.domain.WashReview;
@@ -216,6 +217,8 @@ public class WashAfterSaleService {
         vo.setType(row.getType());
         vo.setReason(row.getReason());
         vo.setStatus(row.getStatus());
+        // 中文名由后端枚举给，前端只展示（与 OrderStatus 同一口径，不在前端维护第二份名单）
+        vo.setStatusLabel(AfterSaleStatus.labelOf(row.getStatus()));
         vo.setAmount(row.getAmount());
         vo.setHandlerBy(row.getHandlerBy());
         vo.setHandleRemark(row.getHandleRemark());

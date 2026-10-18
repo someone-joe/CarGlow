@@ -94,6 +94,10 @@ public class WashOrderQueryService {
         vo.setAppointTime(order.getAppointTime());
         vo.setPlateNo(order.getPlateNo());
         vo.setPayAmount(order.getPayAmount());
+        // 派单信息：钥匙入柜后客户最想知道「有没有人接单、谁接的、什么时候」
+        vo.setWorkerId(order.getWorkerId());
+        vo.setWorkerName(order.getWorkerName());
+        vo.setAssignedAt(order.getAssignedAt());
         vo.setSubActions(List.of());
         // 按钮由后端返回（契约 OrderAction），前端不得自行推断
         vo.setMainAction(resolveMainAction(order.getStatus()));

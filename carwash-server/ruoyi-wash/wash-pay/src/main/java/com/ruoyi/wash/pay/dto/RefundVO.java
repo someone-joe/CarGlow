@@ -19,6 +19,8 @@ public class RefundVO {
     private String reason;
     /** INIT 待退款 / SUCCESS 已退 / FAILED 失败待重试 */
     private String status;
+    /** 状态中文名，由后端枚举给出（前端只展示不翻译） */
+    private String statusLabel;
     /** 渠道：mock / wechat */
     private String provider;
     /** 渠道退款流水号，对账用 */
@@ -66,6 +68,14 @@ public class RefundVO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getStatusLabel() {
+        return statusLabel;
+    }
+
+    public void setStatusLabel(String statusLabel) {
+        this.statusLabel = statusLabel;
     }
 
     public String getProvider() {

@@ -36,14 +36,19 @@ public class WashOrderPickService {
         return orderMapper.selectUnassignedBySiteAndStatuses(siteId, statuses);
     }
 
-    /** 派单结果落库。返回 0 表示已被他人先派走（并发保护，调用方据此判定抢单失败） */
-    public int assignWorker(String orderNo, Long workerId, long assignedAt) {
-        return orderMapper.assignWorker(orderNo, workerId, assignedAt);
+    /**
+     * 派单结果落库。返回 0 表示已被他人先派走（并发保护，调用方据此判定抢单失败）。
+     *
+     * <p>workerName 一并快照进订单：C 端要展示「谁接单」，而订单域不能反向依赖师傅域
+     * （会成环），跨模块也不让直接查对方的表——与 service_name 下单快照是同一个思路。
+     */
+    public int assignWorker(String orderNo, Long workerId, String workerName, long assignedAt) {
+        return orderMapper.assignWorker(orderNo, workerId, workerName, assignedAt);
     }
 
     /** 后台改派：无条件覆盖（含已派给别人的单），返回 0 表示订单不存在 */
-    public int forceAssignWorker(String orderNo, Long workerId, long assignedAt) {
-        return orderMapper.forceAssignWorker(orderNo, workerId, assignedAt);
+    public int forceAssignWorker(String orderNo, Long workerId, String workerName, long assignedAt) {
+        return orderMapper.forceAssignWorker(orderNo, workerId, workerName, assignedAt);
     }
 
     /** 按订单号取订单（派单校验归属/小区/状态用） */

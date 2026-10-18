@@ -117,6 +117,10 @@ public class WashOrderDetailService {
         vo.setOriginAmount(order.getPayAmount());
         vo.setDiscountAmount(0L);
         vo.setPayAmount(order.getPayAmount());
+        // 派单信息（T13）：钥匙入柜后自动/抢单/手动派单的结果，客户要能看到「谁接的单」
+        vo.setWorkerId(order.getWorkerId());
+        vo.setWorkerName(order.getWorkerName());
+        vo.setAssignedAt(order.getAssignedAt());
         vo.setOverdue(false);
         // 站点名 / 柜名 / 承诺还车时间：从站点与柜机域补全，查不到为 null 而不是报错
         vo.setSiteName(siteQuery.siteName(order.getSiteId()));

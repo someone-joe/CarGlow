@@ -144,16 +144,18 @@ public interface WashOrderMapper {
      * 派单结果落库。条件更新：仅当当前未派单、或已是该师傅时才写，
      * 返回 0 表示被别人先派走（抢单并发下避免双接单）。
      */
-    @Update("update wash_order set worker_id = #{workerId}, assigned_at = #{assignedAt}, update_time = sysdate() " +
+    @Update("update wash_order set worker_id = #{workerId}, worker_name = #{workerName}, " +
+            "assigned_at = #{assignedAt}, update_time = sysdate() " +
             "where order_no = #{orderNo} and del_flag = '0' and (worker_id is null or worker_id = #{workerId})")
     int assignWorker(@Param("orderNo") String orderNo, @Param("workerId") Long workerId,
-                     @Param("assignedAt") Long assignedAt);
+                     @Param("workerName") String workerName, @Param("assignedAt") Long assignedAt);
 
     /** 后台改派：无条件覆盖（含已派给别人的单），返回 0 表示订单不存在 */
-    @Update("update wash_order set worker_id = #{workerId}, assigned_at = #{assignedAt}, update_time = sysdate() " +
+    @Update("update wash_order set worker_id = #{workerId}, worker_name = #{workerName}, " +
+            "assigned_at = #{assignedAt}, update_time = sysdate() " +
             "where order_no = #{orderNo} and del_flag = '0'")
     int forceAssignWorker(@Param("orderNo") String orderNo, @Param("workerId") Long workerId,
-                          @Param("assignedAt") Long assignedAt);
+                          @Param("workerName") String workerName, @Param("assignedAt") Long assignedAt);
 
     /**
      * 超时未支付的订单：给支付超时自动取消任务用。

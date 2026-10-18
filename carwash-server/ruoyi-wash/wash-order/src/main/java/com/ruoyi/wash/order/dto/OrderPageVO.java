@@ -24,6 +24,12 @@ public class OrderPageVO {
         private String communityName;
         private String plateNo;
         private Long payAmount;
+        /** 接单师傅ID；未派单为 null */
+        private Long workerId;
+        /** 派单师傅姓名快照（C 端展示「谁接单」）；未派单为 null */
+        private String workerName;
+        /** 派单时间（毫秒）；未派单为 null */
+        private Long assignedAt;
         private OrderActionVO mainAction;
         private List<OrderActionVO> subActions;
 
@@ -113,6 +119,30 @@ public class OrderPageVO {
 
         public void setSubActions(List<OrderActionVO> subActions) {
             this.subActions = subActions;
+        }
+
+        public Long getWorkerId() {
+            return workerId;
+        }
+
+        public void setWorkerId(Long workerId) {
+            this.workerId = workerId;
+        }
+
+        public String getWorkerName() {
+            return workerName;
+        }
+
+        public void setWorkerName(String workerName) {
+            this.workerName = workerName;
+        }
+
+        public Long getAssignedAt() {
+            return assignedAt;
+        }
+
+        public void setAssignedAt(Long assignedAt) {
+            this.assignedAt = assignedAt;
         }
     }
 

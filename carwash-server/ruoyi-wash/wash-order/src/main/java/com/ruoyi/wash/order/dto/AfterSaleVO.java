@@ -16,6 +16,8 @@ public class AfterSaleVO {
     private String reason;
     /** INIT 待处理 / PROCESSING 处理中 / DONE 已完成 / REJECTED 已驳回 */
     private String status;
+    /** 状态中文名，由后端枚举给出（前端只展示不翻译，避免两端各写一份） */
+    private String statusLabel;
     private Long amount;
     private String handlerBy;
     private String handleRemark;
@@ -60,6 +62,14 @@ public class AfterSaleVO {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getStatusLabel() {
+        return statusLabel;
+    }
+
+    public void setStatusLabel(String statusLabel) {
+        this.statusLabel = statusLabel;
     }
 
     public Long getAmount() {

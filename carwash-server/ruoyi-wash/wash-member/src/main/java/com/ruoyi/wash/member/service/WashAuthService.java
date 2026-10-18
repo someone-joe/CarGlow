@@ -39,13 +39,16 @@ public class WashAuthService {
     @Autowired
     private MemberTokenService tokenService;
 
+    @Autowired
+    private WxPhoneService phoneService;
+
     @Value("${wash.wx.appid:}")
     private String appid;
 
     @Value("${wash.wx.secret:}")
     private String secret;
 
-    public LoginVO login(String code) {
+    public LoginVO login(String code, String phoneCode) {
         String openid = resolveOpenid(code);
 
         WashMember member = memberMapper.selectByOpenid(openid);
@@ -57,6 +60,10 @@ public class WashAuthService {
             isNewUser = true;
         }
 
+        // 手机号授权：用户点了「允许获取手机号」才会带 phoneCode 上来。
+        // 只在手机号为空时绑定——不授权就保持原样，绝不把已有手机号清掉。
+        bindPhoneIfNeeded(member, phoneCode);
+
         LoginVO vo = new LoginVO();
         vo.setToken(tokenService.createToken(member.getMemberId()));
         vo.setExpireAt(tokenService.getExpireAt());
@@ -67,8 +74,26 @@ public class WashAuthService {
         return vo;
     }
 
-    private String resolveOpenid(String code) {
-        // 模拟登录：secret 为空 = 本地开发模式
+    /**
+     * 需要时绑定手机号。
+     *
+     * <p>三个"不"：用户没授权（phoneCode 空）不绑；已有手机号不覆盖（换号需走客服，避免误操作丢联系方式）；
+     * 微信侧换号失败也不报错——手机号只是联系方式，不该阻断登录，前端可再次引导授权。
+     */
+    private void bindPhoneIfNeeded(WashMember member, String phoneCode) {
+        if (member.getPhone() != null && !member.getPhone().isBlank()) {
+            return;
+        }
+        String phone = phoneService.getPhone(phoneCode);
+        if (phone == null) {
+            return;
+        }
+        // SQL 自带「手机号为空才更新」的兜底：并发登录同时授权时，只有一个能写成功
+        memberMapper.bindPhone(member.getMemberId(), phone);
+        member.setPhone(phone);
+    }
+
+    private String resolveOpenid(String code) {        // 模拟登录：secret 为空 = 本地开发模式
         if (secret == null || secret.isBlank()) {
             log.warn("[微信登录] 未配置 wash.wx.secret，使用模拟 openid（仅限本地开发）");
             return "dev-openid";

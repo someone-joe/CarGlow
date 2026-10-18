@@ -10,6 +10,7 @@ import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.event.RefundSucceededEvent;
 import com.ruoyi.wash.order.service.WashOrderPaySupportService;
 import com.ruoyi.wash.order.state.WashOrderStateService;
+import com.ruoyi.wash.pay.domain.RefundStatus;
 import com.ruoyi.wash.pay.domain.WashRefundOrder;
 import com.ruoyi.wash.pay.dto.PrepayVO;
 import com.ruoyi.wash.pay.dto.RefundVO;
@@ -171,12 +172,20 @@ public class WashPayService {
 
     /** C 端「我的退款单」：一律按会员过滤，不给越权留口子 */
     public List<RefundVO> listMine(Long memberId, String orderNo) {
-        return refundMapper.selectVOByMember(memberId, orderNo);
+        return withLabel(refundMapper.selectVOByMember(memberId, orderNo));
     }
 
     public List<RefundVO> adminList(String orderNo, String status, int pageNum, int pageSize) {
         int offset = (pageNum - 1) * pageSize;
-        return refundMapper.selectAdminList(orderNo, status, offset, pageSize);
+        return withLabel(refundMapper.selectAdminList(orderNo, status, offset, pageSize));
+    }
+
+    /** 补状态中文名：前端只展示不翻译（不在前端维护第二份状态名单） */
+    private List<RefundVO> withLabel(List<RefundVO> rows) {
+        for (RefundVO vo : rows) {
+            vo.setStatusLabel(RefundStatus.labelOf(vo.getStatus()));
+        }
+        return rows;
     }
 
     public long countAdmin(String orderNo, String status) {

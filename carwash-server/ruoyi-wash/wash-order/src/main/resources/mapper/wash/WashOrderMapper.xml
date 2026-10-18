@@ -11,6 +11,7 @@
         <result property="siteId" column="site_id"/>
         <result property="communityId" column="community_id"/>
         <result property="workerId" column="worker_id"/>
+        <result property="workerName" column="worker_name"/>
         <result property="assignedAt" column="assigned_at"/>
         <result property="status" column="status"/>
         <result property="serviceName" column="service_name"/>
@@ -32,7 +33,7 @@
     </sql>
 
     <select id="selectPageByMember" resultMap="WashOrderResult">
-        select order_id, order_no, member_id, site_id, community_id, worker_id, assigned_at, status, service_name,
+        select order_id, order_no, member_id, site_id, community_id, worker_id, worker_name, assigned_at, status, service_name,
                appoint_time, pay_amount, plate_no, cancel_reason, del_flag, create_time, update_time
         from wash_order
         where <include refid="memberFilter"/>
@@ -59,7 +60,7 @@
 
     <select id="selectAdminPage" resultMap="WashOrderResult">
         select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id,
-               worker_id, assigned_at,
+               worker_id, worker_name, assigned_at,
                status, service_name, appoint_time, pay_amount, pay_expire_at, plate_no, cancel_reason,
                remark, del_flag, create_time, update_time
         from wash_order
@@ -74,7 +75,7 @@
 
     <select id="selectByOrderNo" resultMap="WashOrderResult">
         select order_id, order_no, service_id, vehicle_id, cabinet_id, member_id, site_id, community_id,
-               worker_id, assigned_at,
+               worker_id, worker_name, assigned_at,
                status, service_name, appoint_time, pay_amount, pay_expire_at, plate_no, cancel_reason,
                remark, del_flag, create_time, update_time
         from wash_order

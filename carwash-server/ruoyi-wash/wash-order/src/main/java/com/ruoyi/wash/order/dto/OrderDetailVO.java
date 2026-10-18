@@ -21,6 +21,12 @@ public class OrderDetailVO {
     private Long discountAmount;
     private Long payAmount;
     private String payType;
+    /** 接单师傅ID；未派单为 null */
+    private Long workerId;
+    /** 派单师傅姓名快照；未派单为 null */
+    private String workerName;
+    /** 派单时间（毫秒）；未派单为 null */
+    private Long assignedAt;
     private List<TimelineNodeVO> timeline;
     private List<MediaVO> medias;
     private OrderActionVO mainAction;
@@ -184,5 +190,29 @@ public class OrderDetailVO {
 
     public void setSubActions(List<OrderActionVO> subActions) {
         this.subActions = subActions;
+    }
+
+    public Long getWorkerId() {
+        return workerId;
+    }
+
+    public void setWorkerId(Long workerId) {
+        this.workerId = workerId;
+    }
+
+    public String getWorkerName() {
+        return workerName;
+    }
+
+    public void setWorkerName(String workerName) {
+        this.workerName = workerName;
+    }
+
+    public Long getAssignedAt() {
+        return assignedAt;
+    }
+
+    public void setAssignedAt(Long assignedAt) {
+        this.assignedAt = assignedAt;
     }
 }

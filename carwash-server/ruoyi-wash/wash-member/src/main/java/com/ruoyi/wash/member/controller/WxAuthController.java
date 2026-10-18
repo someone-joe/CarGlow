@@ -24,7 +24,7 @@ public class WxAuthController {
         if (request == null || request.code() == null || request.code().isBlank()) {
             throw new ApiException(ErrorCode.A0001, "code 必填");
         }
-        return ApiResult.ok(authService.login(request.code()));
+        return ApiResult.ok(authService.login(request.code(), request.phoneCode()));
     }
 
     /** 与契约 request body 逐字段一致。 */

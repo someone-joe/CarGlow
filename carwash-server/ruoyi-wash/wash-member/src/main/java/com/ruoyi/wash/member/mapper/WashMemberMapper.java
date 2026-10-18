@@ -22,6 +22,14 @@ public interface WashMemberMapper {
             "where member_id = #{memberId} and (invite_code is null or invite_code = '') and del_flag = '0'")
     int initInviteCode(@Param("memberId") Long memberId, @Param("code") String code);
 
+    /**
+     * 绑定手机号（微信手机号授权回调）。
+     * 只在手机号为空时写入：用户主动授权才更新，不授权绝不清空已有手机号。
+     */
+    @Update("update wash_member set phone = #{phone}, update_time = sysdate() " +
+            "where member_id = #{memberId} and (phone is null or phone = '') and del_flag = '0'")
+    int bindPhone(@Param("memberId") Long memberId, @Param("phone") String phone);
+
     @Select("select member_id from wash_member where invite_code = #{code} and del_flag = '0' limit 1")
     Long selectMemberIdByInviteCode(@Param("code") String code);
 

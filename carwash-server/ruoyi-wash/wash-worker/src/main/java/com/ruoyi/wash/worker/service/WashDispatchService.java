@@ -65,7 +65,7 @@ public class WashDispatchService {
             log.info("[派单] 无合格候选，订单进入待派单池 orderNo={} siteId={}", orderNo, siteId);
             return;
         }
-        int n = pickQuery.assignWorker(orderNo, best.getWorkerId(), System.currentTimeMillis());
+        int n = pickQuery.assignWorker(orderNo, best.getWorkerId(), best.getName(), System.currentTimeMillis());
         if (n == 0) {
             log.info("[派单] 并发下已被他人派走 orderNo={}", orderNo);
             return;
@@ -85,7 +85,7 @@ public class WashDispatchService {
         if (!worker.getSiteId().equals(order.getSiteId())) {
             throw new ApiException(ErrorCode.A0003, "只能接本站点的单");
         }
-        int n = pickQuery.assignWorker(orderNo, workerId, System.currentTimeMillis());
+        int n = pickQuery.assignWorker(orderNo, workerId, worker.getName(), System.currentTimeMillis());
         if (n == 0) {
             throw new ApiException(ErrorCode.B1002, "手慢了，该单已被他人接走");
         }
@@ -103,7 +103,7 @@ public class WashDispatchService {
         if (!worker.getSiteId().equals(order.getSiteId())) {
             throw new ApiException(ErrorCode.A0001, "不能跨站点派单");
         }
-        if (pickQuery.forceAssignWorker(orderNo, workerId, System.currentTimeMillis()) == 0) {
+        if (pickQuery.forceAssignWorker(orderNo, workerId, worker.getName(), System.currentTimeMillis()) == 0) {
             throw new ApiException(ErrorCode.A0001, "订单不存在");
         }
         log.info("[派单] 后台派单/改派 orderNo={} workerId={}", orderNo, workerId);
