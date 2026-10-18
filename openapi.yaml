@@ -986,12 +986,13 @@ paths:
   /api/v1/selfwash/orders/{orderNo}/add-time:
     post:
       tags: [selfwash]
-      summary: 加时（按本单实付/时长折算单价计费，从储值余额扣除后延长服务倒计时；余额不足返回 B3004）
+      summary: 加时（按后台配置的「超时价/超时时长」整档计费，不足一档按一档；从储值余额扣除后延长服务倒计时；余额不足返回 B3004）
       parameters:
         - name: orderNo
           in: path
           required: true
           schema: { type: string }
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
