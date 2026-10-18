@@ -45,8 +45,8 @@ public class WxVehicleController {
         }
         // 返回新建车辆 ID，前端据此选中刚添加的车，不用再刷一次列表
         WashVehicle created = vehicleService.create(MemberContext.require(), request.plateNo(),
-                request.brand(), request.color(), request.isNewEnergy(),
-                request.communityId(), request.parkingNo());
+                request.brand(), request.color(), request.vehicleType(),
+                request.isNewEnergy(), request.communityId(), request.parkingNo());
         return ApiResult.ok(created.getVehicleId());
     }
 
@@ -58,6 +58,7 @@ public class WxVehicleController {
                 request == null ? null : request.plateNo(),
                 request == null ? null : request.brand(),
                 request == null ? null : request.color(),
+                request == null ? null : request.vehicleType(),
                 request == null ? null : request.isNewEnergy(),
                 request == null ? null : request.communityId(),
                 request == null ? null : request.parkingNo());
@@ -68,7 +69,7 @@ public class WxVehicleController {
      * 契约 VehicleRequest 的"可落库子集"。
      * photoFileId（影像未开工）、isDefault（表无此列）、building/unit/floor（地址模块未开工）暂不支持。
      */
-    public record VehicleRequest(String plateNo, String brand, String color, Boolean isNewEnergy,
+    public record VehicleRequest(String plateNo, String brand, String color, String vehicleType, Boolean isNewEnergy,
                                  Long communityId, String parkingNo) {
     }
 }

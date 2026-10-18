@@ -4783,6 +4783,13 @@ components:
         plateNo: { type: string }
         brand: { type: string }
         color: { type: string }
+        vehicleType:
+          type: string
+          enum: [SEDAN, SUV, MPV, OTHER]
+          description: '车型；与自助洗车下单共用同一 VehicleType 枚举'
+        vehicleTypeLabel:
+          type: string
+          description: '车型中文名，后端枚举给出，前端只展示不翻译'
         photoUrl: { type: string }
         isNewEnergy: { type: boolean }
         isDefault: { type: boolean }
@@ -4809,6 +4816,10 @@ components:
         plateNo: { type: string, description: 支持新能源 8 位 }
         brand: { type: string }
         color: { type: string }
+        vehicleType:
+          type: string
+          enum: [SEDAN, SUV, MPV, OTHER]
+          description: '车型；选填，自助洗车下单需据此调度'
         photoFileId: { type: string }
         isNewEnergy: { type: boolean }
         isDefault: { type: boolean }

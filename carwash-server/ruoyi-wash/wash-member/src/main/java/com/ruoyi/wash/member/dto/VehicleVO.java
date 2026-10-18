@@ -12,6 +12,7 @@ public class VehicleVO {
     private String plateNo;
     private String brand;
     private String color;
+    private String vehicleType;
     private String photoUrl;
     private Boolean isNewEnergy;
     private Boolean isDefault;
@@ -47,6 +48,14 @@ public class VehicleVO {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 
     public String getPhotoUrl() {

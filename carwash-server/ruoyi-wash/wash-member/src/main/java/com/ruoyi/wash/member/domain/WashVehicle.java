@@ -10,6 +10,7 @@ public class WashVehicle extends BaseEntity {
     private String plateNo;
     private String brand;
     private String color;
+    private String vehicleType;
     private String isNewEnergy;
     /** 默认车辆（Y/N），下单页据此预选 */
     private String isDefault;
@@ -54,6 +55,14 @@ public class WashVehicle extends BaseEntity {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 
     public String getIsNewEnergy() {

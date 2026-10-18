@@ -24,7 +24,7 @@ public class WashVehicleService {
     private WashVehicleMapper vehicleMapper;
 
     /** 新增车辆：车牌必填（契约 required），其余可选 */
-    public WashVehicle create(Long memberId, String plateNo, String brand, String color,
+    public WashVehicle create(Long memberId, String plateNo, String brand, String color, String vehicleType,
                              Boolean isNewEnergy, Long communityId, String parkingNo) {
         String plate = requirePlateNo(plateNo);
         WashVehicle vehicle = new WashVehicle();
@@ -32,6 +32,8 @@ public class WashVehicleService {
         vehicle.setPlateNo(plate);
         vehicle.setBrand(blankToNull(brand));
         vehicle.setColor(blankToNull(color));
+        String vt = blankToNull(vehicleType);
+        vehicle.setVehicleType(vt == null ? "OTHER" : vt);
         vehicle.setIsNewEnergy(isNewEnergy != null && isNewEnergy ? YES : NO);
         vehicle.setCommunityId(communityId);
         vehicle.setParkingNo(blankToNull(parkingNo));
@@ -45,7 +47,7 @@ public class WashVehicleService {
      * <p>更新 0 行即视为"车辆不存在或不属于当前用户"，不能用返回值区分两种情况，
      * 统一报 A0001 + 明确文案，避免通过报错差异去枚举别人的车辆 ID。
      */
-    public void update(Long memberId, Long vehicleId, String plateNo, String brand, String color,
+    public void update(Long memberId, Long vehicleId, String plateNo, String brand, String color, String vehicleType,
                        Boolean isNewEnergy, Long communityId, String parkingNo) {
         WashVehicle vehicle = new WashVehicle();
         vehicle.setVehicleId(vehicleId);
@@ -53,6 +55,7 @@ public class WashVehicleService {
         vehicle.setPlateNo(plateNo == null ? null : requirePlateNo(plateNo));
         vehicle.setBrand(blankToNull(brand));
         vehicle.setColor(blankToNull(color));
+        vehicle.setVehicleType(vehicleType == null ? null : blankToNull(vehicleType));
         vehicle.setIsNewEnergy(isNewEnergy == null ? null : (isNewEnergy ? YES : NO));
         vehicle.setCommunityId(communityId);
         vehicle.setParkingNo(blankToNull(parkingNo));

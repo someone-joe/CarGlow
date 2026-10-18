@@ -39,6 +39,7 @@ public class WashVehicleQueryService {
             vo.setPlateNo(vehicle.getPlateNo());
             vo.setBrand(vehicle.getBrand());
             vo.setColor(vehicle.getColor());
+            vo.setVehicleType(vehicle.getVehicleType());
             vo.setIsNewEnergy(YES.equals(vehicle.getIsNewEnergy()));
             vo.setIsDefault(YES.equals(vehicle.getIsDefault()));
 
