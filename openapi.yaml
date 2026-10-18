@@ -2871,16 +2871,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { type: object }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { type: object }
 
   # ========================= 自助洗车（后台） =========================
   /admin-api/wash/selfwash/workstation/list:
@@ -3078,16 +3074,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/SelfwashOrderVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/SelfwashOrderVO' }
   /admin-api/wash/selfwash/order/{orderNo}:
     get:
       tags: [admin-selfwash]
@@ -3173,16 +3165,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/InvoiceVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/InvoiceVO' }
   /admin-api/wash/invoice/{invoiceId}:
     get:
       tags: [admin-invoice]
@@ -3285,16 +3273,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/AdminAfterSaleVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminAfterSaleVO' }
 
   /admin-api/wash/after-sale/{afterSaleNo}/handle:
     put:
@@ -3351,16 +3335,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/RefundVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/RefundVO' }
 
   /admin-api/wash/refund/{refundNo}/retry:
     post:
@@ -3414,16 +3394,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/AdminCouponTemplateVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminCouponTemplateVO' }
 
   /admin-api/wash/coupon/template/{templateId}:
     get:
@@ -3606,16 +3582,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { $ref: '#/components/schemas/AdminCouponRecordVO' }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminCouponRecordVO' }
 
   /admin-api/wash/banner/list:
     get:
@@ -3636,16 +3608,12 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/RuoYiResult'
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
                   - type: object
                     properties:
-                      data:
-                        type: object
-                        properties:
-                          rows:
-                            type: array
-                            items: { type: object }
-                          total: { type: integer, format: int64 }
+                      rows:
+                        type: array
+                        items: { type: object }
 
   /admin-api/wash/banner/{bannerId}:
     get:
