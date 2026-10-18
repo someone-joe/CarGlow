@@ -1182,12 +1182,21 @@ export interface paths {
                                  * @description 服务中剩余秒
                                  */
                                 remainingSeconds?: number;
-                                /** @description 该工位当前排队人数 */
+                                /** @description 该工位当前排队人数（排队中订单数，不含服务中） */
                                 queueCount?: number;
-                                /** @description 当前服务车牌（服务中） */
-                                currentPlate?: string;
-                                /** @description 前方排队车牌（按排队顺序，无车牌显示 ***） */
-                                aheadPlates?: string[];
+                                /** @description 预计等待分钟 = 服务中剩余秒 + 各排队单总时长（付费时长+加时），向上取整；加时后动态变化，空闲为 0 */
+                                estimatedWaitMinutes?: number;
+                                /** @description 该工位服务中+排队中订单明细（服务中在前，按排队顺序），用于排队进度弹窗；车牌脱敏下发 */
+                                queueItems?: {
+                                    /** @description 脱敏车牌，如 京A***12；无车牌显示 *** */
+                                    plateNo?: string;
+                                    /** @description 服务名称快照 */
+                                    serviceName?: string;
+                                    /** @description SERVING/QUEUING */
+                                    status?: string;
+                                    /** @description 该单预计分钟：服务中为剩余分钟，排队中为总时长（含加时），向上取整 */
+                                    estimatedMinutes?: number;
+                                }[];
                             }[];
                         };
                     };

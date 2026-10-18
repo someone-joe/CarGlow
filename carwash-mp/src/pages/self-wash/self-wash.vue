@@ -22,8 +22,13 @@
           </view>
           <view class="ws-right">
             <text class="ws-status" :class="statusClass(w.status)">{{ statusText(w.status) }}</text>
-            <text v-if="w.status === 'SERVING'" class="ws-sub">剩余 {{ fmtRemain(w.remainingSeconds) }}<text v-if="w.currentPlate"> · {{ w.currentPlate }}</text></text>
-            <text v-if="w.queueCount" class="ws-sub">前方排队：{{ (w.aheadPlates || []).join('、') }}</text>
+            <!-- 有人占用：服务中则突出排队提示，点击弹排队进度 -->
+            <view v-if="w.status === 'SERVING'" class="queue-line" @click="openQueue(w)">
+              <text class="queue-clock">🕓</text>
+              <text class="queue-text">前面有<text class="queue-num">{{ aheadCount(w) }}人</text> 约等待<text class="queue-num">{{ w.estimatedWaitMinutes || 0 }}分钟</text></text>
+              <text class="queue-link">进度 ›</text>
+            </view>
+            <text v-else-if="w.queueCount" class="ws-sub">前方排队 {{ w.queueCount }} 人</text>
           </view>
         </view>
       </view>
@@ -68,6 +73,8 @@
       </view>
     </block>
 
+    <QueueProgressPopup :show="queueWs != null" :ws="queueWs ?? undefined" @close="queueWs = undefined" />
+
     <view class="submit" :class="{ disabled: !canSubmit }" @click="submit">
       {{ submitting ? '下单中…' : '确认下单' }}
     </view>
@@ -82,6 +89,7 @@ import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
 import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
 import VehiclePicker from '@/components/VehiclePicker.vue'
+import QueueProgressPopup from '@/components/QueueProgressPopup.vue'
 import { consumePickedVehicle } from '@/store/vehicleSelect'
 
 const loading = ref(true)
@@ -97,6 +105,8 @@ const couponUserId = ref<number | undefined>(undefined)
 const couponText = ref('未使用优惠券')
 const vehicles = ref<VehicleVO[]>([])
 const vehicleId = ref<number | undefined>(undefined)
+/** 排队进度弹窗对应的工位；有值即弹窗打开 */
+const queueWs = ref<WorkstationVO | undefined>(undefined)
 
 const canSubmit = computed(
   () => !!workstationId.value && !!serviceId.value && !!vehicleId.value && !submitting.value,
@@ -114,11 +124,13 @@ function statusClass(s: string): string {
   return s === 'SERVING' ? 'busy' : s === 'DISABLED' ? 'off' : 'idle'
 }
 
-function fmtRemain(sec?: number): string {
-  const s = sec ?? 0
-  const m = Math.floor(s / 60)
-  const ss = s % 60
-  return `${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`
+/** 排队人数口径：服务中 1 单 + 排队中单数（queueCount 仅统计排队中） */
+function aheadCount(w: WorkstationVO): number {
+  return (w.status === 'SERVING' ? 1 : 0) + (w.queueCount ?? 0)
+}
+
+function openQueue(w: WorkstationVO): void {
+  queueWs.value = w
 }
 
 function pickWs(w: WorkstationVO): void {
@@ -338,6 +350,38 @@ onShow(async () => {
   margin-top: 6rpx;
   font-size: 22rpx;
   color: #8a9a98;
+}
+
+/* ---- 服务中工位的排队提示行（可点开进度弹窗） ---- */
+.queue-line {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 8rpx;
+  background: #fff4ec;
+  border-radius: 12rpx;
+  padding: 10rpx 16rpx;
+}
+
+.queue-clock {
+  font-size: 24rpx;
+}
+
+.queue-text {
+  font-size: 24rpx;
+  color: #6b5a4d;
+}
+
+.queue-num {
+  color: #ff5b4a;
+  font-weight: 600;
+  margin: 0 4rpx;
+}
+
+.queue-link {
+  font-size: 24rpx;
+  color: #ff8a3d;
+  font-weight: 600;
 }
 
 .svc {

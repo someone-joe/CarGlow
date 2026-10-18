@@ -1,6 +1,15 @@
 import { request } from '@/utils/request'
 
 /** 契约：openapi.yaml /api/v1/selfwash/** */
+export interface WorkstationQueueItemVO {
+  /** 脱敏车牌，如 京A***12；无车牌显示 *** */
+  plateNo?: string
+  serviceName?: string
+  status: 'SERVING' | 'QUEUING'
+  /** 服务中=剩余分钟；排队中=总时长（含加时），向上取整 */
+  estimatedMinutes?: number
+}
+
 export interface WorkstationVO {
   workstationId: number
   siteId: number
@@ -10,8 +19,10 @@ export interface WorkstationVO {
   enabled: string
   remainingSeconds: number
   queueCount: number
-  currentPlate?: string
-  aheadPlates?: string[]
+  /** 服务中剩余 + 排队单总时长（含加时），向上取整 */
+  estimatedWaitMinutes?: number
+  /** 服务中+排队中订单明细（服务中在前），车牌脱敏，排队进度弹窗用 */
+  queueItems?: WorkstationQueueItemVO[]
 }
 
 export interface SelfwashOrderVO {

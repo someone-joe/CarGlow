@@ -972,3 +972,12 @@ C 端提交售后（REFUND）
 
 - `type-check` 与 `build:mp-weixin` 通过。
 - 真机需验证：两下单页选车 UI（≤2 辆 / 更多 / 无车新增）、车辆页选车型、自助下单后订单带正确 plateNo+vehicleType。
+### 19.5 自助下单页排队提示与进度弹窗（跨端：契约+后端+C 端）
+
+- 需求：工位被占用（服务中）时，卡片从"剩余 xx:xx / 前方排队"改为可点行「前面有n人 约等待m分钟 进度›」，点击弹出排队进度弹窗；空闲样式不变。
+- 口径：n = 服务中 1 单 + 排队中单数（`queueCount` 后端只统计排队中，前端拼）；m = 服务中剩余秒 + 各排队单总时长（`serviceMinutes` + `addedSeconds`，加时改 `expireAt` 后动态反映），后端计算向上取整。
+- 契约（openapi.yaml）：`/api/v1/selfwash/workstations` 返回项新增 `estimatedWaitMinutes`、`queueItems[]`（orderNo/plateNo/serviceName/status/estimatedMinutes）。
+- 后端：`WorkstationVO` + 新 `WorkstationQueueItemVO`；`WashWorkstationService.listWithStatus` 组装（服务中在前）。
+- 前端：`api/selfwash.ts` + `schema.d.ts` 同步类型；新组件 `components/QueueProgressPopup.vue`；`pages/self-wash/self-wash.vue` 服务中工位渲染提示行 + 弹窗。
+- 验证：后端 `wash-selfwash` 编译通过；前端 `type-check`/`build:mp-weixin` 通过。真机需验证：占用工位提示行、加时后 m 动态变大、弹窗明细。
+
