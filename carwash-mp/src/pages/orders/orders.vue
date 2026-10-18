@@ -25,36 +25,62 @@
         <text class="badge">{{ item.statusLabel }}</text>
       </view>
 
-      <view class="meta">
-        <text class="meta-line">订单号 {{ item.orderNo }}</text>
-        <text class="meta-line">
-          {{ item.serviceName }} · 约 {{ item.workMinutes || 40 }} 分钟
-        </text>
-        <text v-if="item.appointTime" class="meta-line">预计服务开始 {{ formatTime(item.appointTime) }}</text>
-        <text v-if="item.communityName" class="meta-line">服务小区 {{ item.communityName }}</text>
-        <text v-if="item.plateNo" class="meta-line">车牌 {{ item.plateNo }}</text>
-        <!-- 派单信息：钥匙入柜后客户最关心「有没有人接单、谁接的」 -->
-        <text v-if="item.assignedAt" class="meta-line meta-dispatch">
-          已派单 · {{ item.workerName || '服务师傅' }} · {{ formatTime(item.assignedAt) }}
-        </text>
-      </view>
+      <!-- 无感洗车订单 -->
+      <template v-if="item.bizType === 'UNSENSITIVE'">
+        <view class="meta">
+          <text class="meta-line">订单号 {{ item.orderNo }}</text>
+          <text class="meta-line">
+            {{ item.serviceName }} · 约 {{ item.workMinutes || 40 }} 分钟
+          </text>
+          <text v-if="item.appointTime" class="meta-line">预计服务开始 {{ formatTime(item.appointTime) }}</text>
+          <text v-if="item.communityName" class="meta-line">服务小区 {{ item.communityName }}</text>
+          <text v-if="item.plateNo" class="meta-line">车牌 {{ item.plateNo }}</text>
+          <!-- 派单信息：钥匙入柜后客户最关心「有没有人接单、谁接的」 -->
+          <text v-if="item.assignedAt" class="meta-line meta-dispatch">
+            已派单 · {{ item.workerName || '服务师傅' }} · {{ formatTime(item.assignedAt) }}
+          </text>
+        </view>
 
-      <view class="card-bottom">
-        <text class="amount">¥{{ formatAmount(item.payAmount) }}</text>
-        <view class="ops">
-          <view v-if="item.mainAction?.enabled" class="op op-primary" @click.stop="onAction(item, item.mainAction)">
-            {{ item.mainAction.label }}
-          </view>
-          <view
-            v-for="sub in item.subActions ?? []"
-            :key="sub.action"
-            class="op"
-            @click.stop="onAction(item, sub)"
-          >
-            {{ sub.label }}
+        <view class="card-bottom">
+          <text class="amount">¥{{ formatAmount(item.payAmount) }}</text>
+          <view class="ops">
+            <view v-if="item.mainAction?.enabled" class="op op-primary" @click.stop="onAction(item, item.mainAction)">
+              {{ item.mainAction.label }}
+            </view>
+            <view
+              v-for="sub in item.subActions ?? []"
+              :key="sub.action"
+              class="op"
+              @click.stop="onAction(item, sub)"
+            >
+              {{ sub.label }}
+            </view>
           </view>
         </view>
-      </view>
+      </template>
+
+      <!-- 自助洗车订单：与无感融合同一张卡片，用户不需要感知两类区别 -->
+      <template v-else>
+        <view class="meta">
+          <text class="meta-line">订单号 {{ item.orderNo }}</text>
+          <text class="meta-line">
+            {{ item.serviceMinutes || 30 }} 分钟 · {{ item.plateNo || '未填车牌' }}
+          </text>
+          <text v-if="item.status === 'SERVING'" class="meta-line meta-dispatch">
+            剩余 {{ formatRemain(item.remainingSeconds) }}
+          </text>
+          <text v-else-if="item.status === 'QUEUING'" class="meta-line meta-dispatch">
+            排队第 {{ item.queueNo }} 位
+          </text>
+        </view>
+
+        <view class="card-bottom">
+          <text class="amount">¥{{ formatAmount(item.payAmount) }}</text>
+          <view class="ops">
+            <view class="op" @click.stop="goDetail(item)">查看详情</view>
+          </view>
+        </view>
+      </template>
     </view>
 
     <view v-if="loadingMore" class="tip">加载中…</view>
@@ -67,6 +93,20 @@ import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import { cancelOrder, fetchOrderList, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 import { fetchCustomerService } from '@/api/config'
+import { fetchSelfwashOrders, type SelfwashOrderVO } from '@/api/selfwash'
+
+/**
+ * 融合后的订单列表项。
+ *
+ * <p>无感洗车与自助洗车在数据、状态机、模块上完全隔离，但用户只关心「我的订单」这一件事，
+ * 不该被迫分成两个页面、两套心智。故在前端合并成一个列表，按 bizType 分派渲染与跳转。
+ *
+ * <p>为什么在后端不合并：wash-order 不能反向依赖 wash-selfwash（会成环），
+ * 融合是纯展示层的事，放前端即零耦合。
+ */
+type MergedOrder =
+  | (OrderListItemVO & { bizType: 'UNSENSITIVE' })
+  | (SelfwashOrderVO & { bizType: 'SELFWASH' })
 
 // 分组由后端唯一定义（契约 tab 枚举），前端只负责展示文案
 const tabs: { key: OrderTab; label: string }[] = [
@@ -75,14 +115,27 @@ const tabs: { key: OrderTab; label: string }[] = [
   { key: 'DONE', label: '已完成' },
 ]
 
+/**
+ * 融合 tab → 两边自己的 tab 取值。
+ * 无感：契约 OrderTab（PENDING/SERVING/DONE，后端已做状态映射）
+ * 自助：selfwash 的 tab（WAIT_PAY/WAIT_USE/ONGOING/DONE/CANCELED，单值，故用数组表达多查几次）
+ */
+const TAB_MAP: Record<OrderTab, { unsensitive: OrderTab; selfwash: string[] }> = {
+  PENDING: { unsensitive: 'PENDING', selfwash: ['WAIT_PAY', 'WAIT_USE'] },
+  SERVING: { unsensitive: 'SERVING', selfwash: ['ONGOING'] },
+  DONE: { unsensitive: 'DONE', selfwash: ['DONE', 'CANCELED'] },
+}
+
 const activeTab = ref<OrderTab>('PENDING')
-const list = ref<OrderListItemVO[]>([])
-const total = ref(0)
+const list = ref<MergedOrder[]>([])
 const loading = ref(false)
 const pageNum = ref(1)
 const loadingMore = ref(false)
+/** 无感侧是否还有下一页（自助侧一次性全量返回，没有分页） */
+const unsensitiveTotal = ref(0)
+const unsensitiveLoaded = ref(0)
 
-const hasMore = computed(() => list.value.length < total.value)
+const hasMore = computed(() => unsensitiveLoaded.value < unsensitiveTotal.value)
 
 /** 金额：后端存分，只在展示层转元，任何计算都不用元 */
 function formatAmount(amount?: number | null): string {
@@ -97,23 +150,65 @@ function formatTime(millis?: number | null): string {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+/** 自助剩余秒数 → mm:ss */
+function formatRemain(sec?: number): string {
+  const s = sec ?? 0
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+}
+
+/**
+ * 排序键：两类都统一用「下单时间（毫秒）」。
+ * 自助的 createTime 是若依 Date 序列化出的字符串（yyyy-MM-dd HH:mm:ss），转成毫秒再比。
+ */
+function sortKey(item: MergedOrder): number {
+  const t = item.createTime
+  if (t == null) return 0
+  if (typeof t === 'number') return t
+  // 字符串形态：把 'yyyy-MM-dd HH:mm:ss' 当本地时间解析（后端时区 Asia/Shanghai）
+  return new Date(String(t).replace(/-/g, '/')).getTime() || 0
+}
+
+/** 无感 → 融合项 */
+function toMerged(o: OrderListItemVO): MergedOrder {
+  return { ...o, bizType: 'UNSENSITIVE' }
+}
+
+/** 自助 → 融合项 */
+function selfwashToMerged(o: SelfwashOrderVO): MergedOrder {
+  return { ...o, bizType: 'SELFWASH' }
+}
+
 async function loadOrders(): Promise<void> {
   loading.value = true
   try {
-    const page = await fetchOrderList({ tab: activeTab.value, pageNum: 1, pageSize: 10 })
-    list.value = page.list ?? []
-    total.value = page.total ?? 0
+    const m = TAB_MAP[activeTab.value]
+    const [page, ...selfPages] = await Promise.all([
+      fetchOrderList({ tab: m.unsensitive, pageNum: 1, pageSize: 10 }),
+      ...m.selfwash.map((t) => fetchSelfwashOrders(t)),
+    ])
+    const merged: MergedOrder[] = [
+      ...(page.list ?? []).map(toMerged),
+      ...selfPages.flat().map(selfwashToMerged),
+    ]
+    merged.sort((a, b) => sortKey(b) - sortKey(a))
+    list.value = merged
+    unsensitiveTotal.value = page.total ?? 0
+    unsensitiveLoaded.value = (page.list ?? []).length
     pageNum.value = 1
   } catch {
     // request 层已统一提示，这里只保证页面不白屏
     list.value = []
-    total.value = 0
+    unsensitiveTotal.value = 0
+    unsensitiveLoaded.value = 0
   } finally {
     loading.value = false
   }
 }
 
-/** 触底加载下一页：追加而不是替换，替换会让翻页丢掉已展示的数据 */
+/**
+ * 触底加载下一页：只翻无感侧（自助一次性全量返回）。
+ * 追加后重新排序，否则新一页的无感单会插在自助单后面，看起来像"加载失败了"。
+ */
 async function loadMore(): Promise<void> {
   if (loading.value || loadingMore.value || !hasMore.value) {
     return
@@ -121,9 +216,14 @@ async function loadMore(): Promise<void> {
   loadingMore.value = true
   try {
     const next = pageNum.value + 1
-    const page = await fetchOrderList({ tab: activeTab.value, pageNum: next, pageSize: 10 })
-    list.value = [...list.value, ...(page.list ?? [])]
-    total.value = page.total ?? 0
+    const m = TAB_MAP[activeTab.value]
+    const page = await fetchOrderList({ tab: m.unsensitive, pageNum: next, pageSize: 10 })
+    const fresh = (page.list ?? []).map(toMerged)
+    const merged = [...list.value, ...fresh]
+    merged.sort((a, b) => sortKey(b) - sortKey(a))
+    list.value = merged
+    unsensitiveTotal.value = page.total ?? 0
+    unsensitiveLoaded.value += fresh.length
     pageNum.value = next
   } catch {
     // request 层已统一提示
@@ -132,12 +232,16 @@ async function loadMore(): Promise<void> {
   }
 }
 
-function goDetail(item: OrderListItemVO): void {
+function goDetail(item: MergedOrder): void {
+  if (item.bizType === 'SELFWASH') {
+    uni.navigateTo({ url: `/pages/selfwash-detail/selfwash-detail?orderNo=${item.orderNo}` })
+    return
+  }
   uni.navigateTo({ url: `/pages/order-detail/order-detail?orderNo=${item.orderNo}` })
 }
 
 /** 订单按钮点击：action 由后端返回，前端按 action 分发；新增按钮时改这里 */
-async function onAction(item: OrderListItemVO, action?: OrderAction): Promise<void> {
+async function onAction(item: MergedOrder, action?: OrderAction): Promise<void> {
   const orderNo = item.orderNo ?? ''
   if (action?.action === 'PAY') {
     uni.navigateTo({ url: `/pages/pay/pay?orderNo=${orderNo}` })

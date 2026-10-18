@@ -24,6 +24,8 @@ public class OrderPageVO {
         private String communityName;
         private String plateNo;
         private Long payAmount;
+        /** 下单时间（毫秒）。两类订单（无感 / 自助）融合展示时按它排序，故必须下发 */
+        private Long createTime;
         /** 接单师傅ID；未派单为 null */
         private Long workerId;
         /** 派单师傅姓名快照（C 端展示「谁接单」）；未派单为 null */
@@ -119,6 +121,14 @@ public class OrderPageVO {
 
         public void setSubActions(List<OrderActionVO> subActions) {
             this.subActions = subActions;
+        }
+
+        public Long getCreateTime() {
+            return createTime;
+        }
+
+        public void setCreateTime(Long createTime) {
+            this.createTime = createTime;
         }
 
         public Long getWorkerId() {
