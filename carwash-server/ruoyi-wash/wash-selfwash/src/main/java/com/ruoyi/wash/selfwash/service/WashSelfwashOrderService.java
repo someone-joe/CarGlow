@@ -1,5 +1,6 @@
 package com.ruoyi.wash.selfwash.service;
 
+import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.goods.domain.WashService;
@@ -32,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 自助洗车订单：选位下单 → 支付（储值/微信mock）→ 待使用 → 取消（已付退余额）。
@@ -45,6 +47,9 @@ public class WashSelfwashOrderService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final long PAY_EXPIRE_MS = 30 * 60 * 1000L;
 
+    /** 加时幂等键前缀（与下单 IDEM 前缀分开，避免互串） */
+    private static final String IDEM_ADD_TIME = "wash:selfwash:addtime:";
+
     @Autowired
     private WashSelfwashOrderMapper orderMapper;
     @Autowired
@@ -56,6 +61,9 @@ public class WashSelfwashOrderService {
 
     @Autowired
     private WashSelfwashPricingService pricingService;
+
+    @Autowired
+    private RedisCache redisCache;
 
     @Value("${wash.pay.mock-enabled:false}")
     private boolean mockEnabled;
@@ -235,9 +243,19 @@ public class WashSelfwashOrderService {
     /**
      * 加时：按后台配置的「超时价 / 超时时长」整档计费并从储值余额扣除，再延长截止。
      * 余额不足抛 B3004，前端据此引导充值后再加时。
+     *
+     * <p>幂等：加时涉及扣款，用户连点或网络重试会重复扣费（实测同一秒产生过两条扣款流水），
+     * 故按 Idempotency-Key 判重——命中即返回当前订单，不再扣款也不再延时。
      */
     @Transactional(rollbackFor = Exception.class)
-    public SelfwashOrderVO addTime(Long memberId, String orderNo, int minutes) {
+    public SelfwashOrderVO addTime(Long memberId, String orderNo, int minutes, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new ApiException(ErrorCode.A0001, "缺少幂等键 Idempotency-Key");
+        }
+        String idemKey = IDEM_ADD_TIME + idempotencyKey;
+        if (redisCache.getCacheObject(idemKey) != null) {
+            return toVO(requireOwnedAny(memberId, orderNo));
+        }
         if (minutes <= 0 || minutes > 240) {
             throw new ApiException(ErrorCode.A0001, "加时分钟数不合法（1-240）");
         }
@@ -252,6 +270,8 @@ public class WashSelfwashOrderService {
         orderMapper.addSeconds(orderNo, minutes * 60, newExpire);
         order.setExpireAt(newExpire);
         order.setAddedSeconds((order.getAddedSeconds() == null ? 0 : order.getAddedSeconds()) + minutes * 60);
+        // 幂等记录保留 24 小时，覆盖重复提交与网络重试窗口
+        redisCache.setCacheObject(idemKey, orderNo, 24, TimeUnit.HOURS);
         return toVO(order);
     }
 
