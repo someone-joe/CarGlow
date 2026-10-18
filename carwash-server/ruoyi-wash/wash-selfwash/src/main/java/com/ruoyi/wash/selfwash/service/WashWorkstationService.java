@@ -94,7 +94,8 @@ public class WashWorkstationService {
                             o.getServiceName(), SelfWashStatus.QUEUING.name(), (int) Math.ceil(totalSec / 60.0)));
                 }
             }
-            int queue = queueItems.size() - (serving == null ? 0 : 1);
+            // 此时 queueItems 仅含排队中订单，其数量即 queueCount（服务中单随后才插入队首）
+            int queue = queueItems.size();
             if (serving != null) {
                 long remain = serving.getExpireAt() != null ? Math.max(0L, (serving.getExpireAt() - now) / 1000L) : 0L;
                 waitSeconds += remain;
