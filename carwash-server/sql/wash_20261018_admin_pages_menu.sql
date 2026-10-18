@@ -25,14 +25,17 @@ where not exists (select 1 from sys_menu where menu_id = 2152);
 
 -- 2) 把按钮权限从「洗车业务」目录下移到各自菜单下（树形与「服务项管理」一致）
 --    用嵌套 select 包一层：MySQL 不允许 UPDATE 直接子查询同一张表
+--    ⚠️ 必须带 menu_type = 'F'：新 C 菜单自己的 perms 同样匹配 'wash:coupon:%'，
+--       不过滤会把 C 菜单自己 reparent 成自己（parent_id = menu_id），菜单直接从树上消失。
+--       这个坑真踩过（2026-10-18）：侧边栏看不到优惠券管理，查库才发现三菜单自指。
 update sys_menu set parent_id = (select m.menu_id from (select menu_id from sys_menu where menu_id = 2150) m)
-where parent_id = 2000 and perms like 'wash:coupon:%';
+where parent_id = 2000 and menu_type = 'F' and perms like 'wash:coupon:%';
 
 update sys_menu set parent_id = (select m.menu_id from (select menu_id from sys_menu where menu_id = 2151) m)
-where parent_id = 2000 and perms like 'wash:aftersale:%';
+where parent_id = 2000 and menu_type = 'F' and perms like 'wash:aftersale:%';
 
 update sys_menu set parent_id = (select m.menu_id from (select menu_id from sys_menu where menu_id = 2152) m)
-where parent_id = 2000 and perms like 'wash:refund:%';
+where parent_id = 2000 and menu_type = 'F' and perms like 'wash:refund:%';
 
 -- 3) 授权：超级管理员默认拿到 3 个新菜单（按钮权限此前已授，这里不重复）
 insert ignore into sys_role_menu (role_id, menu_id)
