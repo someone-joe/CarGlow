@@ -169,7 +169,8 @@ function onSubAction(sub: OrderAction): void {
     return
   }
   if (sub.action === 'CONTACT_SERVICE') {
-    uni.switchTab({ url: '/pages/customer-service/customer-service' })
+    // 客服已不再是底部 tab，普通页跳转（带返回键，处理完能回到订单）
+    uni.navigateTo({ url: '/pages/customer-service/customer-service' })
   }
 }
 

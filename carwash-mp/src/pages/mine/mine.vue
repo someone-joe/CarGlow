@@ -67,7 +67,7 @@
       <view class="list-item" @click="go('/pages/insurance/insurance')">
         <text>车损保障</text><text class="arrow">›</text>
       </view>
-      <view class="list-item" @click="switchTo('/pages/customer-service/customer-service')">
+      <view class="list-item" @click="go('/pages/customer-service/customer-service')">
         <text>客服中心</text><text class="arrow">›</text>
       </view>
       <view class="list-item" @click="toast('服务条款')">
@@ -169,10 +169,6 @@ function onGetPhoneNumber(e: { detail?: { code?: string } }): void {
 
 function go(url: string): void {
   uni.navigateTo({ url })
-}
-
-function switchTo(url: string): void {
-  uni.switchTab({ url })
 }
 
 function toast(name: string): void {
