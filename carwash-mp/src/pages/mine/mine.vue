@@ -32,15 +32,11 @@
       </view>
     </view>
 
-    <!-- 常用入口：卡券 / 订单 / 车辆 -->
+    <!-- 常用入口：卡券 / 车辆（订单已常驻底部 tab，这里不再放入口） -->
     <view class="quick">
       <view class="quick-item" @click="go('/pages/coupons/coupons')">
         <text class="quick-ico">🎟️</text>
         <text class="quick-text">我的卡券</text>
-      </view>
-      <view class="quick-item" @click="go('/pages/orders/orders')">
-        <text class="quick-ico">📋</text>
-        <text class="quick-text">全部订单</text>
       </view>
       <view class="quick-item" @click="go('/pages/vehicle/vehicle')">
         <text class="quick-ico">🚙</text>
