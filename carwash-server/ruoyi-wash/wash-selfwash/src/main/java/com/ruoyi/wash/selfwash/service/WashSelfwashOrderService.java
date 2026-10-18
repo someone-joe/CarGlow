@@ -8,6 +8,7 @@ import com.ruoyi.wash.pay.service.WashWalletService;
 import com.ruoyi.wash.promo.service.WashCouponService;
 import com.ruoyi.wash.promo.service.WashInviteService;
 import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
+import com.ruoyi.wash.selfwash.domain.VehicleType;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
 import com.ruoyi.wash.selfwash.dto.SelfwashOrderVO;
@@ -70,9 +71,17 @@ public class WashSelfwashOrderService {
 
     /** 选位下单：快照服务价/时长，建 WAIT_PAY 订单。 */
     @Transactional(rollbackFor = Exception.class)
-    public String create(Long memberId, Long workstationId, Long serviceId, Long couponUserId, String plateNo) {
+    public String create(Long memberId, Long workstationId, Long serviceId, Long couponUserId,
+                         String plateNo, String vehicleType) {
         if (workstationId == null || serviceId == null) {
             throw new ApiException(ErrorCode.A0001, "参数不完整");
+        }
+        // 车牌与车型都是现场核身/调度的依据，缺一个都没法落到工位，故必填
+        if (plateNo == null || plateNo.isBlank()) {
+            throw new ApiException(ErrorCode.A0001, "车牌必填：工位排队展示与现场核身都要用");
+        }
+        if (vehicleType == null || VehicleType.of(vehicleType) == null) {
+            throw new ApiException(ErrorCode.A0001, "车型必填，且必须是 SEDAN / SUV / MPV / OTHER 之一");
         }
         WashWorkstation ws = workstationMapper.selectById(workstationId);
         if (ws == null || !"Y".equals(ws.getEnabled())) {
@@ -107,6 +116,7 @@ public class WashSelfwashOrderService {
         order.setServiceId(serviceId);
         order.setServiceName(service.getServiceName());
         order.setPlateNo(plateNo);
+        order.setVehicleType(vehicleType);
         order.setServiceMinutes(minutes);
         long couponDiscount = 0;
         if (couponUserId != null) {
@@ -404,6 +414,9 @@ public class WashSelfwashOrderService {
         vo.setWorkstationId(o.getWorkstationId());
         vo.setServiceName(o.getServiceName());
         vo.setPlateNo(o.getPlateNo());
+        vo.setVehicleType(o.getVehicleType());
+        // 车型中文名由后端枚举给，前端只展示（不在前端维护第二份名单）
+        vo.setVehicleTypeLabel(VehicleType.labelOf(o.getVehicleType()));
         vo.setServiceMinutes(o.getServiceMinutes());
         vo.setPayAmount(o.getPayAmount());
         vo.setPayChannel(o.getPayChannel());

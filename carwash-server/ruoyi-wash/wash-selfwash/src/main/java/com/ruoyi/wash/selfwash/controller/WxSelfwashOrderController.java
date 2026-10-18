@@ -48,7 +48,7 @@ public class WxSelfwashOrderController {
         if (req == null || req.workstationId() == null || req.serviceId() == null) {
             throw new ApiException(ErrorCode.A0001, "参数不完整");
         }
-        return ApiResult.ok(service.create(MemberContext.require(), req.workstationId(), req.serviceId(), req.couponUserId(), req.plateNo()));
+        return ApiResult.ok(service.create(MemberContext.require(), req.workstationId(), req.serviceId(), req.couponUserId(), req.plateNo(), req.vehicleType()));
     }
 
     @GetMapping("/api/v1/selfwash/orders")
@@ -97,7 +97,8 @@ public class WxSelfwashOrderController {
         return ApiResult.ok();
     }
 
-    public record CreateRequest(Long workstationId, Long serviceId, Long couponUserId, String plateNo) {
+    public record CreateRequest(Long workstationId, Long serviceId, Long couponUserId, String plateNo,
+                                String vehicleType) {
     }
 
     public record CancelRequest(String reason) {

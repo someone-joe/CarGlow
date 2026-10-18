@@ -9,6 +9,10 @@ public class SelfwashOrderVO {
     private Long workstationId;
     private String serviceName;
     private String plateNo;
+    /** 车型快照：SEDAN/SUV/MPV/OTHER */
+    private String vehicleType;
+    /** 车型中文名，后端枚举给出，前端只展示不翻译 */
+    private String vehicleTypeLabel;
     private Integer serviceMinutes;
     private Long payAmount;
     private String payChannel;
@@ -64,6 +68,22 @@ public class SelfwashOrderVO {
 
     public void setPlateNo(String plateNo) {
         this.plateNo = plateNo;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
+    }
+
+    public String getVehicleTypeLabel() {
+        return vehicleTypeLabel;
+    }
+
+    public void setVehicleTypeLabel(String vehicleTypeLabel) {
+        this.vehicleTypeLabel = vehicleTypeLabel;
     }
 
     public Integer getServiceMinutes() {

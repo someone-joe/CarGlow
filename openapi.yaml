@@ -831,12 +831,16 @@ paths:
           application/json:
             schema:
               type: object
-              required: [workstationId, serviceId]
+              required: [workstationId, serviceId, plateNo, vehicleType]
               properties:
                 workstationId: { type: integer, format: int64 }
                 serviceId: { type: integer, format: int64 }
                 couponUserId: { type: integer, format: int64, description: '选填，使用的优惠券；下单即核销并抵减实付' }
-                plateNo: { type: string, description: '选填，车牌；用于工位排队展示与监控' }
+                plateNo: { type: string, description: '必填，车牌；用于工位排队展示与监控，缺号无法现场核身' }
+                vehicleType:
+                  type: string
+                  enum: [SEDAN, SUV, MPV, OTHER]
+                  description: '必填，车型；不同车型工位/水量有差异，运营需据此调度'
       responses:
         '200':
           description: 成功（data 为订单号）
@@ -4946,6 +4950,8 @@ components:
         workstationId: { type: integer, format: int64 }
         serviceName: { type: string }
         plateNo: { type: string }
+        vehicleType: { type: string, enum: [SEDAN, SUV, MPV, OTHER] }
+        vehicleTypeLabel: { type: string, description: '车型中文名，后端枚举给出，前端只展示不翻译' }
         serviceMinutes: { type: integer, description: '付费时长（分钟）' }
         payAmount: { type: integer, format: int64 }
         payChannel: { type: string, description: 'BALANCE/WECHAT_MOCK' }

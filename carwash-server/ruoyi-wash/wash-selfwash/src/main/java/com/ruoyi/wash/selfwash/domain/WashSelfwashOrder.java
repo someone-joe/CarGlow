@@ -18,8 +18,10 @@ public class WashSelfwashOrder extends BaseEntity {
     private Long serviceId;
     /** 服务名称快照 */
     private String serviceName;
-    /** 车牌快照（排队展示/监控用，选填） */
+    /** 车牌快照（排队展示/监控用，必填） */
     private String plateNo;
+    /** 车型快照：SEDAN/SUV/MPV/OTHER，运营调度工位与水量用 */
+    private String vehicleType;
     /** 付费时长（分钟）快照 */
     private Integer serviceMinutes;
     /** 实付金额（分）快照 */
@@ -106,6 +108,14 @@ public class WashSelfwashOrder extends BaseEntity {
 
     public void setPlateNo(String plateNo) {
         this.plateNo = plateNo;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 
     public Integer getServiceMinutes() {

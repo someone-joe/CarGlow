@@ -865,3 +865,45 @@ C 端提交售后（REFUND）
 
 无感列表返回 `createTime=1792243746000`（毫秒）；自助返回 `createTime=2026-10-17 23:24:25`（字符串），
 两种形态均被 `sortKey` 正确处理。类型检查与 `build:mp-weixin` 通过。
+
+---
+
+## 十七、自助洗车车型（2026-10-18，收口）
+
+> 起因：上一轮留下了"自助洗车车型"半成品——后端逻辑写了但**编译不过**，前端完全没接入，车牌也从选填变必填。本次把它收口。
+
+### 17.1 后端（含修复上轮漏改）
+
+- 新增 `VehicleType` 枚举（SSOT，与 openapi `vehicleType` 逐条一致）：`SEDAN/SUV/MPV/OTHER`，
+  `of()` 解析未知值返 null、`labelOf()` 取中文名（未知值原样返回，脏数据不显示空白）。
+- `wash_selfwash_order` 加 `vehicle_type` 列（SQL `wash_20261018_selfwash_vehicle_type.sql`，幂等；老单回填 OTHER）。
+- `WashSelfwashOrder` 加 `vehicleType` 字段 + getter/setter；`WashSelfwashOrderMapper.insert` 写入 `vehicleType`；
+  所有 `SELECT` 列清单补 `vehicle_type`（**同 PROGRESS 15.1 的坑**：只加字段不加列清单会查出 null）。
+- `WashSelfwashOrderService.create` 入参加 `vehicleType`：**车牌与车型都改为必填**（缺一个没法落工位/现场核身），非法车型报 `A0001`；
+  `toVO` 补 `vehicleType` + 后端给的 `vehicleTypeLabel`（前端只展示不翻译）。
+- `WxSelfwashOrderController.CreateRequest` 加 `vehicleType`；`create()` 调用补传 `req.vehicleType()`。
+- `SelfwashOrderVO` 补 `vehicleType` / `vehicleTypeLabel` 字段（上轮漏了导致 `toVO()` setter 编译失败，已补）。
+- **上轮漏改的三处编译阻断已全部补齐**：① service 缺 `VehicleType` 的 import；② domain 缺 `vehicleType` 的 getter/setter；
+  ③ controller 的 `create()` 调用没传第 6 个参数。`mvn -pl wash-selfwash -am compile` 已 BUILD SUCCESS。
+
+### 17.2 前端（全新接入）
+
+- `api/selfwash.ts`：`SelfwashOrderVO` 补 `vehicleType`/`vehicleTypeLabel`；`createSelfwashOrder` 入参改
+  `plateNo: string`（必填）+ `vehicleType: string`（必填）；导出 `VEHICLE_TYPE_OPTIONS`（UI 选择项，SSOT 仍在后端/openapi）。
+- `pages/self-wash/self-wash.vue`：车牌改必填（占位文案+校验）、新增车型选择 UI（4 选项，选中态 teal）、
+  `canSubmit` 增加"车牌非空 + 车型已选"、`submit` 传 `plateNo`+`vehicleType`。
+- `pages/selfwash-detail/selfwash-detail.vue`：订单信息区展示"车型"（用 `vehicleTypeLabel`）。
+- `type-check` 与 `build:mp-weixin` 均通过。
+
+### 17.3 顺带修的契约/API 漂移（类型检查发现）
+
+- `CouponUserVO` 契约字段是 `discountAmount`，前端三处用了 `discount`（`self-wash.vue` 的优惠券选择）——已对齐为 `discountAmount`。
+- `uni.showActionSheet` 官方参数名是 `itemList`，但 `self-wash.vue` / `invoice.vue` / `park-location.vue` 误用 `items`
+  （会导致真机弹窗失效）——三处统一改为 `itemList`。
+- `schema.d.ts` 回退到已提交版本后**只针对性**补了 `SelfwashOrderVO` 的 `vehicleType`/`vehicleTypeLabel`（+4 行），
+  没有用 `openapi-typescript@6` 整体重排（那会把整文件冲刷成 5k+/8k- 的无谓 diff，违反最小改动红线）。
+
+### 17.4 部署注意
+
+- 上线/联调前必须导入 `sql/wash_20261018_selfwash_vehicle_type.sql`（否则 `vehicle_type` 列不存在，下单插入报字段缺失）。
+- 导入后历史自助单 `vehicle_type` 回填为 OTHER，详情页显示"其他"不空白。
