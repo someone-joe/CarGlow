@@ -18,15 +18,16 @@ public class WorkstationVO {
     private String enabled;
     private Long remainingSeconds;
     private Integer queueCount;
-    private String currentPlate;
-    private List<String> aheadPlates;
+    /** 预计等待分钟：服务中剩余 + 各排队单总时长（含加时），向上取整 */
+    private Integer estimatedWaitMinutes;
+    /** 服务中+排队中订单明细（服务中在前），排队进度弹窗用；车牌脱敏下发 */
+    private List<WorkstationQueueItemVO> queueItems;
 
     public WorkstationVO() {
     }
 
     public WorkstationVO(Long workstationId, Long siteId, String code, String name, String status,
-                         String enabled, Long remainingSeconds, Integer queueCount,
-                         String currentPlate, List<String> aheadPlates) {
+                         String enabled, Long remainingSeconds, Integer queueCount) {
         this.workstationId = workstationId;
         this.siteId = siteId;
         this.code = code;
@@ -35,8 +36,6 @@ public class WorkstationVO {
         this.enabled = enabled;
         this.remainingSeconds = remainingSeconds;
         this.queueCount = queueCount;
-        this.currentPlate = currentPlate;
-        this.aheadPlates = aheadPlates;
     }
 
     public Long getWorkstationId() {
@@ -103,19 +102,19 @@ public class WorkstationVO {
         this.queueCount = queueCount;
     }
 
-    public String getCurrentPlate() {
-        return currentPlate;
+    public Integer getEstimatedWaitMinutes() {
+        return estimatedWaitMinutes;
     }
 
-    public void setCurrentPlate(String currentPlate) {
-        this.currentPlate = currentPlate;
+    public void setEstimatedWaitMinutes(Integer estimatedWaitMinutes) {
+        this.estimatedWaitMinutes = estimatedWaitMinutes;
     }
 
-    public List<String> getAheadPlates() {
-        return aheadPlates;
+    public List<WorkstationQueueItemVO> getQueueItems() {
+        return queueItems;
     }
 
-    public void setAheadPlates(List<String> aheadPlates) {
-        this.aheadPlates = aheadPlates;
+    public void setQueueItems(List<WorkstationQueueItemVO> queueItems) {
+        this.queueItems = queueItems;
     }
 }

@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ErrorCode;
 import com.ruoyi.wash.selfwash.domain.SelfWashStatus;
 import com.ruoyi.wash.selfwash.domain.WashSelfwashOrder;
 import com.ruoyi.wash.selfwash.domain.WashWorkstation;
+import com.ruoyi.wash.selfwash.dto.WorkstationQueueItemVO;
 import com.ruoyi.wash.selfwash.dto.WorkstationVO;
 import com.ruoyi.wash.selfwash.mapper.WashSelfwashOrderMapper;
 import com.ruoyi.wash.selfwash.mapper.WashWorkstationMapper;
@@ -68,39 +69,66 @@ public class WashWorkstationService {
         mapper.softDelete(id);
     }
 
-    /** C 端工位列表（带实时状态：服务中剩余秒 / 排队人数 / 当前服务车牌 / 前方排队车牌）。 */
+    /** C 端工位列表（带实时状态：服务中剩余秒 / 排队人数 / 预计等待 / 排队明细；车牌脱敏）。 */
     public List<WorkstationVO> listWithStatus(Long siteId) {
         List<WorkstationVO> out = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (WashWorkstation ws : mapper.selectBySite(siteId)) {
             if (!"Y".equals(ws.getEnabled())) {
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "DISABLED", ws.getEnabled(), 0L, 0, null, java.util.List.of()));
+                        "DISABLED", ws.getEnabled(), 0L, 0));
                 continue;
             }
             List<WashSelfwashOrder> active = orderMapper.selectActiveByWorkstation(ws.getWorkstationId());
             WashSelfwashOrder serving = null;
-            List<String> aheadPlates = new ArrayList<>();
+            // 排队明细：服务中在前；预计等待 = 服务中剩余秒 + 各排队单总时长（加时已累进 addedSeconds，expireAt 动态刷新）
+            List<WorkstationQueueItemVO> queueItems = new ArrayList<>();
+            long waitSeconds = 0L;
             for (WashSelfwashOrder o : active) {
                 if (SelfWashStatus.SERVING.name().equals(o.getStatus())) {
                     serving = o;
                 } else if (SelfWashStatus.QUEUING.name().equals(o.getStatus())) {
-                    aheadPlates.add((o.getPlateNo() == null || o.getPlateNo().isBlank()) ? "***" : o.getPlateNo());
+                    long totalSec = orderSeconds(o);
+                    waitSeconds += totalSec;
+                    queueItems.add(new WorkstationQueueItemVO(maskPlate(o.getPlateNo()),
+                            o.getServiceName(), SelfWashStatus.QUEUING.name(), (int) Math.ceil(totalSec / 60.0)));
                 }
             }
-            int queue = aheadPlates.size();
-            String currentPlate = serving == null ? null
-                    : ((serving.getPlateNo() == null || serving.getPlateNo().isBlank()) ? "***" : serving.getPlateNo());
+            int queue = queueItems.size() - (serving == null ? 0 : 1);
             if (serving != null) {
                 long remain = serving.getExpireAt() != null ? Math.max(0L, (serving.getExpireAt() - now) / 1000L) : 0L;
+                waitSeconds += remain;
+                queueItems.add(0, new WorkstationQueueItemVO(maskPlate(serving.getPlateNo()),
+                        serving.getServiceName(), SelfWashStatus.SERVING.name(), (int) Math.ceil(remain / 60.0)));
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "SERVING", ws.getEnabled(), remain, queue, currentPlate, aheadPlates));
+                        "SERVING", ws.getEnabled(), remain, queue));
             } else {
                 out.add(new WorkstationVO(ws.getWorkstationId(), ws.getSiteId(), ws.getCode(), ws.getName(),
-                        "IDLE", ws.getEnabled(), 0L, queue, null, aheadPlates));
+                        "IDLE", ws.getEnabled(), 0L, queue));
             }
+            WorkstationVO vo = out.get(out.size() - 1);
+            vo.setEstimatedWaitMinutes((int) Math.ceil(waitSeconds / 60.0));
+            vo.setQueueItems(queueItems);
         }
         return out;
+    }
+
+    /** 单笔订单总时长（秒）：付费时长 + 累计加时；加时即改 expireAt/addedSeconds，等待分钟随之动态变化。 */
+    private long orderSeconds(WashSelfwashOrder o) {
+        long minutes = o.getServiceMinutes() == null ? 0L : o.getServiceMinutes();
+        long added = o.getAddedSeconds() == null ? 0L : o.getAddedSeconds();
+        return minutes * 60L + added;
+    }
+
+    /**
+     * 车牌脱敏：前 2 位 + *** + 后 2 位（如 京A***12）；过短或无车牌显示 ***。
+     * 隐私：C 端不下发完整车牌与订单号。
+     */
+    private String maskPlate(String plateNo) {
+        if (plateNo == null || plateNo.isBlank()) return "***";
+        int len = plateNo.length();
+        if (len <= 4) return "***";
+        return plateNo.substring(0, 2) + "***" + plateNo.substring(len - 2);
     }
 
     private void requireExists(Long id) {
