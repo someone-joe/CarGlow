@@ -3,12 +3,17 @@ import { request, setToken } from '@/utils/request'
 
 export type LoginVO = components['schemas']['LoginVO']
 
-/** 微信 code 换 token。契约：openapi.yaml /api/v1/auth/login */
-export function login(code: string): Promise<LoginVO> {
+/**
+ * 微信 code 换 token。契约：openapi.yaml /api/v1/auth/login。
+ *
+ * <p>phoneCode 是 `<button open-type="getPhoneNumber">` 授权回调拿到的 code，
+ * 由后端换手机号并落库；用户未授权时不传（后端不会覆盖已有手机号）。
+ */
+export function login(code: string, phoneCode?: string): Promise<LoginVO> {
   return request<LoginVO>({
     url: '/api/v1/auth/login',
     method: 'POST',
-    data: { code },
+    data: phoneCode ? { code, phoneCode } : { code },
     auth: false,
   })
 }

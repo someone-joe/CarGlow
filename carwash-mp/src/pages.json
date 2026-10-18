@@ -98,11 +98,18 @@
 			}
 		},
 		{
+			"path    {
 			"path": "pages/coupons/coupons",
 			"style": {
-				"navigationBarTitleText": "优惠券"
+			  "navigationBarTitleText": "优惠券"
 			}
-		},
+			},
+			{
+			"path": "pages/aftersale/aftersale",
+			"style": {
+			  "navigationBarTitleText": "售后与退款"
+			}
+			},
 		{
 			"path": "pages/insurance/insurance",
 			"style": {

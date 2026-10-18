@@ -9,6 +9,15 @@
         <text class="nick">{{ phoneBound ? '已绑定手机号' : '微信用户' }}</text>
         <text class="sub">夜间代客洗车 · 睡一觉车就干净了</text>
       </view>
+      <!-- 手机号授权入口：未绑定时才出现。用微信原生 getPhoneNumber，不自己造表单 -->
+      <button
+        v-if="!phoneBound"
+        class="bind-btn"
+        open-type="getPhoneNumber"
+        @getphonenumber="onGetPhoneNumber"
+      >
+        绑定手机号
+      </button>
     </view>
 
     <!-- 储值余额 -->
@@ -56,6 +65,12 @@
       <view class="list-item" @click="go('/pages/invite/invite')">
         <text>邀请好友</text><text class="arrow">›</text>
       </view>
+      <view class="list-item" @click="go('/pages/aftersale/aftersale')">
+        <text>售后与退款进度</text><text class="arrow">›</text>
+      </view>
+      <view class="list-item" @click="go('/pages/insurance/insurance')">
+        <text>车损保障</text><text class="arrow">›</text>
+      </view>
       <view class="list-item" @click="switchTo('/pages/customer-service/customer-service')">
         <text>客服中心</text><text class="arrow">›</text>
       </view>
@@ -84,6 +99,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import SiteBar from '@/components/SiteBar.vue'
 import { fetchWallet } from '@/api/wallet'
+import { ensureLogin, login } from '@/api/auth'
 
 const phoneBound = ref(false)
 const balance = ref(0)
@@ -98,7 +114,62 @@ onShow(() => {
       balance.value = (w.balance ?? 0) + (w.giftBalance ?? 0)
     })
     .catch(() => {})
+  refreshPhoneBound()
 })
+
+/**
+ * 是否已绑定手机号：读登录接口返回的 phoneBound。
+ * 不单独查会员详情——登录态里已经带了，少一次请求。
+ */
+function refreshPhoneBound(): void {
+  ensureLogin()
+    .then(() => loginWithCurrentCode())
+    .catch(() => {})
+}
+
+/** 重新走一次登录以刷新 phoneBound（静默，用户无感） */
+function loginWithCurrentCode(): void {
+  uni.login({
+    provider: 'weixin',
+    success: (res) => {
+      if (!res.code) return
+      login(res.code)
+        .then((data) => {
+          phoneBound.value = data.phoneBound === true
+        })
+        .catch(() => {})
+    },
+  })
+}
+
+/**
+ * 手机号授权回调。用户点「允许」才会带 code 上来；拒绝则 detail.code 为空，什么都不做。
+ *
+ * 把拿到的 phoneCode 重新登录一次，由后端换手机号并落库——前端不碰手机号本身
+ * （微信新版不允许前端直接拿到明文，只能拿 code）。
+ */
+function onGetPhoneNumber(e: { detail?: { code?: string } }): void {
+  const phoneCode = e.detail?.code
+  if (!phoneCode) {
+    uni.showToast({ title: '已取消授权', icon: 'none' })
+    return
+  }
+  uni.login({
+    provider: 'weixin',
+    success: (res) => {
+      if (!res.code) return
+      login(res.code, phoneCode)
+        .then((data) => {
+          phoneBound.value = data.phoneBound === true
+          uni.showToast({
+            title: data.phoneBound ? '绑定成功' : '绑定未生效，请重试',
+            icon: 'none',
+          })
+        })
+        .catch(() => {})
+    },
+  })
+}
 
 function go(url: string): void {
   uni.navigateTo({ url })
@@ -136,6 +207,23 @@ function about(): void {
   border-radius: 20rpx;
   padding: 32rpx;
   margin-bottom: 20rpx;
+}
+
+/* 手机号授权按钮：微信原生 open-type，样式要去掉按钮默认边框 */
+.bind-btn {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #00aeb5;
+  background: #eaf7f7;
+  border: 1rpx solid #00aeb5;
+  border-radius: 30rpx;
+  padding: 10rpx 24rpx;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.bind-btn::after {
+  border: none;
 }
 
 .avatar {

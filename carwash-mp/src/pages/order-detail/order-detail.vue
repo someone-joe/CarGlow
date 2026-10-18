@@ -54,6 +54,11 @@
         <view v-if="detail.promiseReturnTime" class="row">
           <text class="label">承诺还车</text><text class="value">{{ formatTime(detail.promiseReturnTime) }}</text>
         </view>
+        <!-- 派单信息（钥匙入柜后由自动派单/抢单/后台派单写入，客户要知道是谁接的单） -->
+        <view v-if="detail.assignedAt" class="row">
+          <text class="label">接单师傅</text>
+          <text class="value">{{ detail.workerName || '服务师傅' }} · {{ formatTime(detail.assignedAt) }}</text>
+        </view>
         <view v-if="detail.remark" class="row"><text class="label">备注</text><text class="value">{{ detail.remark }}</text></view>
       </view>
 

@@ -33,6 +33,10 @@
         <text v-if="item.appointTime" class="meta-line">预计服务开始 {{ formatTime(item.appointTime) }}</text>
         <text v-if="item.communityName" class="meta-line">服务小区 {{ item.communityName }}</text>
         <text v-if="item.plateNo" class="meta-line">车牌 {{ item.plateNo }}</text>
+        <!-- 派单信息：钥匙入柜后客户最关心「有没有人接单、谁接的」 -->
+        <text v-if="item.assignedAt" class="meta-line meta-dispatch">
+          已派单 · {{ item.workerName || '服务师傅' }} · {{ formatTime(item.assignedAt) }}
+        </text>
       </view>
 
       <view class="card-bottom">
@@ -343,6 +347,12 @@ onReachBottom(() => {
   font-size: 25rpx;
   color: #8a9a98;
   line-height: 1.8;
+}
+
+/* 派单信息要醒目一点：钥匙入柜后客户最想知道有没有人接单 */
+.meta-dispatch {
+  color: #00aeb5;
+  font-weight: 500;
 }
 
 .card-bottom {
