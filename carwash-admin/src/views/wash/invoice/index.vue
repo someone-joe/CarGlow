@@ -88,8 +88,8 @@ function getList() {
     pageNum: query.pageNum, pageSize: query.pageSize
   })
     .then((res) => {
-      rows.value = res.data.rows || []
-      total.value = res.data.total || 0
+      rows.value = res.rows || []
+      total.value = res.total || 0
     })
     .finally(() => { loading.value = false })
 }

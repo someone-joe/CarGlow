@@ -166,8 +166,8 @@ function getRecharges() {
   }
   listRecharges(params)
     .then((res) => {
-      recharges.value = res.data.rows || []
-      total.value = res.data.total || 0
+      recharges.value = res.rows || []
+      total.value = res.total || 0
     })
     .finally(() => {
       listLoading.value = false

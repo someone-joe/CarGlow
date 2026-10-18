@@ -268,8 +268,8 @@ function formatTime(ms) {
 function getList() {
   loading.value = true
   listCouponTemplate(queryParams.value).then((res) => {
-    templateList.value = res.data.rows || []
-    total.value = res.data.total || 0
+    templateList.value = res.rows || []
+    total.value = res.total || 0
     loading.value = false
   })
 }
@@ -390,8 +390,8 @@ function handleRecords(row) {
 function getRecords() {
   recordLoading.value = true
   listCouponRecord(recordQuery.value).then((res) => {
-    recordList.value = res.data.rows || []
-    recordTotal.value = res.data.total || 0
+    recordList.value = res.rows || []
+    recordTotal.value = res.total || 0
     recordLoading.value = false
   }).catch(() => {
     recordLoading.value = false
