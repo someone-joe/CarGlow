@@ -129,9 +129,10 @@ function linkTypeLabel(t) {
 
 function getList() {
   loading.value = true
+  // 本接口返回 AjaxResult.success(Map)：rows/total 在 data 下（契约 RuoYiResult，见 openapi.yaml /admin-api/wash/banner/list）
   listBanner(queryParams.value).then(res => {
-    bannerList.value = res.rows
-    total.value = res.total
+    bannerList.value = res.data.rows || []
+    total.value = res.data.total || 0
     loading.value = false
   })
 }
