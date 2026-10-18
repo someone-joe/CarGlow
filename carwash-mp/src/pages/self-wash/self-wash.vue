@@ -62,8 +62,21 @@
         </view>
 
         <view class="plate-row">
-          <text class="plate-label">车牌</text>
-          <input class="plate-input" v-model="plate" placeholder="选填，如 粤A12345（工位排队展示用）" maxlength="16" />
+          <text class="plate-label">车牌<text class="req">*</text></text>
+          <input class="plate-input" v-model="plate" placeholder="必填，如 粤A12345（工位排队与现场核身用）" maxlength="16" />
+        </view>
+
+        <view class="vtype-row">
+          <text class="vtype-label">车型<text class="req">*</text></text>
+          <view class="vtype-opts">
+            <view
+              v-for="opt in vehicleTypeOptions"
+              :key="opt.value"
+              class="vtype-opt"
+              :class="{ on: vehicleType === opt.value }"
+              @click="vehicleType = opt.value"
+            >{{ opt.label }}</view>
+          </view>
         </view>
       </view>
     </block>
@@ -80,7 +93,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { fetchServices, type ServiceVO } from '@/api/catalog'
 import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
-import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
+import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, VEHICLE_TYPE_OPTIONS, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -94,8 +107,12 @@ const coupons = ref<CouponUserVO[]>([])
 const couponUserId = ref<number | undefined>(undefined)
 const couponText = ref('未使用优惠券')
 const plate = ref('')
+const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS
+const vehicleType = ref('')
 
-const canSubmit = computed(() => !!workstationId.value && !!serviceId.value && !submitting.value)
+const canSubmit = computed(
+  () => !!workstationId.value && !!serviceId.value && !!plate.value.trim() && !!vehicleType.value && !submitting.value,
+)
 
 function fen2yuan(fen?: number): string {
   return ((fen ?? 0) / 100).toFixed(2)
@@ -152,9 +169,9 @@ function pickCoupon(): void {
     uni.showToast({ title: '暂无可用优惠券', icon: 'none' })
     return
   }
-  const items = ['不使用优惠券', ...coupons.value.map((c) => `${c.name || '优惠券'} 减¥${fen2yuan(c.discount)}`)]
+  const items = ['不使用优惠券', ...coupons.value.map((c) => `${c.name || '优惠券'} 减¥${fen2yuan(c.discountAmount)}`)]
   uni.showActionSheet({
-    items,
+    itemList: items,
     success: (res) => {
       if (res.tapIndex === 0) {
         couponUserId.value = undefined
@@ -162,7 +179,7 @@ function pickCoupon(): void {
       } else {
         const c = coupons.value[res.tapIndex - 1]
         couponUserId.value = c.couponUserId
-        couponText.value = `${c.name || '优惠券'} -¥${fen2yuan(c.discount)}`
+        couponText.value = `${c.name || '优惠券'} -¥${fen2yuan(c.discountAmount)}`
       }
     },
   })
@@ -176,7 +193,8 @@ async function submit(): Promise<void> {
       workstationId: workstationId.value as number,
       serviceId: serviceId.value as number,
       couponUserId: couponUserId.value,
-      plateNo: plate.value.trim() || undefined,
+      plateNo: plate.value.trim(),
+      vehicleType: vehicleType.value,
     })
     uni.redirectTo({ url: `/pages/selfwash-pay/selfwash-pay?orderNo=${orderNo}` })
   } catch {
@@ -396,6 +414,45 @@ onShow(load)
   border-radius: 12rpx;
   padding: 16rpx 20rpx;
   font-size: 27rpx;
+}
+
+.req {
+  color: #ff5b4a;
+  margin-left: 4rpx;
+}
+
+.vtype-row {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f2f7f7;
+}
+
+.vtype-label {
+  font-size: 27rpx;
+  color: #1b2b2a;
+  margin-right: 20rpx;
+}
+
+.vtype-opts {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.vtype-opt {
+  font-size: 25rpx;
+  color: #4d5e5c;
+  background: #f2f7f7;
+  border-radius: 24rpx;
+  padding: 12rpx 28rpx;
+}
+
+.vtype-opt.on {
+  color: #fff;
+  background: #00aeb5;
 }
 
 .submit {

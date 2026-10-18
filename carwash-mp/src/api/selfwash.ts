@@ -20,6 +20,8 @@ export interface SelfwashOrderVO {
   workstationId: number
   serviceName?: string
   plateNo?: string
+  vehicleType?: string
+  vehicleTypeLabel?: string
   serviceMinutes: number
   payAmount: number
   payChannel?: string
@@ -53,7 +55,15 @@ export function fetchWorkstations(siteId: number): Promise<WorkstationVO[]> {
   return request<WorkstationVO[]>({ url: '/api/v1/selfwash/workstations', method: 'GET', data: { siteId } })
 }
 
-export function createSelfwashOrder(data: { workstationId: number; serviceId: number; couponUserId?: number; plateNo?: string }): Promise<string> {
+/** 车型选项（UI 选择用）。SSOT 在后端 VehicleType 枚举 + openapi.yaml enum，后端会校验非法值。 */
+export const VEHICLE_TYPE_OPTIONS = [
+  { value: 'SEDAN', label: '小轿车' },
+  { value: 'SUV', label: 'SUV' },
+  { value: 'MPV', label: '商务车' },
+  { value: 'OTHER', label: '其他' },
+] as const
+
+export function createSelfwashOrder(data: { workstationId: number; serviceId: number; couponUserId?: number; plateNo: string; vehicleType: string }): Promise<string> {
   return request<string>({ url: '/api/v1/selfwash/orders', method: 'POST', data })
 }
 

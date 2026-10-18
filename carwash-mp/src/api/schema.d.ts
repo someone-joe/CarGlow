@@ -7796,6 +7796,10 @@ export interface components {
             workstationId?: number;
             serviceName?: string;
             plateNo?: string;
+            /** @enum {string} */
+            vehicleType?: "SEDAN" | "SUV" | "MPV" | "OTHER";
+            /** @description 车型中文名，后端枚举给出，前端只展示不翻译 */
+            vehicleTypeLabel?: string;
             /** @description 付费时长（分钟） */
             serviceMinutes?: number;
             /** Format: int64 */

@@ -93,7 +93,7 @@ function pickOrder(): void {
     return
   }
   uni.showActionSheet({
-    items: orderOptions.value.map((o) => `${o.label} · ¥${fen2yuan(o.amount)}`),
+    itemList: orderOptions.value.map((o) => `${o.label} · ¥${fen2yuan(o.amount)}`),
     success: (res) => {
       const o = orderOptions.value[res.tapIndex]
       form.value.orderNo = o.orderNo

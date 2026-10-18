@@ -102,7 +102,7 @@ function pickCommunity(): void {
     return
   }
   uni.showActionSheet({
-    items: communities.value.map((c) => c.name || `小区${c.communityId}`),
+    itemList: communities.value.map((c) => c.name || `小区${c.communityId}`),
     success: (res) => {
       const c = communities.value[res.tapIndex]
       form.value.communityId = c.communityId as number
