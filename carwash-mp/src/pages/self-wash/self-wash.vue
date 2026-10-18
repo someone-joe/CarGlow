@@ -63,7 +63,7 @@
 
         <view class="plate-row">
           <text class="plate-label">车牌<text class="req">*</text></text>
-          <input class="plate-input" v-model="plate" placeholder="必填，如 粤A12345（工位排队与现场核身用）" maxlength="16" />
+          <PlateInput v-model="plate" />
         </view>
 
         <view class="vtype-row">
@@ -94,6 +94,7 @@ import { fetchServices, type ServiceVO } from '@/api/catalog'
 import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
 import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, VEHICLE_TYPE_OPTIONS, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
+import PlateInput from '@/components/PlateInput.vue'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -406,14 +407,6 @@ onShow(load)
   font-size: 27rpx;
   color: #1b2b2a;
   margin-right: 20rpx;
-}
-
-.plate-input {
-  flex: 1;
-  background: #f2f7f7;
-  border-radius: 12rpx;
-  padding: 16rpx 20rpx;
-  font-size: 27rpx;
 }
 
 .req {

@@ -907,3 +907,31 @@ C 端提交售后（REFUND）
 
 - 上线/联调前必须导入 `sql/wash_20261018_selfwash_vehicle_type.sql`（否则 `vehicle_type` 列不存在，下单插入报字段缺失）。
 - 导入后历史自助单 `vehicle_type` 回填为 OTHER，详情页显示"其他"不空白。
+
+---
+
+## 十八、C 端车牌输入改为格子键盘（2026-10-18）
+
+> 起因：C 端车牌用原生 `<input>`，会唤起系统输入法、且新能源 8 位/省份简称体验差。参考 `/Users/joe/changeUI/wash-car` 的
+> `plate-input` + `plate-keyboard` 原生组件，重写为 uni-app Vue3 版。参考项目是微信原生 `Component`+wxml，无法直接照搬。
+
+### 18.1 新增组件
+
+- `carwash-mp/src/components/PlateInput.vue`（自包含，v-model 接入）：
+  - 格子显示区：7 个普通格 + 第 8 个"新能源"提示格（虚线，length==7 时高亮可继续输入，已填则显示字符）。
+  - 底部滑出自定义键盘（纯 `<view>`，**无任何 `<input>`，不唤起系统输入法**）：
+    - 无字符时只显示**省份简称**键盘（4 行，首格强制省份）；
+    - 有字符后切**数字/字母**键盘：第 2 位禁用数字与港澳学警（强制普通字母），第 3 位起放开；最多 8 位。
+    - 删除、完成、点遮罩关闭；`env(safe-area-inset-bottom)` 适配底部安全区；滑入动画。
+  - 省份集合 `PROVINCE`、字母行 `letterRows`、特殊字 `SPECIAL` 为组件内常量（车牌规则固定，非业务阈值，不违反硬编码红线）。
+
+### 18.2 接入点（C 端全部车牌录入）
+
+- `pages/self-wash/self-wash.vue`：下单车牌 `<input>` → `<PlateInput v-model="plate" />`（必填校验不变）。
+- `pages/vehicle/vehicle.vue`：车辆管理车牌 `<input>` → `<PlateInput v-model="form.plateNo" />`（必填校验不变；新能源开关仍独立保留）。
+- 其余页面的 `plateNo` 均为展示用途，未动。
+
+### 18.3 验证
+
+- `type-check` 与 `build:mp-weixin` 均通过。
+- 真机需在微信开发者工具验证：省份键盘→字母/数字切换、新能源第 8 位、遮罩关闭、安全区。

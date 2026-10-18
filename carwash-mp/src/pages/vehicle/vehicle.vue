@@ -4,7 +4,7 @@
     <view class="panel">
       <text class="panel-title">{{ editingId ? '编辑车辆' : '添加车辆' }}</text>
 
-      <input class="input" v-model="form.plateNo" placeholder="车牌号（必填），支持新能源 8 位" />
+      <PlateInput v-model="form.plateNo" />
       <input class="input" v-model="form.brand" placeholder="品牌型号，如 丰田 凯美瑞" />
       <input class="input" v-model="form.color" placeholder="颜色，如 白色" />
       <input class="input" v-model="form.parkingNo" placeholder="常停车位，如 A 区 23 号" />
@@ -47,6 +47,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { createVehicle, fetchVehicles, updateVehicle, type VehicleRequest, type VehicleVO } from '@/api/catalog'
+import PlateInput from '@/components/PlateInput.vue'
 
 const list = ref<VehicleVO[]>([])
 const loading = ref(true)
