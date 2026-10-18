@@ -47,6 +47,7 @@ export interface VehicleRequest {
   plateNo?: string
   brand?: string
   color?: string
+  vehicleType?: string
   isNewEnergy?: boolean
   communityId?: number
   parkingNo?: string

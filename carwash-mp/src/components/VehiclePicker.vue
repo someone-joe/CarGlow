@@ -1,0 +1,126 @@
+<template>
+  <view class="vp">
+    <block v-if="!vehicles || vehicles.length === 0">
+      <view class="vp-add" @tap="goVehicle">+ 新增车辆</view>
+    </block>
+    <block v-else>
+      <view
+        v-for="v in visible"
+        :key="v.vehicleId"
+        class="vp-item"
+        :class="{ active: v.vehicleId === modelValue }"
+        @tap="select(v.vehicleId)"
+      >
+        <view class="vp-plate">{{ v.plateNo }}</view>
+        <view class="vp-sub">{{ subText(v) }}</view>
+        <text v-if="v.vehicleId === modelValue" class="vp-check">✓</text>
+      </view>
+      <view v-if="vehicles.length > 2" class="vp-more" @tap="goVehicle">更多车辆 ›</view>
+      <view class="vp-manage" @tap="goVehicle">管理车辆 ›</view>
+    </block>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { VehicleVO } from '@/api/catalog'
+import { VEHICLE_TYPE_OPTIONS } from '@/api/selfwash'
+
+const props = defineProps<{
+  vehicles?: VehicleVO[]
+  modelValue?: number
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: number]
+  navigate: []
+}>()
+
+const visible = computed(() => (props.vehicles || []).slice(0, 2))
+
+const typeLabelMap = computed(() => {
+  const m: Record<string, string> = {}
+  for (const o of VEHICLE_TYPE_OPTIONS) m[o.value] = o.label
+  return m
+})
+
+function subText(v: VehicleVO): string {
+  return [v.brand, v.color, v.vehicleType ? typeLabelMap.value[v.vehicleType] : '']
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function select(id?: number): void {
+  if (id == null) return
+  emit('update:modelValue', id)
+}
+
+function goVehicle(): void {
+  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
+  emit('navigate')
+}
+</script>
+
+<style scoped>
+.vp {
+  width: 100%;
+}
+
+.vp-add {
+  border: 2rpx dashed #cfe0de;
+  border-radius: 16rpx;
+  text-align: center;
+  padding: 28rpx 0;
+  font-size: 28rpx;
+  color: #00aeb5;
+}
+
+.vp-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 2rpx solid #eaf1f0;
+  border-radius: 16rpx;
+  padding: 22rpx 24rpx;
+  margin-bottom: 14rpx;
+}
+
+.vp-item.active {
+  border-color: #00aeb5;
+  background: #f3fbfb;
+}
+
+.vp-plate {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1b2b2a;
+  letter-spacing: 1rpx;
+}
+
+.vp-sub {
+  margin-top: 6rpx;
+  font-size: 23rpx;
+  color: #8a9a98;
+}
+
+.vp-check {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00aeb5;
+  font-size: 32rpx;
+}
+
+.vp-more,
+.vp-manage {
+  text-align: right;
+  font-size: 24rpx;
+  color: #00aeb5;
+  padding: 6rpx 0;
+}
+
+.vp-more {
+  margin-top: 4rpx;
+}
+</style>

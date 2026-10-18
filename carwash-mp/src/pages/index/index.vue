@@ -74,19 +74,7 @@
           <text class="step-no">STEP 4</text>
           <text class="step-title">填写车辆信息</text>
         </view>
-        <!-- 直接在本页选车：车辆页是管理页（新增/编辑），没有"选中"能力 -->
-        <view v-for="item in vehicles" :key="item.vehicleId" class="svc"
-              :class="{ active: vehicleId === item.vehicleId }" @click="vehicleId = item.vehicleId">
-          <view class="svc-main">
-            <text class="svc-name">{{ item.plateNo }}</text>
-            <text class="svc-sub">
-              {{ item.brand || '未填品牌' }}<text v-if="item.color"> · {{ item.color }}</text>
-            </text>
-          </view>
-          <text v-if="vehicleId === item.vehicleId" class="svc-check">✓</text>
-        </view>
-        <view v-if="!vehicles.length" class="empty">还没有车辆，请先添加车辆</view>
-        <view class="manage" @click="goVehicles">管理车辆（添加 / 编辑）›</view>
+        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="onVehicleNavigate" />
 
         <!-- 常用停车位置：选一个直接填入，免手输（T6 数据） -->
         <view class="park-block">
@@ -184,6 +172,7 @@ import { fetchParkLocations, type ParkLocationVO } from '@/api/park'
 import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchCapacity, type CapacityVO } from '@/api/home'
 import SiteBar from '@/components/SiteBar.vue'
+import VehiclePicker from '@/components/VehiclePicker.vue'
 import { orderDraft } from '@/store/orderDraft'
 
 const services = ref<ServiceVO[]>([])
@@ -325,9 +314,8 @@ function goCabinet(): void {
   uni.navigateTo({ url: '/pages/cabinet/cabinet' })
 }
 
-function goVehicles(): void {
+function onVehicleNavigate(): void {
   needRefresh.value = true
-  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
 
 function goPark(): void {

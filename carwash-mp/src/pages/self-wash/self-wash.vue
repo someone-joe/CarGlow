@@ -60,24 +60,11 @@
           <text class="coupon-label">优惠券</text>
           <text class="coupon-value" :class="{ placeholder: !couponUserId }">{{ couponText }} ›</text>
         </view>
+      </view>
 
-        <view class="plate-row">
-          <text class="plate-label">车牌<text class="req">*</text></text>
-          <PlateInput v-model="plate" />
-        </view>
-
-        <view class="vtype-row">
-          <text class="vtype-label">车型<text class="req">*</text></text>
-          <view class="vtype-opts">
-            <view
-              v-for="opt in vehicleTypeOptions"
-              :key="opt.value"
-              class="vtype-opt"
-              :class="{ on: vehicleType === opt.value }"
-              @click="vehicleType = opt.value"
-            >{{ opt.label }}</view>
-          </view>
-        </view>
+      <view class="panel">
+        <view class="panel-title">选择车辆</view>
+        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" />
       </view>
     </block>
 
@@ -90,11 +77,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { fetchServices, type ServiceVO } from '@/api/catalog'
+import { fetchServices, fetchVehicles, type ServiceVO, type VehicleVO } from '@/api/catalog'
 import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
-import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, VEHICLE_TYPE_OPTIONS, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
-import PlateInput from '@/components/PlateInput.vue'
+import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
+import VehiclePicker from '@/components/VehiclePicker.vue'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -107,12 +94,11 @@ const serviceId = ref<number | undefined>(undefined)
 const coupons = ref<CouponUserVO[]>([])
 const couponUserId = ref<number | undefined>(undefined)
 const couponText = ref('未使用优惠券')
-const plate = ref('')
-const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS
-const vehicleType = ref('')
+const vehicles = ref<VehicleVO[]>([])
+const vehicleId = ref<number | undefined>(undefined)
 
 const canSubmit = computed(
-  () => !!workstationId.value && !!serviceId.value && !!plate.value.trim() && !!vehicleType.value && !submitting.value,
+  () => !!workstationId.value && !!serviceId.value && !!vehicleId.value && !submitting.value,
 )
 
 function fen2yuan(fen?: number): string {
@@ -144,12 +130,15 @@ async function load(): Promise<void> {
   try {
     const site = await fetchSiteCurrent().catch(() => null)
     const siteId = site?.siteId
-    const [ws, svc] = await Promise.all([
+    const [ws, svc, vh] = await Promise.all([
       siteId ? fetchWorkstations(siteId) : Promise.resolve([]),
       fetchServices('SELFWASH'),
+      fetchVehicles(),
     ])
     workstations.value = ws || []
     services.value = svc || []
+    vehicles.value = vh || []
+    if (vehicleId.value == null) vehicleId.value = vehicles.value[0]?.vehicleId
     // 计时计价参数：单独拉，失败不阻塞工位/服务展示
     fetchSelfwashPricing()
       .then((p) => (pricing.value = p))
@@ -188,14 +177,19 @@ function pickCoupon(): void {
 
 async function submit(): Promise<void> {
   if (!canSubmit.value) return
+  const v = vehicles.value.find((x) => x.vehicleId === vehicleId.value)
+  if (!v) {
+    uni.showToast({ title: '请先选择车辆', icon: 'none' })
+    return
+  }
   submitting.value = true
   try {
     const orderNo = await createSelfwashOrder({
       workstationId: workstationId.value as number,
       serviceId: serviceId.value as number,
       couponUserId: couponUserId.value,
-      plateNo: plate.value.trim(),
-      vehicleType: vehicleType.value,
+      plateNo: v.plateNo || '',
+      vehicleType: v.vehicleType || 'OTHER',
     })
     uni.redirectTo({ url: `/pages/selfwash-pay/selfwash-pay?orderNo=${orderNo}` })
   } catch {
@@ -393,59 +387,6 @@ onShow(load)
 
 .coupon-value.placeholder {
   color: #8a9a98;
-}
-
-.plate-row {
-  display: flex;
-  align-items: center;
-  margin-top: 16rpx;
-  padding-top: 20rpx;
-  border-top: 2rpx solid #f2f7f7;
-}
-
-.plate-label {
-  font-size: 27rpx;
-  color: #1b2b2a;
-  margin-right: 20rpx;
-}
-
-.req {
-  color: #ff5b4a;
-  margin-left: 4rpx;
-}
-
-.vtype-row {
-  display: flex;
-  align-items: center;
-  margin-top: 16rpx;
-  padding-top: 20rpx;
-  border-top: 2rpx solid #f2f7f7;
-}
-
-.vtype-label {
-  font-size: 27rpx;
-  color: #1b2b2a;
-  margin-right: 20rpx;
-}
-
-.vtype-opts {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
-}
-
-.vtype-opt {
-  font-size: 25rpx;
-  color: #4d5e5c;
-  background: #f2f7f7;
-  border-radius: 24rpx;
-  padding: 12rpx 28rpx;
-}
-
-.vtype-opt.on {
-  color: #fff;
-  background: #00aeb5;
 }
 
 .submit {

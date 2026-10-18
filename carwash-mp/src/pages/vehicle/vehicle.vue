@@ -5,6 +5,19 @@
       <text class="panel-title">{{ editingId ? '编辑车辆' : '添加车辆' }}</text>
 
       <PlateInput v-model="form.plateNo" />
+
+      <view class="vtype-row">
+        <text class="vtype-label">车辆类型</text>
+        <view class="vtype-opts">
+          <view
+            v-for="o in vehicleTypeOptions"
+            :key="o.value"
+            class="vtype-opt"
+            :class="{ on: form.vehicleType === o.value }"
+            @tap="form.vehicleType = o.value"
+          >{{ o.label }}</view>
+        </view>
+      </view>
       <input class="input" v-model="form.brand" placeholder="品牌型号，如 丰田 凯美瑞" />
       <input class="input" v-model="form.color" placeholder="颜色，如 白色" />
       <input class="input" v-model="form.parkingNo" placeholder="常停车位，如 A 区 23 号" />
@@ -47,6 +60,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { createVehicle, fetchVehicles, updateVehicle, type VehicleRequest, type VehicleVO } from '@/api/catalog'
+import { VEHICLE_TYPE_OPTIONS } from '@/api/selfwash'
 import PlateInput from '@/components/PlateInput.vue'
 
 const list = ref<VehicleVO[]>([])
@@ -55,6 +69,7 @@ const submitting = ref(false)
 /** 有值 = 编辑模式；空 = 新增模式 */
 const editingId = ref<number | undefined>(undefined)
 const form = ref<VehicleRequest>({})
+const vehicleTypeOptions = VEHICLE_TYPE_OPTIONS
 
 function loadList(): void {
   loading.value = true
@@ -81,6 +96,7 @@ function edit(item: VehicleVO): void {
     plateNo: item.plateNo,
     brand: item.brand,
     color: item.color,
+    vehicleType: item.vehicleType,
     isNewEnergy: item.isNewEnergy,
     communityId: item.address?.communityId,
     parkingNo: item.address?.parkingNo
@@ -147,6 +163,38 @@ onShow(loadList)
   font-size: 28rpx;
   color: #1b2b2a;
   margin-bottom: 16rpx;
+}
+
+.vtype-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.vtype-label {
+  font-size: 28rpx;
+  color: #1b2b2a;
+  margin-right: 20rpx;
+}
+
+.vtype-opts {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.vtype-opt {
+  font-size: 25rpx;
+  color: #4d5e5c;
+  background: #f2f7f7;
+  border-radius: 24rpx;
+  padding: 12rpx 28rpx;
+}
+
+.vtype-opt.on {
+  color: #fff;
+  background: #00aeb5;
 }
 
 .switch-row {

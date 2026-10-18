@@ -927,7 +927,7 @@ C 端提交售后（REFUND）
 
 ### 18.2 接入点（C 端全部车牌录入）
 
-- `pages/self-wash/self-wash.vue`：下单车牌 `<input>` → `<PlateInput v-model="plate" />`（必填校验不变）。
+- `pages/self-wash/self-wash.vue`：下单车牌 `<input>` → `<PlateInput v-model="plate" />`（必填校验不变）。【后续在十九被统一选车（VehiclePicker）取代：自助下单不再自由输入车牌，改为选已保存车辆】
 - `pages/vehicle/vehicle.vue`：车辆管理车牌 `<input>` → `<PlateInput v-model="form.plateNo" />`（必填校验不变；新能源开关仍独立保留）。
 - 其余页面的 `plateNo` 均为展示用途，未动。
 
@@ -935,3 +935,33 @@ C 端提交售后（REFUND）
 
 - `type-check` 与 `build:mp-weixin` 均通过。
 - 真机需在微信开发者工具验证：省份键盘→字母/数字切换、新能源第 8 位、遮罩关闭、安全区。
+
+---
+
+## 十九、统一"选已保存车辆"交互（无感 + 自助共用一套，2026-10-18）
+
+> 起因：用户要求无感洗车下单页与自助洗车下单页的车牌录入统一为"选择已保存车辆"，只做一套组件后续复用。
+> 无感下单页原本就是选车（提交 vehicleId）；自助原本是自由输入车牌+车型，现统一为选车。
+
+### 19.1 新增复用组件
+
+- `carwash-mp/src/components/VehiclePicker.vue`（只做一套，两下单页共用）：
+  - props：`vehicles?: VehicleVO[]`、`modelValue?: number`（所选 vehicleId）；emits：`update:modelValue`、`navigate`。
+  - 无车时只显示"新增车辆"；有车时最多显示 2 辆，超 2 辆显示"更多车辆"，并附"管理车辆"入口；点新增/更多/管理统一 `navigateTo('/pages/vehicle/vehicle')` 并 emit `navigate`（父页可置刷新标记）。
+  - 车型中文名由 `VEHICLE_TYPE_OPTIONS`（来自 selfwash.ts，SSOT）映射，不重复定义。
+
+### 19.2 接入点
+
+- `pages/index/index.vue`（无感下单页）：STEP4 内联选车 → `<VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="onVehicleNavigate" />`；`goVehicles` 简化为置 `needRefresh`。
+- `pages/self-wash/self-wash.vue`（自助下单页）：原"自由车牌 PlateInput + 车型选择" → `<VehiclePicker>`；`load` 现拉 `fetchVehicles()` 并预选首辆；`submit` 从所选车辆取 `plateNo`/`vehicleType`（缺省 OTHER）传给 `createSelfwashOrder`。
+- `pages/vehicle/vehicle.vue`：新增/编辑车辆增加"车辆类型"选项（复用 `VEHICLE_TYPE_OPTIONS`），经 `VehicleRequest.vehicleType` 落库。
+
+### 19.3 配套后端（会员车辆增加车型）
+
+- 提交 `4e16b58`：openapi.yaml（VehicleVO/VehicleRequest 加 vehicleType）+ `wash_vehicle.vehicle_type` 列（SQL 幂等）+ 实体/VO/Mapper/Service/Controller 透传。
+- `VehicleType` 枚举与自助下单共用（SEDAN/SUV/MPV/OTHER，默认 OTHER）。
+
+### 19.4 验证
+
+- `type-check` 与 `build:mp-weixin` 通过。
+- 真机需验证：两下单页选车 UI（≤2 辆 / 更多 / 无车新增）、车辆页选车型、自助下单后订单带正确 plateNo+vehicleType。

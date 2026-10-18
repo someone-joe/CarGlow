@@ -7640,6 +7640,8 @@ export interface components {
             plateNo?: string;
             brand?: string;
             color?: string;
+            vehicleType?: "SEDAN" | "SUV" | "MPV" | "OTHER";
+            vehicleTypeLabel?: string;
             photoUrl?: string;
             isNewEnergy?: boolean;
             isDefault?: boolean;
