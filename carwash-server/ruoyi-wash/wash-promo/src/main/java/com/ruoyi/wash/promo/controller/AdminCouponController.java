@@ -1,6 +1,7 @@
 package com.ruoyi.wash.promo.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.promo.domain.WashCouponTemplate;
 import com.ruoyi.wash.promo.dto.AdminCouponTemplateVO;
 import com.ruoyi.wash.promo.service.WashCouponAdminService;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,12 +40,18 @@ public class AdminCouponController {
 
     @GetMapping("/template/list")
     @PreAuthorize("@ss.hasPermi('wash:coupon:list')")
-    public AjaxResult list(@RequestParam(required = false) String name,
-                           @RequestParam(required = false) String type,
-                           @RequestParam(required = false) String status,
-                           @RequestParam(defaultValue = "1") Integer pageNum,
-                           @RequestParam(defaultValue = "10") Integer pageSize) {
-        return AjaxResult.success(adminService.page(name, type, status, pageNum, pageSize));
+    public TableDataInfo list(@RequestParam(required = false) String name,
+                              @RequestParam(required = false) String type,
+                              @RequestParam(required = false) String status,
+                              @RequestParam(defaultValue = "1") Integer pageNum,
+                              @RequestParam(defaultValue = "10") Integer pageSize) {
+        Map<String, Object> data = adminService.page(name, type, status, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 
     @GetMapping("/template/{templateId}")
@@ -92,12 +100,18 @@ public class AdminCouponController {
     /** 领用 / 核销记录：会员手机号一律脱敏返回 */
     @GetMapping("/record/list")
     @PreAuthorize("@ss.hasPermi('wash:coupon:list')")
-    public AjaxResult records(@RequestParam(required = false) Long templateId,
-                              @RequestParam(required = false) String phone,
-                              @RequestParam(required = false) String status,
-                              @RequestParam(defaultValue = "1") Integer pageNum,
-                              @RequestParam(defaultValue = "10") Integer pageSize) {
-        return AjaxResult.success(adminService.records(templateId, phone, status, pageNum, pageSize));
+    public TableDataInfo records(@RequestParam(required = false) Long templateId,
+                                 @RequestParam(required = false) String phone,
+                                 @RequestParam(required = false) String status,
+                                 @RequestParam(defaultValue = "1") Integer pageNum,
+                                 @RequestParam(defaultValue = "10") Integer pageSize) {
+        Map<String, Object> data = adminService.records(templateId, phone, status, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 
     /** 与契约 request body 逐字段一致 */

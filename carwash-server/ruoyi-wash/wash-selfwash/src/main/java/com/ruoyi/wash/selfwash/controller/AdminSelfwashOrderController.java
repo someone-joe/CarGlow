@@ -1,6 +1,7 @@
 package com.ruoyi.wash.selfwash.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.selfwash.dto.SelfwashOrderVO;
 import com.ruoyi.wash.selfwash.dto.SelfwashPricingVO;
 import com.ruoyi.wash.selfwash.service.WashSelfwashOrderService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -53,14 +55,20 @@ public class AdminSelfwashOrderController {
 
     @GetMapping("/admin-api/wash/selfwash/order/list")
     @PreAuthorize("@ss.hasPermi('wash:selfwash:order:list')")
-    public AjaxResult list(@RequestParam(required = false) Long memberId,
-                           @RequestParam(required = false) Long siteId,
-                           @RequestParam(required = false) Long workstationId,
-                           @RequestParam(required = false) String status,
-                           @RequestParam(required = false) String orderNo,
-                           @RequestParam(defaultValue = "1") int pageNum,
-                           @RequestParam(defaultValue = "10") int pageSize) {
-        return AjaxResult.success(service.adminPage(memberId, siteId, workstationId, status, orderNo, pageNum, pageSize));
+    public TableDataInfo list(@RequestParam(required = false) Long memberId,
+                              @RequestParam(required = false) Long siteId,
+                              @RequestParam(required = false) Long workstationId,
+                              @RequestParam(required = false) String status,
+                              @RequestParam(required = false) String orderNo,
+                              @RequestParam(defaultValue = "1") int pageNum,
+                              @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> data = service.adminPage(memberId, siteId, workstationId, status, orderNo, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 
     @GetMapping("/admin-api/wash/selfwash/order/{orderNo}")

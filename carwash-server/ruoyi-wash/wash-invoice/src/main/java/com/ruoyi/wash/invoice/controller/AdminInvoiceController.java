@@ -1,6 +1,7 @@
 package com.ruoyi.wash.invoice.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.invoice.dto.InvoiceVO;
 import com.ruoyi.wash.invoice.service.WashInvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,12 +33,18 @@ public class AdminInvoiceController {
 
     @GetMapping("/admin-api/wash/invoice/list")
     @PreAuthorize("@ss.hasPermi('wash:invoice:list')")
-    public AjaxResult list(@RequestParam(required = false) Long memberId,
-                           @RequestParam(required = false) String status,
-                           @RequestParam(required = false) String orderNo,
-                           @RequestParam(defaultValue = "1") int pageNum,
-                           @RequestParam(defaultValue = "10") int pageSize) {
-        return AjaxResult.success(service.adminPage(memberId, status, orderNo, pageNum, pageSize));
+    public TableDataInfo list(@RequestParam(required = false) Long memberId,
+                              @RequestParam(required = false) String status,
+                              @RequestParam(required = false) String orderNo,
+                              @RequestParam(defaultValue = "1") int pageNum,
+                              @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> data = service.adminPage(memberId, status, orderNo, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 
     @GetMapping("/admin-api/wash/invoice/{invoiceId}")

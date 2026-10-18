@@ -1,6 +1,7 @@
 package com.ruoyi.wash.pay.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.pay.domain.WashWalletGiftRule;
 import com.ruoyi.wash.pay.dto.GiftRuleVO;
 import com.ruoyi.wash.pay.service.WashWalletService;
@@ -39,10 +40,16 @@ public class AdminWalletController {
 
     @GetMapping("/admin-api/wash/wallet/recharges")
     @PreAuthorize("@ss.hasPermi('wash:wallet:recharge')")
-    public AjaxResult recharges(@RequestParam(required = false) Long memberId,
-                                @RequestParam(required = false) String status,
-                                @RequestParam(defaultValue = "1") int pageNum,
-                                @RequestParam(defaultValue = "10") int pageSize) {
-        return AjaxResult.success(walletService.rechargePage(memberId, status, pageNum, pageSize));
+    public TableDataInfo recharges(@RequestParam(required = false) Long memberId,
+                                   @RequestParam(required = false) String status,
+                                   @RequestParam(defaultValue = "1") int pageNum,
+                                   @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> data = walletService.rechargePage(memberId, status, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 }

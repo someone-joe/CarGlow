@@ -1,6 +1,7 @@
 package com.ruoyi.wash.promo.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.wash.promo.domain.WashBanner;
 import com.ruoyi.wash.promo.service.WashBannerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,10 +31,16 @@ public class AdminBannerController {
 
     @GetMapping("/list")
     @PreAuthorize("@ss.hasPermi('wash:banner:list')")
-    public AjaxResult list(@RequestParam(required = false) String title,
-                           @RequestParam(defaultValue = "1") Integer pageNum,
-                           @RequestParam(defaultValue = "10") Integer pageSize) {
-        return AjaxResult.success(bannerService.page(title, pageNum, pageSize));
+    public TableDataInfo list(@RequestParam(required = false) String title,
+                              @RequestParam(defaultValue = "1") Integer pageNum,
+                              @RequestParam(defaultValue = "10") Integer pageSize) {
+        Map<String, Object> data = bannerService.page(title, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
     }
 
     @GetMapping("/{bannerId}")
