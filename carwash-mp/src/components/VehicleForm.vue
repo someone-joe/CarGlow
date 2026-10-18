@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { createVehicle, updateVehicle, type VehicleRequest, type VehicleVO } from '@/api/catalog'
 import { VEHICLE_TYPE_OPTIONS } from '@/api/selfwash'
 import PlateInput from '@/components/PlateInput.vue'
@@ -58,6 +58,15 @@ const form = ref<VehicleRequest>({
   communityId: props.vehicle?.address?.communityId,
   parkingNo: props.vehicle?.address?.parkingNo
 })
+
+// 车牌末位为新能源标识（D=纯电 / F=非纯电·插混）时，自动打开新能源开关（只开不关，避免覆盖已有值或手动选择）
+watch(
+  () => form.value.plateNo,
+  (plate) => {
+    const last = (plate ?? '').trim().slice(-1).toUpperCase()
+    if (last === 'D' || last === 'F') form.value.isNewEnergy = true
+  },
+)
 
 async function submit(): Promise<void> {
   const plateNo = (form.value.plateNo ?? '').trim()

@@ -957,7 +957,8 @@ C 端提交售后（REFUND）
 
 - `pages/index/index.vue`（无感下单页）：STEP4 内联选车 → `<VehiclePicker v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />`；`openSelect` 带 `source=valet&selected=` 打开选车页，`onShow` 消费回填并刷新列表，`onVehicleManage` 打开车辆管理页。
 - `pages/self-wash/self-wash.vue`（自助下单页）：`<VehiclePicker v-model="vehicleId" @navigate @manage />`；`load` 拉 `fetchVehicles()` 预选首辆，`submit` 从所选车辆取 `plateNo`/`vehicleType`（缺省 OTHER）传给 `createSelfwashOrder`，`onShow` 消费回填。
-- `pages/vehicle/vehicle.vue`（车辆管理页）：改用 `VehicleForm` 复用表单，列表保留"编辑"入口，新增/编辑/保存后重载列表。
+- `pages/vehicle/vehicle.vue`（车辆管理页）：改用 `VehicleForm` 复用表单；**进来先显示已存车辆列表**，"新增车辆"是一个按钮，点击才 `v-if` 展开表单（编辑同样展开并预填），保存/取消收起并刷新列表。
+- `components/VehicleForm.vue`：**新能源自动识别**——`watch` 车牌号，末位为 `D`（纯电）/ `F`（非纯电·插混）时自动把"新能源车"开关打开（只自动开、不自动关，避免覆盖已有值或用户手动选择）。选车页内联新增复用同一组件，逻辑一并生效。
 - `pages.json`：注册 `pages/vehicle/select`。
 
 > 交互修正（本轮）：下单页点"更多/新增"不再直接掉进车辆管理页，而是进"选择车辆"页（突出选择、可回填）；"管理车辆"才是真正的管车入口。
