@@ -1,7 +1,7 @@
 <template>
   <view class="vp">
     <block v-if="!vehicles || vehicles.length === 0">
-      <view class="vp-add" @tap="goVehicle">+ 新增车辆</view>
+      <view class="vp-add" @tap="goAdd">+ 新增车辆</view>
     </block>
     <block v-else>
       <view
@@ -15,8 +15,8 @@
         <view class="vp-sub">{{ subText(v) }}</view>
         <text v-if="v.vehicleId === modelValue" class="vp-check">✓</text>
       </view>
-      <view v-if="vehicles.length > 2" class="vp-more" @tap="goVehicle">更多车辆 ›</view>
-      <view class="vp-manage" @tap="goVehicle">管理车辆 ›</view>
+      <view v-if="vehicles.length > 2" class="vp-more" @tap="emit('navigate')">更多车辆 ›</view>
+      <view class="vp-manage" @tap="emit('manage')">管理车辆 ›</view>
     </block>
   </view>
 </template>
@@ -33,7 +33,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: number]
+  /** 新增 / 更多：父页打开「选择车辆」页 */
   navigate: []
+  /** 管理车辆：父页打开车辆管理页 */
+  manage: []
 }>()
 
 const visible = computed(() => (props.vehicles || []).slice(0, 2))
@@ -55,8 +58,7 @@ function select(id?: number): void {
   emit('update:modelValue', id)
 }
 
-function goVehicle(): void {
-  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
+function goAdd(): void {
   emit('navigate')
 }
 </script>

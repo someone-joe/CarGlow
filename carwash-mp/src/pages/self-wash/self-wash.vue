@@ -64,7 +64,7 @@
 
       <view class="panel">
         <view class="panel-title">选择车辆</view>
-        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" />
+        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
       </view>
     </block>
 
@@ -82,6 +82,7 @@ import { fetchSiteCurrent } from '@/api/home'
 import { fetchMyCoupons, type CouponUserVO } from '@/api/promo'
 import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type SelfwashPricingVO, type WorkstationVO } from '@/api/selfwash'
 import VehiclePicker from '@/components/VehiclePicker.vue'
+import { consumePickedVehicle } from '@/store/vehicleSelect'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -199,7 +200,19 @@ async function submit(): Promise<void> {
   }
 }
 
-onShow(load)
+function openSelect(): void {
+  uni.navigateTo({ url: `/pages/vehicle/select?source=selfwash&selected=${vehicleId.value ?? ''}` })
+}
+
+function onVehicleManage(): void {
+  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
+}
+
+onShow(async () => {
+  const picked = consumePickedVehicle('selfwash')
+  await load()
+  if (picked != null) vehicleId.value = picked
+})
 </script>
 
 <style>

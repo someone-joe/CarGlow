@@ -86,6 +86,12 @@
 			}
 		},
 		{
+			"path": "pages/vehicle/select",
+			"style": {
+				"navigationBarTitleText": "选择车辆"
+			}
+		},
+		{
 			"path": "pages/park-location/park-location",
 			"style": {
 				"navigationBarTitleText": "常用停车位置"

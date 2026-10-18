@@ -74,7 +74,7 @@
           <text class="step-no">STEP 4</text>
           <text class="step-title">填写车辆信息</text>
         </view>
-        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="onVehicleNavigate" />
+        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
 
         <!-- 常用停车位置：选一个直接填入，免手输（T6 数据） -->
         <view class="park-block">
@@ -173,6 +173,7 @@ import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchCapacity, type CapacityVO } from '@/api/home'
 import SiteBar from '@/components/SiteBar.vue'
 import VehiclePicker from '@/components/VehiclePicker.vue'
+import { consumePickedVehicle } from '@/store/vehicleSelect'
 import { orderDraft } from '@/store/orderDraft'
 
 const services = ref<ServiceVO[]>([])
@@ -314,8 +315,14 @@ function goCabinet(): void {
   uni.navigateTo({ url: '/pages/cabinet/cabinet' })
 }
 
-function onVehicleNavigate(): void {
+function openSelect(): void {
   needRefresh.value = true
+  uni.navigateTo({ url: `/pages/vehicle/select?source=valet&selected=${vehicleId.value ?? ''}` })
+}
+
+function onVehicleManage(): void {
+  needRefresh.value = true
+  uni.navigateTo({ url: '/pages/vehicle/vehicle' })
 }
 
 function goPark(): void {
@@ -458,6 +465,8 @@ onLoad((opts) => {
 
 // 只在从车辆页/选柜页返回时刷新：避免选照片后页面回到顶部
 onShow(() => {
+  const picked = consumePickedVehicle('valet')
+  if (picked != null) vehicleId.value = picked
   if (needRefresh.value) {
     needRefresh.value = false
     loadOptions()

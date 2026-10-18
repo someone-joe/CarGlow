@@ -946,15 +946,21 @@ C 端提交售后（REFUND）
 ### 19.1 新增复用组件
 
 - `carwash-mp/src/components/VehiclePicker.vue`（只做一套，两下单页共用）：
-  - props：`vehicles?: VehicleVO[]`、`modelValue?: number`（所选 vehicleId）；emits：`update:modelValue`、`navigate`。
-  - 无车时只显示"新增车辆"；有车时最多显示 2 辆，超 2 辆显示"更多车辆"，并附"管理车辆"入口；点新增/更多/管理统一 `navigateTo('/pages/vehicle/vehicle')` 并 emit `navigate`（父页可置刷新标记）。
+  - props：`vehicles?: VehicleVO[]`、`modelValue?: number`（所选 vehicleId）；emits：`update:modelValue`、`navigate`（新增/更多）、`manage`（管理车辆）。
+  - 无车时只显示"新增车辆"；有车时最多显示 2 辆，超 2 辆显示"更多车辆"，并附"管理车辆"入口。**组件不再自行导航**，新增/更多由父页打开「选择车辆」页（`pages/vehicle/select`），管理由父页打开真正的车辆管理页（`pages/vehicle/vehicle`）。
   - 车型中文名由 `VEHICLE_TYPE_OPTIONS`（来自 selfwash.ts，SSOT）映射，不重复定义。
+- `carwash-mp/src/components/VehicleForm.vue`：把"新增/编辑车辆表单"（车牌格子键盘 + 车型 + 品牌/颜色/车位 + 新能源开关）抽成可复用组件，供**车辆管理页**与**选车页内联新增**共用，避免两处重复实现表单。
+- `carwash-mp/src/pages/vehicle/select.vue`：以"选择车辆"为主的页面（参照车辆页列表样式但点车即选）：点车 → 回填并 `navigateBack`；可在此页内联新增（保存后直接回填订单页）；另留"管理车辆"入口跳真正的车辆管理页。
+- `carwash-mp/src/store/vehicleSelect.ts`：选车回填单例（沿用 `orderDraft` 的 reactive 写法），`pickVehicle(id, source)` / `consumePickedVehicle(source)`。下单页 `onShow` 读取并回填到本页 `vehicleId`，按 `source` 防错页误消费。
 
 ### 19.2 接入点
 
-- `pages/index/index.vue`（无感下单页）：STEP4 内联选车 → `<VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="onVehicleNavigate" />`；`goVehicles` 简化为置 `needRefresh`。
-- `pages/self-wash/self-wash.vue`（自助下单页）：原"自由车牌 PlateInput + 车型选择" → `<VehiclePicker>`；`load` 现拉 `fetchVehicles()` 并预选首辆；`submit` 从所选车辆取 `plateNo`/`vehicleType`（缺省 OTHER）传给 `createSelfwashOrder`。
-- `pages/vehicle/vehicle.vue`：新增/编辑车辆增加"车辆类型"选项（复用 `VEHICLE_TYPE_OPTIONS`），经 `VehicleRequest.vehicleType` 落库。
+- `pages/index/index.vue`（无感下单页）：STEP4 内联选车 → `<VehiclePicker v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />`；`openSelect` 带 `source=valet&selected=` 打开选车页，`onShow` 消费回填并刷新列表，`onVehicleManage` 打开车辆管理页。
+- `pages/self-wash/self-wash.vue`（自助下单页）：`<VehiclePicker v-model="vehicleId" @navigate @manage />`；`load` 拉 `fetchVehicles()` 预选首辆，`submit` 从所选车辆取 `plateNo`/`vehicleType`（缺省 OTHER）传给 `createSelfwashOrder`，`onShow` 消费回填。
+- `pages/vehicle/vehicle.vue`（车辆管理页）：改用 `VehicleForm` 复用表单，列表保留"编辑"入口，新增/编辑/保存后重载列表。
+- `pages.json`：注册 `pages/vehicle/select`。
+
+> 交互修正（本轮）：下单页点"更多/新增"不再直接掉进车辆管理页，而是进"选择车辆"页（突出选择、可回填）；"管理车辆"才是真正的管车入口。
 
 ### 19.3 配套后端（会员车辆增加车型）
 
