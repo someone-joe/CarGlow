@@ -52,6 +52,7 @@
 | 站点/小区维度 | 所有业务表带 `site_id` / `community_id`，列表查询默认带站点过滤 |
 | 权限标识 | PRD 6.7.3 的 `wash:*:*` 命名，不得另起一套 |
 | 常量与字典 | 后端常量类 / 若依 dict，前端不得硬编码字典值 |
+| 后台列表接口返回结构 | 后端一律 `TableDataInfo`（顶层 `rows`/`total`，契约 `RuoYiTableDataInfo`），前端一律读 `res.rows`；禁止再用 `AjaxResult.success(Map)` 包分页数据（会产生 `data.rows` 嵌套，前端读错即白屏） |
 
 **新增或修改任何接口，必须先改 `openapi.yaml`，再改代码。** 顺序反了一律重做。
 
