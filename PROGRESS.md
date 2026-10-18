@@ -467,6 +467,8 @@ git clone <仓库地址>      # 或 git pull
 - 小程序 `schema.d.ts` 已据 openapi 重新生成（仅新增字段，+30 行）。
 - 验证：新增带明细的服务项，后台回查与 C 端 `GET /api/v1/services/{id}`（会员 token）均正确返回数组。
 - ⚠️ **C 端小程序服务详情页尚未渲染这些字段**：数据已就绪，页面展示是独立前端任务（空态兜底仍在）。
+  → **此条已过时（2026-10-18 核实）**：`pages/service-detail/service-detail.vue` 已渲染
+  `coverUrl` / `items` / `notIncluded` / `notices` / `sampleImages`，无需再改。
 
 ### 10.7 原剩余待办（未开始）
 - ~~**后台「服务详情配置」**（用户明确要求）~~ ✅ 已完成（2026-10-08）：`wash_service` 加 6 列 + 后台表单 + C 端详情接口已返回明细（见 10.6 已完成项 3）。C 端小程序页面渲染为独立前端任务。
@@ -755,3 +757,71 @@ C 端提交售后（REFUND）
   菜单 2150（`C`），SQL `wash_20261018_admin_pages_menu.sql`
 - ⚠️ **新菜单导入后必须退出重新登录才显示**：若依侧边栏按角色权限缓存（`sys_menu` 变动不主动刷新），
   本地开发反复踩过。另外 `npm run dev` 若遇 1024 被占用会自动换端口（如 1025），代理仍指向 8080 不受影响。
+
+---
+
+## 十五、C 端补强（2026-10-18）
+
+> 起因：核查「C 端还有什么没做」时，发现三处「有后端无前端 / 有前端无入口」的断点，
+> 其中第一处是我前几轮自己留下的洞。
+
+### 15.1 订单展示派单信息（T13 的 C 端闭环）
+
+- `wash_order` 新增 `worker_name` 快照列（SQL `wash_20261018_order_worker_snapshot.sql`）：
+  派单时把师傅姓名一起写进订单。
+  **为什么用快照而不是 C 端去 join 师傅表**：wash-order 不能反向依赖 wash-worker（会成环），
+  跨模块也不允许直接查对方的表。与 `service_name` 下单快照是同一个思路。
+- 派单三处写回（自动派单 / 抢单 / 后台改派）都带上 workerName，
+  `assignWorker` / `forceAssignWorker` 同步加参数（改派也会更新姓名）。
+- `OrderListItemVO` / `OrderDetailVO` 增加 `workerId` / `workerName` / `assignedAt`，契约同步。
+- 小程序：订单列表显示「已派单 · 张师傅 · 时间」（teal 高亮），订单详情「订单信息」里加「接单师傅」行。
+- 实测：改派后 C 端详情与列表均正确返回 `workerName=张师傅` + `assignedAt`。
+- ⚠️ 踩过的坑：XML 的 resultMap 加了映射不算完，**各 select 的列清单也得加 `worker_name`**，
+  否则查出来是 null（第一次就栽在这，详情返回 workerName=null）。
+
+### 15.2 售后 / 退款进度（补上我自己留的洞）
+
+- 背景：上一轮做了 `GET /api/v1/after-sales`、`GET /api/v1/refunds` 的后端，
+  但小程序**既没有页面也没有入口**——用户提交售后后石沉大海，后台能处置、用户侧毫无感知。
+- 新增 `pages/aftersale/aftersale.vue`（tab：售后工单 / 退款记录）+ `api/aftersale.ts`，
+  `mine.vue` 加「售后与退款进度」入口。
+- 退款类工单展开时，直接把该订单的退款单状态带出来，客户不用自己猜钱到哪了。
+- 新增 `AfterSaleStatus` / `RefundStatus` 枚举作为 SSOT，VO 增加 `statusLabel`
+  ——**前端只展示不翻译**，不在前端维护第二份状态名单（与 OrderStatus 同一口径）。
+- 实测：两个接口均返回正确 statusLabel（已驳回 / 已完成 / 已退款）。
+
+### 15.3 投保入口（功能早已完整，只缺入口）
+
+- `pages/insurance/insurance.vue` 早已完整实现（保障方案 / 选车辆 / 投保 / 我的保单），
+  但全仓库搜不到任何跳转它的代码——**功能实际不可达**。`mine.vue` 加「车损保障」入口。
+- 实测：投保成功（保单 `ACTIVE`，保障期一年，保费 990 分），我的保单可回查。
+- ⚠️ **文档坑**：PROGRESS 里写的投保路径 `/api/v1/insurance/apply` 是过时的，
+  契约 / 后端 / 前端三方实际一致为 `POST /api/v1/insurances`。curl 自测别照旧文档打（栽过一次）。
+
+### 15.4 手机号授权补全（前后端原本都断）
+
+- 背景：契约 `LoginRequest` 有 `phoneCode`，但 Controller 只传 `code`、Service 完全不处理；
+  前端 `login(code)` 也不传、更没有 `getPhoneNumber` 按钮——**整条链路是断的**。
+- 后端新增 `WxPhoneService`：`phoneCode → access_token → getuserphonenumber → 手机号`，
+  与 `resolveOpenid` 同一套降级策略（未配 secret 直接返回 null，**绝不返回假手机号**）。
+- `WashAuthService.login(code, phoneCode)` + `WashMemberMapper.bindPhone`
+  （SQL 自带「手机号为空才更新」，并发授权只写成功一次；已有手机号不覆盖）。
+- 前端：`login(code, phoneCode?)`；`mine.vue` 未绑定时显示原生 `getPhoneNumber` 按钮，
+  授权回调把 code 交后端换号——**前端不碰手机号明文**（微信新版也不允许前端直接拿）。
+- 实测：dev 模式带 phoneCode 登录**优雅降级不报错**，会员 `phone` 仍为 NULL。
+
+### 15.5 微信支付 / 退款的完整度结论
+
+**逻辑已完整，只差真实接入**（符合「有资质再实现，但要确保逻辑功能完整」）：
+
+- 渠道抽象 `PaymentProvider` + 条件选择 `PayProviderConfig`（`wash.pay.provider`，默认 mock）
+- mock 实现可用；wechat 是**会明确报错的占位**，绝不假装成功
+- 回调入口 `notify` → `handlePaidNotify` → `paySuccess` 状态机推进完整
+- 退款链路第十三节已闭环（退款单 + 重试 + 状态机 + 工单收尾）
+
+真实接入要改的三处（代码注释均已标明）：① 引入 `wechatpay-java` SDK；
+② 实现 `WechatPayProvider` 的 prepay 签名与 refund；③ 给 `notify` 加验签解密
+（微信真实回调是 AES 加密 JSON，与现在的 `{orderNo}` 入参完全不同）。
+
+⚠️ 上线阻断项不变：`wash.wx.appid/secret` 为空时所有用户共用 `dev-openid`，
+**不配置的话线上数据全串**；`wash.pay.provider` 生产必须为 `wechat`。

@@ -7756,6 +7756,18 @@ export interface components {
             communityName?: string;
             plateNo?: string;
             payAmount?: number;
+            /**
+             * Format: int64
+             * @description 接单师傅ID；未派单为 null
+             */
+            workerId?: number;
+            /** @description 派单师傅姓名快照（钥匙入柜后客户要知道谁接的单）；未派单为 null */
+            workerName?: string;
+            /**
+             * Format: int64
+             * @description 派单时间（毫秒）；未派单为 null
+             */
+            assignedAt?: number;
             mainAction?: components["schemas"]["OrderAction"];
             subActions?: components["schemas"]["OrderAction"][];
         };
@@ -7780,6 +7792,18 @@ export interface components {
             discountAmount?: number;
             payAmount?: number;
             payType?: string;
+            /**
+             * Format: int64
+             * @description 接单师傅ID；未派单为 null
+             */
+            workerId?: number;
+            /** @description 派单师傅姓名快照；未派单为 null */
+            workerName?: string;
+            /**
+             * Format: int64
+             * @description 派单时间（毫秒）；未派单为 null
+             */
+            assignedAt?: number;
             timeline?: components["schemas"]["TimelineNode"][];
             medias?: components["schemas"]["MediaVO"][];
             mainAction?: components["schemas"]["OrderAction"];
@@ -8072,6 +8096,8 @@ export interface components {
             reason?: string;
             /** @enum {string} */
             status?: "INIT" | "PROCESSING" | "DONE" | "REJECTED";
+            /** @description 状态中文名，由后端枚举给出，前端只展示不翻译 */
+            statusLabel?: string;
             /**
              * Format: int64
              * @description 售后涉及金额（分）；退款类为订单实付
@@ -8107,6 +8133,8 @@ export interface components {
             reason?: string;
             /** @enum {string} */
             status?: "INIT" | "SUCCESS" | "FAILED";
+            /** @description 状态中文名，由后端枚举给出，前端只展示不翻译 */
+            statusLabel?: string;
             /** @description 渠道：mock / wechat */
             provider?: string;
             /** @description 渠道退款流水号 */
