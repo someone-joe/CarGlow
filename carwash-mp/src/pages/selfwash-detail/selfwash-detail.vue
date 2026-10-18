@@ -41,19 +41,36 @@
     </block>
 
     <view v-else class="tip">订单不存在</view>
+
+    <!-- 加时确认：用页面内弹层，不用 uni.showModal（该 API 在运行环境偶发不弹窗，点击会毫无反应） -->
+    <view v-if="addTimeDlg">
+      <view class="mask" @click="addTimeDlg = false" />
+      <view class="dialog">
+        <text class="dlg-title">加时</text>
+        <text class="dlg-desc">{{ addTimeDesc }}</text>
+        <view class="dlg-btns">
+          <view class="dlg-btn plain" @click="addTimeDlg = false">再想想</view>
+          <view class="dlg-btn" :class="{ disabled: submitting }" @click="confirmAddTime">
+            {{ submitting ? '处理中…' : addTimeBtn }}
+          </view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   activateSelfwash,
   addSelfwashTime,
   cancelSelfwash,
   fetchSelfwashOrder,
+  fetchSelfwashPricing,
   finishSelfwash,
   type SelfwashOrderVO,
+  type SelfwashPricingVO,
 } from '@/api/selfwash'
 
 const orderNo = ref('')
@@ -61,10 +78,43 @@ const order = ref<SelfwashOrderVO | null>(null)
 const loading = ref(true)
 const remain = ref(0)
 const countdown = ref('00:00')
+/** 计时计价参数（后台配置），加时预估费用必须与后端同公式，不能另算 */
+const pricing = ref<SelfwashPricingVO | null>(null)
+/** 加时确认弹层。刻意不用 uni.showModal：该 API 在运行环境偶发不弹窗，导致点击毫无反应 */
+const addTimeDlg = ref(false)
+/** 加时提交中：防连点，扣款前先挡一层（后端幂等键是第二道防线） */
+const submitting = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
 function fen2yuan(fen?: number): string {
   return ((fen ?? 0) / 100).toFixed(2)
+}
+
+let expireWatch: ReturnType<typeof setInterval> | null = null
+let expireWatchTicks = 0
+
+/**
+ * 倒计时归零后降频回拉：5 秒一次、最多 6 次（约 30 秒，覆盖后端定时任务周期）。
+ * 过去归零即立刻 load()，而 SERVING 且剩余仍为 0 时会再次触发归零 → 变成每秒一次请求。
+ */
+function startExpireWatch(): void {
+  if (expireWatch) return
+  expireWatchTicks = 0
+  expireWatch = setInterval(() => {
+    expireWatchTicks++
+    if (expireWatchTicks > EXPIRE_WATCH_MAX) {
+      stopExpireWatch()
+      return
+    }
+    load()
+  }, EXPIRE_WATCH_MS)
+}
+
+function stopExpireWatch(): void {
+  if (expireWatch) {
+    clearInterval(expireWatch)
+    expireWatch = null
+  }
 }
 
 function tick(): void {
@@ -75,7 +125,7 @@ function tick(): void {
   if (s <= 0 && timer) {
     clearInterval(timer)
     timer = null
-    load()
+    startExpireWatch()
   }
 }
 
@@ -86,15 +136,18 @@ async function load(): Promise<void> {
     order.value = d
     if (d.status === 'SERVING') {
       remain.value = d.remainingSeconds || 0
-      tick()
+      // 仍有剩余（含刚加时成功）说明未到期，撤掉到期轮询
+      if (remain.value > 0) stopExpireWatch()
       if (timer) clearInterval(timer)
       timer = setInterval(() => {
         remain.value = Math.max(0, remain.value - 1)
         tick()
       }, 1000)
+      tick()
     } else if (timer) {
       clearInterval(timer)
       timer = null
+      stopExpireWatch()
     }
   } catch {
     order.value = null
@@ -118,38 +171,51 @@ async function doActivate(): Promise<void> {
   }
 }
 
-/** 加时档位（分钟）。费用按本单实付/时长折算，与后端 Same 公式，仅用于展示预估 */
+/** 加时档位（分钟） */
 const ADD_MINUTES = 10
 
+/** 归零后回拉间隔与最大次数：合计约 30 秒，覆盖后端定时任务周期 */
+const EXPIRE_WATCH_MS = 5000
+const EXPIRE_WATCH_MAX = 6
+
+/**
+ * 加时费用（分）：与后端 overtimeCost 同公式——按后台配置的「超时价 / 超时时长」整档计，不足一档按一档。
+ * 过去按「本单实付 / 时长」折算，与后端口径不同，出现过预估 ¥6.70 实扣 ¥8.00。
+ */
 function addTimeCost(): number {
-  const o = order.value
-  if (!o || !o.payAmount || !o.serviceMinutes || o.serviceMinutes <= 0) return 0
-  const unit = Math.max(1, Math.round(o.payAmount / o.serviceMinutes))
-  return unit * ADD_MINUTES
+  const p = pricing.value
+  if (!p || !p.overtimeMinutes || p.overtimeMinutes <= 0) return 0
+  const blocks = Math.ceil(ADD_MINUTES / p.overtimeMinutes)
+  return blocks * (p.overtimeAmount ?? 0)
 }
 
-async function doAddTime(): Promise<void> {
-  const cost = addTimeCost()
-  uni.showModal({
-    title: '加时',
-    content: cost > 0
-      ? `加时 ${ADD_MINUTES} 分钟，将从储值余额扣除 ¥${fen2yuan(cost)}，倒计时相应延长。`
-      : `加时 ${ADD_MINUTES} 分钟，倒计时相应延长。`,
-    confirmText: cost > 0 ? `确认支付 ¥${fen2yuan(cost)}` : '确认',
-    cancelText: '再想想',
-    success: async (res) => {
-      if (!res.confirm) return
-      try {
-        const d = await addSelfwashTime(orderNo.value, ADD_MINUTES)
-        order.value = d
-        remain.value = d.remainingSeconds || 0
-        tick()
-        uni.showToast({ title: '已加时', icon: 'none' })
-      } catch {
-        // 已提示（余额不足等由 request 层统一提示）
-      }
-    },
-  })
+const cost = computed(addTimeCost)
+const addTimeDesc = computed(() =>
+  cost.value > 0
+    ? `加时 ${ADD_MINUTES} 分钟，将从储值余额扣除 ¥${fen2yuan(cost.value)}，倒计时相应延长。`
+    : `加时 ${ADD_MINUTES} 分钟，倒计时相应延长。`,
+)
+const addTimeBtn = computed(() => (cost.value > 0 ? `确认支付 ¥${fen2yuan(cost.value)}` : '确认'))
+
+function doAddTime(): void {
+  addTimeDlg.value = true
+}
+
+async function confirmAddTime(): Promise<void> {
+  if (submitting.value) return
+  submitting.value = true
+  try {
+    const d = await addSelfwashTime(orderNo.value, ADD_MINUTES)
+    order.value = d
+    remain.value = d.remainingSeconds || 0
+    addTimeDlg.value = false
+    tick()
+    uni.showToast({ title: '已加时', icon: 'none' })
+  } catch {
+    // 已提示（余额不足等由 request 层统一提示）
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function doFinish(): Promise<void> {
@@ -197,10 +263,17 @@ onLoad((opts) => {
   orderNo.value = (opts as { orderNo?: string }).orderNo ?? ''
   if (orderNo.value) load()
   else loading.value = false
+  // 计价参数拉不到不影响下单/加时，只是预估金额退化成不展示
+  fetchSelfwashPricing()
+    .then((p) => {
+      pricing.value = p
+    })
+    .catch(() => {})
 })
 
 onUnload(() => {
   if (timer) clearInterval(timer)
+  stopExpireWatch()
 })
 </script>
 
@@ -329,5 +402,66 @@ onUnload(() => {
 .op.danger {
   background: #ffeeeb;
   color: #ff5b4a;
+}
+
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+.dialog {
+  position: fixed;
+  left: 70rpx;
+  right: 70rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx 32rpx;
+}
+
+.dlg-title {
+  display: block;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1b2b2a;
+  margin-bottom: 20rpx;
+}
+
+.dlg-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #6b7b79;
+  line-height: 42rpx;
+}
+
+.dlg-btns {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 32rpx;
+}
+
+.dlg-btn {
+  flex: 1;
+  background: #14342f;
+  color: #fff;
+  text-align: center;
+  border-radius: 40rpx;
+  padding: 22rpx 0;
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.dlg-btn.plain {
+  background: #eef3f2;
+  color: #6b7b79;
+}
+
+.dlg-btn.disabled {
+  opacity: 0.6;
 }
 </style>

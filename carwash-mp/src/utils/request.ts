@@ -83,7 +83,8 @@ export function clearWorkerToken(): void {
 }
 
 export function request<T>(options: RequestOptions): Promise<T> {
-  return doRequest<T>(options, false)
+  // 幂等键在入口生成一次：续登后的重试必须复用同一键，否则服务端判重失效、扣款会重复
+  return doRequest<T>(options, false, options.idempotent ? uuid() : '')
 }
 
 /** 简易 UUID（幂等键用，不需要密码学强度） */
@@ -95,7 +96,7 @@ function uuid(): string {
   })
 }
 
-function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
+function doRequest<T>(options: RequestOptions, retried: boolean, idempotencyKey: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const header: Record<string, string> = { 'Content-Type': 'application/json' }
     const workerApi = isWorkerApi(options.url)
@@ -105,8 +106,7 @@ function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
         header.Authorization = `Bearer ${token}`
       }
     }
-    // 幂等键：同一键重复提交服务端返回首次结果，防止用户狂点生成多单
-    const idempotencyKey = options.idempotent ? uuid() : ''
+    // 幂等键：同一键重复提交服务端返回首次结果，防止用户狂点重复扣款
     if (idempotencyKey) {
       header['Idempotency-Key'] = idempotencyKey
     }
@@ -142,7 +142,7 @@ function doRequest<T>(options: RequestOptions, retried: boolean): Promise<T> {
           import('@/api/auth')
             .then(({ ensureLogin }) => {
               ensureLogin()
-                .then(() => doRequest<T>(options, true).then(resolve, reject))
+                .then(() => doRequest<T>(options, true, idempotencyKey).then(resolve, reject))
                 .catch(reject)
             })
             .catch(reject)

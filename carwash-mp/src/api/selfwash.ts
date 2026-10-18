@@ -102,8 +102,14 @@ export function activateSelfwash(orderNo: string): Promise<SelfwashOrderVO> {
   return request<SelfwashOrderVO>({ url: `/api/v1/selfwash/orders/${orderNo}/activate`, method: 'POST' })
 }
 
+/** 加时涉及扣款，必须带幂等键：连点/网络重试时服务端按键判重，只扣一次 */
 export function addSelfwashTime(orderNo: string, minutes: number): Promise<SelfwashOrderVO> {
-  return request<SelfwashOrderVO>({ url: `/api/v1/selfwash/orders/${orderNo}/add-time`, method: 'POST', data: { minutes } })
+  return request<SelfwashOrderVO>({
+    url: `/api/v1/selfwash/orders/${orderNo}/add-time`,
+    method: 'POST',
+    data: { minutes },
+    idempotent: true,
+  })
 }
 
 export function finishSelfwash(orderNo: string): Promise<void> {
