@@ -94,11 +94,7 @@ fi
 # ---------- 4) 后端 jar（不存在则构建）----------
 JAR="$REPO_ROOT/carwash-server/ruoyi-admin/target/ruoyi-admin.jar"
 if [ ! -f "$JAR" ] || [ "$RESTART" = "1" ]; then
-  if [ "$RESTART" = "1" ]; then
-    log "restart 模式：强制重新打包（吃最新代码），请稍候..."
-  else
-    log "jar 不存在，开始构建（首次较慢）..."
-  fi
+  [ "$RESTART" = "1" ] && log "restart 模式：强制重新打包后端..." || log "jar 不存在，开始构建（首次较慢）..."
   ( cd "$REPO_ROOT/carwash-server" && mvn -B -pl ruoyi-admin -am -DskipTests package ) >>"$START_LOG" 2>&1 \
     && log "✔ 构建完成" || { log "✘ 构建失败，详见 $START_LOG"; exit 1; }
 fi
