@@ -3567,6 +3567,102 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RuoYiResult' }
 
+  /admin-api/wash/coupon/batch:
+    post:
+      tags: [admin-coupon]
+      summary: 批量发放优惠券（同步）
+      description: |
+        按受众（全量 / 注册时间区间 / 小区并集）给一批会员发券，**同步执行**，
+        逐人复用单人发放校验（每人限领 + 库存乐观扣减，不超发）。不走一个大事务，
+        单人不成功只记该人结果，不影响他人。返回成功/跳过/失败汇总。
+        小区口径：常用停车位置 union 车辆常停小区，按 member_id 去重，不会因交集重复发。
+      x-permission: wash:coupon:grant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CouponBatchGrantRequest' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CouponBatchGrantVO' }
+
+  /admin-api/wash/coupon/batch/list:
+    get:
+      tags: [admin-coupon]
+      summary: 批量发放批次列表（每条批次一行）
+      x-permission: wash:coupon:list
+      parameters:
+        - name: templateId
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminCouponBatchVO' }
+
+  /admin-api/wash/coupon/batch/{batchId}:
+    get:
+      tags: [admin-coupon]
+      summary: 批量发放批次详情 + 明细
+      x-permission: wash:coupon:list
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: result
+          in: query
+          required: false
+          schema: { type: string, enum: [SUCCESS, SKIPPED, FAILED], description: 按结果过滤明细，默认全部 }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminCouponBatchDetailVO' }
+
+  /admin-api/wash/coupon/batch/{batchId}/regrant:
+    post:
+      tags: [admin-coupon]
+      summary: 批量发放补发（失败/跳过项重新发放）
+      description: |
+        对指定会员重新发放（复用单人发放校验），更新其在批次内的结果为最新一次结果，
+        不新增明细行；重算批次汇总。
+      x-permission: wash:coupon:grant
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CouponBatchRegrantRequest' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CouponBatchGrantVO' }
+
   /admin-api/wash/coupon/record/list:
     get:
       tags: [admin-coupon]
@@ -5194,6 +5290,82 @@ components:
         obtainTime: { type: integer, format: int64, description: 领取时间 }
         usedTime: { type: integer, format: int64, description: 核销时间，未使用为 null }
         expireTime: { type: integer, format: int64 }
+
+    # ---------------- 优惠券批量发放 ----------------
+    CouponBatchGrantRequest:
+      type: object
+      description: 批量发放请求。受众三选一：全量 / 小区 / 时间；可叠加小区 + 时间。
+      properties:
+        templateId: { type: integer, format: int64, description: 券模板ID }
+        perCount: { type: integer, default: 1, description: 每人发放张数，默认1，可改 }
+        audience:
+          type: object
+          description: 受众筛选。all=true 走全量；否则按 communityId / timeFrom~timeTo 过滤（可叠加）
+          properties:
+            all: { type: boolean, description: 全量会员 }
+            communityId: { type: integer, format: int64, description: 按小区（常用停车位置 union 车辆常停小区，去重） }
+            timeFrom: { type: integer, format: int64, description: 注册时间起（毫秒） }
+            timeTo: { type: integer, format: int64, description: 注册时间止（毫秒） }
+
+    CouponBatchGrantVO:
+      type: object
+      description: 批量发放结果汇总
+      properties:
+        batchId: { type: integer, format: int64 }
+        totalCount: { type: integer, description: 受众总数 }
+        successCount: { type: integer, description: 成功 }
+        skippedCount: { type: integer, description: 跳过（已达每人限领） }
+        failedCount: { type: integer, description: 失败（库存不足等） }
+
+    AdminCouponBatchVO:
+      type: object
+      description: 批量发放批次列表行。金额分、时间毫秒时间戳。
+      properties:
+        batchId: { type: integer, format: int64 }
+        couponTemplateId: { type: integer, format: int64 }
+        templateName: { type: string }
+        perCount: { type: integer }
+        operator: { type: string, description: 操作人 }
+        audienceType: { type: string, enum: [ALL, COMMUNITY, TIME] }
+        communityId: { type: integer, format: int64 }
+        communityName: { type: string }
+        timeFrom: { type: integer, format: int64 }
+        timeTo: { type: integer, format: int64 }
+        totalCount: { type: integer }
+        successCount: { type: integer }
+        skippedCount: { type: integer }
+        failedCount: { type: integer }
+        createTime: { type: integer, format: int64 }
+
+    AdminCouponBatchItemVO:
+      type: object
+      description: 批量发放明细行。手机号后端脱敏。
+      properties:
+        itemId: { type: integer, format: int64 }
+        memberId: { type: integer, format: int64 }
+        memberPhone: { type: string, description: 脱敏手机号 }
+        result: { type: string, enum: [SUCCESS, SKIPPED, FAILED] }
+        reason: { type: string }
+        grantedCount: { type: integer, description: 实际发出张数 }
+        createTime: { type: integer, format: int64 }
+
+    AdminCouponBatchDetailVO:
+      type: object
+      description: 批量发放批次详情 = 批次头 + 明细分页
+      properties:
+        batch: { $ref: '#/components/schemas/AdminCouponBatchVO' }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/AdminCouponBatchItemVO' }
+        total: { type: integer, description: 明细总数 }
+
+    CouponBatchRegrantRequest:
+      type: object
+      description: 补发请求。memberIds 为要重发的会员ID（通常取失败/跳过项）
+      properties:
+        memberIds:
+          type: array
+          items: { type: integer, format: int64 }
 
     # ---------------- 售后 / 退款 ----------------
     AfterSaleVO:

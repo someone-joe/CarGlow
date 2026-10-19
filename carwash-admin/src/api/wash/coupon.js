@@ -67,3 +67,39 @@ export function listCouponRecord(query) {
     params: query
   })
 }
+
+// 批量发放（同步）。受众：全量 / 小区 / 注册时间区间；perCount 默认 1、可改
+export function batchGrantCoupon(data) {
+  return request({
+    url: '/admin-api/wash/coupon/batch',
+    method: 'post',
+    data
+  })
+}
+
+// 批量发放批次列表（每条批次一行）
+export function listCouponBatch(query) {
+  return request({
+    url: '/admin-api/wash/coupon/batch/list',
+    method: 'get',
+    params: query
+  })
+}
+
+// 批量发放批次详情 + 明细分页
+export function getCouponBatch(batchId, query) {
+  return request({
+    url: '/admin-api/wash/coupon/batch/' + batchId,
+    method: 'get',
+    params: query
+  })
+}
+
+// 批量补发：对失败/跳过会员重新发放
+export function regrantCouponBatch(batchId, data) {
+  return request({
+    url: '/admin-api/wash/coupon/batch/' + batchId + '/regrant',
+    method: 'post',
+    data
+  })
+}

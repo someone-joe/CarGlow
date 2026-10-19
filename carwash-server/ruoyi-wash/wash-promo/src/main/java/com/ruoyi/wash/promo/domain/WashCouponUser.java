@@ -8,6 +8,8 @@ public class WashCouponUser extends BaseEntity {
     private Long couponUserId;
     private Long templateId;
     private Long memberId;
+    /** 批量发放批次ID，非空=批量发出（记录视图据此折叠成一条）；单人/C端领取为空 */
+    private Long batchId;
     /** UNUSED / USED / EXPIRED */
     private String status;
     private String orderNo;
@@ -37,6 +39,14 @@ public class WashCouponUser extends BaseEntity {
 
     public void setMemberId(Long memberId) {
         this.memberId = memberId;
+    }
+
+    public Long getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getStatus() {

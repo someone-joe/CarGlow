@@ -2,10 +2,18 @@ package com.ruoyi.wash.promo.service;
 
 import com.ruoyi.wash.common.api.ApiException;
 import com.ruoyi.wash.common.api.ErrorCode;
+import com.ruoyi.wash.promo.domain.WashCouponBatch;
+import com.ruoyi.wash.promo.domain.WashCouponBatchItem;
 import com.ruoyi.wash.promo.domain.WashCouponTemplate;
 import com.ruoyi.wash.promo.domain.WashCouponUser;
+import com.ruoyi.wash.promo.dto.AdminCouponBatchItemVO;
+import com.ruoyi.wash.promo.dto.AdminCouponBatchVO;
 import com.ruoyi.wash.promo.dto.AdminCouponRecordVO;
 import com.ruoyi.wash.promo.dto.AdminCouponTemplateVO;
+import com.ruoyi.wash.promo.dto.CouponBatchGrantVO;
+import com.ruoyi.wash.promo.dto.CouponGrantAudience;
+import com.ruoyi.wash.promo.mapper.WashCouponBatchItemMapper;
+import com.ruoyi.wash.promo.mapper.WashCouponBatchMapper;
 import com.ruoyi.wash.promo.mapper.WashCouponTemplateMapper;
 import com.ruoyi.wash.promo.mapper.WashCouponUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +43,12 @@ public class WashCouponAdminService {
     private WashCouponTemplateMapper templateMapper;
     @Autowired
     private WashCouponUserMapper userMapper;
+    @Autowired
+    private WashCouponBatchMapper batchMapper;
+    @Autowired
+    private WashCouponBatchItemMapper batchItemMapper;
+    @Autowired
+    private CouponBatchGranter granter;
 
     // ------------------------------------------------------------------ 模板
 
@@ -150,6 +164,164 @@ public class WashCouponAdminService {
         data.put("rows", rows);
         data.put("total", userMapper.countAdminRecords(templateId, phone, status, System.currentTimeMillis()));
         return data;
+    }
+
+    // ------------------------------------------------------------------ 批量发放
+
+    /**
+     * 批量发放优惠券（同步）。逐人复用单人发放校验（每人限领 + 库存乐观扣减，不超发），
+     * 不走一个大事务，单人不成功只记结果不影响他人。返回成功/跳过/失败汇总。
+     *
+     * <p>受众：全量 / 按注册时间 / 按小区（常用停车位置 ∪ 车辆常停小区，按 member_id 去重）。
+     */
+    public CouponBatchGrantVO batchGrant(Long templateId, Integer perCount, CouponGrantAudience audience, String operator) {
+        if (templateId == null) {
+            throw new ApiException(ErrorCode.A0001, "templateId 必填");
+        }
+        int pc = (perCount == null || perCount < 1) ? 1 : perCount;
+        if (pc > 100) {
+            throw new ApiException(ErrorCode.A0001, "每人张数不能超过 100");
+        }
+        if (audience == null) {
+            throw new ApiException(ErrorCode.A0001, "受众必填");
+        }
+        boolean hasCommunity = audience.communityId() != null;
+        boolean hasTime = audience.timeFrom() != null || audience.timeTo() != null;
+        if (!Boolean.TRUE.equals(audience.all()) && !hasCommunity && !hasTime) {
+            throw new ApiException(ErrorCode.A0001, "受众需选择：全量 / 小区 / 注册时间区间，至少其一");
+        }
+        WashCouponTemplate t = requireGrantable(templateId);
+        String audienceType = Boolean.TRUE.equals(audience.all()) ? "ALL" : (hasCommunity ? "COMMUNITY" : "TIME");
+        String communityName = hasCommunity ? batchMapper.selectCommunityName(audience.communityId()) : null;
+        List<Long> memberIds = batchMapper.selectAudienceMemberIds(audience.communityId(), audience.timeFrom(), audience.timeTo());
+
+        WashCouponBatch batch = new WashCouponBatch();
+        batch.setTemplateId(templateId);
+        batch.setPerCount(pc);
+        batch.setOperator(operator);
+        batch.setAudienceType(audienceType);
+        batch.setCommunityId(audience.communityId());
+        batch.setCommunityName(communityName);
+        batch.setTimeFrom(audience.timeFrom());
+        batch.setTimeTo(audience.timeTo());
+        batch.setTotalCount(memberIds.size());
+        batch.setSuccessCount(0);
+        batch.setSkippedCount(0);
+        batch.setFailedCount(0);
+        batchMapper.insert(batch);
+        long batchId = batch.getBatchId();
+
+        int success = 0, skipped = 0, failed = 0;
+        for (Long memberId : memberIds) {
+            CouponBatchGranter.GrantOutcome o;
+            try {
+                o = granter.grant(t, memberId, pc, batchId);
+            } catch (Exception e) {
+                o = new CouponBatchGranter.GrantOutcome(CouponBatchGranter.FAILED, 0, "系统异常：" + e.getMessage());
+            }
+            switch (o.result()) {
+                case CouponBatchGranter.SUCCESS -> success++;
+                case CouponBatchGranter.SKIPPED -> skipped++;
+                default -> failed++;
+            }
+            WashCouponBatchItem item = new WashCouponBatchItem();
+            item.setBatchId(batchId);
+            item.setTemplateId(templateId);
+            item.setMemberId(memberId);
+            item.setResult(o.result());
+            item.setReason(o.reason());
+            item.setGrantedCount(o.granted());
+            batchItemMapper.insert(item);
+        }
+        batchMapper.updateCounts(batchId, success, skipped, failed, memberIds.size());
+        return new CouponBatchGrantVO(batchId, memberIds.size(), success, skipped, failed);
+    }
+
+    /** 批量发放批次列表：每条批次一行。 */
+    public Map<String, Object> batchList(Long templateId, int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        List<AdminCouponBatchVO> rows = batchMapper.selectAdminList(templateId, offset, pageSize);
+        Map<String, Object> data = new HashMap<>();
+        data.put("rows", rows);
+        data.put("total", batchMapper.countAdmin(templateId));
+        return data;
+    }
+
+    /** 批量发放批次详情 + 明细分页。 */
+    public Map<String, Object> batchDetail(Long batchId, String result, int pageNum, int pageSize) {
+        WashCouponBatch batch = batchMapper.selectById(batchId);
+        if (batch == null) {
+            throw new ApiException(ErrorCode.A0001, "批次不存在");
+        }
+        int offset = (pageNum - 1) * pageSize;
+        List<AdminCouponBatchItemVO> rows = batchItemMapper.selectByBatch(batchId, result, offset, pageSize);
+        long total = batchItemMapper.countByBatch(batchId, result);
+        Map<String, Object> data = new HashMap<>();
+        data.put("batch", toBatchVO(batch));
+        data.put("rows", rows);
+        data.put("total", total);
+        return data;
+    }
+
+    /**
+     * 批量补发：对指定会员重新发放（复用单人发放校验），更新其在批次内结果为最新一次结果，
+     * 不新增明细行；重算批次汇总。
+     */
+    public CouponBatchGrantVO regrant(Long batchId, List<Long> memberIds, String operator) {
+        WashCouponBatch batch = batchMapper.selectById(batchId);
+        if (batch == null) {
+            throw new ApiException(ErrorCode.A0001, "批次不存在");
+        }
+        if (memberIds == null || memberIds.isEmpty()) {
+            throw new ApiException(ErrorCode.A0001, "memberIds 不能为空");
+        }
+        WashCouponTemplate t = requireGrantable(batch.getTemplateId());
+        int pc = batch.getPerCount() == null ? 1 : batch.getPerCount();
+        for (Long memberId : memberIds) {
+            CouponBatchGranter.GrantOutcome o;
+            try {
+                o = granter.grant(t, memberId, pc, batchId);
+            } catch (Exception e) {
+                o = new CouponBatchGranter.GrantOutcome(CouponBatchGranter.FAILED, 0, "系统异常：" + e.getMessage());
+            }
+            batchItemMapper.updateResult(batchId, memberId, o.result(), o.reason(), o.granted());
+        }
+        int s = batchItemMapper.countByResult(batchId, CouponBatchGranter.SUCCESS);
+        int sk = batchItemMapper.countByResult(batchId, CouponBatchGranter.SKIPPED);
+        int f = batchItemMapper.countByResult(batchId, CouponBatchGranter.FAILED);
+        int total = batch.getTotalCount() == null ? (s + sk + f) : batch.getTotalCount();
+        batchMapper.updateCounts(batchId, s, sk, f, total);
+        return new CouponBatchGrantVO(batchId, total, s, sk, f);
+    }
+
+    private WashCouponTemplate requireGrantable(Long templateId) {
+        WashCouponTemplate t = require(templateId);
+        long now = System.currentTimeMillis();
+        if (!"Y".equals(t.getStatus()) || t.getStartTime() > now || t.getEndTime() < now) {
+            throw new ApiException(ErrorCode.C1001, "券模板未上架或不在有效期内，不能发放");
+        }
+        return t;
+    }
+
+    private AdminCouponBatchVO toBatchVO(WashCouponBatch b) {
+        AdminCouponBatchVO vo = new AdminCouponBatchVO();
+        vo.setBatchId(b.getBatchId());
+        vo.setCouponTemplateId(b.getTemplateId());
+        WashCouponTemplate tt = templateMapper.selectById(b.getTemplateId());
+        vo.setTemplateName(tt == null ? null : tt.getName());
+        vo.setPerCount(b.getPerCount());
+        vo.setOperator(b.getOperator());
+        vo.setAudienceType(b.getAudienceType());
+        vo.setCommunityId(b.getCommunityId());
+        vo.setCommunityName(b.getCommunityName());
+        vo.setTimeFrom(b.getTimeFrom());
+        vo.setTimeTo(b.getTimeTo());
+        vo.setTotalCount(b.getTotalCount());
+        vo.setSuccessCount(b.getSuccessCount());
+        vo.setSkippedCount(b.getSkippedCount());
+        vo.setFailedCount(b.getFailedCount());
+        vo.setCreateTime(b.getCreateTime());
+        return vo;
     }
 
     // ------------------------------------------------------------------ 内部

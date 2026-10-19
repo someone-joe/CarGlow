@@ -25,6 +25,9 @@
       <el-col :span="1.5">
         <el-button type="primary" plain icon="Plus" @click="handleAdd" v-hasPermi="['wash:coupon:add']">新增</el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button type="primary" plain icon="Present" @click="handleBatchGrant" v-hasPermi="['wash:coupon:grant']">批量发放</el-button>
+      </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList" />
     </el-row>
 
@@ -191,12 +194,127 @@
         </el-table-column>
       </el-table>
       <pagination v-show="recordTotal > 0" :total="recordTotal" v-model:page="recordQuery.pageNum" v-model:limit="recordQuery.pageSize" @pagination="getRecords" />
+
+      <el-divider content-position="left">批量发放批次（每条批次折叠为一行，点「查看」看完整发放结果）</el-divider>
+      <el-table v-loading="batchLoading" :data="batchList">
+        <el-table-column label="批次ID" prop="batchId" width="80" />
+        <el-table-column label="券模板" prop="templateName" min-width="160" show-overflow-tooltip />
+        <el-table-column label="每人" prop="perCount" width="70" />
+        <el-table-column label="受众" min-width="220">
+          <template #default="{ row }">
+            <span>{{ audienceLabel(row.audienceType) }}</span>
+            <template v-if="row.audienceType === 'COMMUNITY'"> · {{ row.communityName || row.communityId }}</template>
+            <template v-else-if="row.audienceType === 'TIME'"> · {{ formatTime(row.timeFrom) }} ~ {{ formatTime(row.timeTo) }}</template>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作人" prop="operator" width="110" />
+        <el-table-column label="成功" prop="successCount" width="70" />
+        <el-table-column label="跳过" prop="skippedCount" width="70" />
+        <el-table-column label="失败" prop="failedCount" width="70" />
+        <el-table-column label="时间" width="170"><template #default="{ row }">{{ formatTime(row.createTime) }}</template></el-table-column>
+        <el-table-column label="操作" width="80" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleBatchDetail(row)">查看</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination v-show="batchTotal > 0" :total="batchTotal" v-model:page="batchQuery.pageNum" v-model:limit="batchQuery.pageSize" @pagination="getBatches" />
+    </el-dialog>
+
+    <!-- 批量发放 -->
+    <el-dialog title="批量发放优惠券" v-model="batchGrantOpen" width="560px" append-to-body>
+      <el-alert type="info" :closable="false" show-icon class="mb10">
+        <template #title>逐人复用「每人限领」与库存约束，发不完会明确失败，不会超发；单人不成功只记结果，不影响他人。</template>
+      </el-alert>
+      <el-form ref="batchGrantRef" :model="batchGrantForm" :rules="batchGrantRules" label-width="90px">
+        <el-form-item label="券模板" prop="templateId">
+          <el-select v-model="batchGrantForm.templateId" filterable placeholder="选择要发放的券模板" style="width: 100%">
+            <el-option v-for="t in templateOptions" :key="t.couponTemplateId" :label="t.name + '（满' + toYuan(t.thresholdAmount) + '减' + toYuan(t.discountAmount) + '）'" :value="t.couponTemplateId" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="每人张数" prop="perCount">
+          <el-input-number v-model="batchGrantForm.perCount" :min="1" :max="100" style="width: 100%" />
+          <div class="hint">默认 1 张，可改；实际发出仍受每人限领与库存约束</div>
+        </el-form-item>
+        <el-form-item label="受众">
+          <el-checkbox v-model="batchGrantForm.all">全量会员</el-checkbox>
+        </el-form-item>
+        <template v-if="!batchGrantForm.all">
+          <el-form-item label="按小区">
+            <el-select v-model="batchGrantForm.communityId" filterable clearable placeholder="按常用停车位置 ∪ 车辆常停小区筛选" style="width: 100%">
+              <el-option v-for="c in communityOptionsList" :key="c.communityId" :label="c.communityName" :value="c.communityId" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="注册时间">
+            <el-date-picker v-model="batchGrantForm.timeRange" type="datetimerange" range-separator="~" start-placeholder="开始" end-placeholder="结束" value-format="x" style="width: 100%" />
+          </el-form-item>
+        </template>
+      </el-form>
+      <el-alert v-if="batchGrantResult" type="success" :closable="false" class="mb10">
+        <template #title>
+          发放完成：共 {{ batchGrantResult.totalCount }} 人，成功 {{ batchGrantResult.successCount }}、跳过(达限领) {{ batchGrantResult.skippedCount }}、失败 {{ batchGrantResult.failedCount }}。批次 #{{ batchGrantResult.batchId }}
+        </template>
+      </el-alert>
+      <template #footer>
+        <el-button type="primary" :disabled="!!batchGrantResult" @click="submitBatchGrant">发 放</el-button>
+        <el-button @click="batchGrantOpen = false">关 闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量发放明细 -->
+    <el-dialog title="批量发放明细" v-model="batchDetailOpen" width="920px" append-to-body>
+      <el-descriptions :column="3" border size="small" class="mb10" v-if="batchInfo">
+        <el-descriptions-item label="批次ID">#{{ batchInfo.batchId }}</el-descriptions-item>
+        <el-descriptions-item label="券模板">{{ batchInfo.templateName }}</el-descriptions-item>
+        <el-descriptions-item label="每人张数">{{ batchInfo.perCount }}</el-descriptions-item>
+        <el-descriptions-item label="操作人">{{ batchInfo.operator }}</el-descriptions-item>
+        <el-descriptions-item label="受众">
+          {{ audienceLabel(batchInfo.audienceType) }}<template v-if="batchInfo.audienceType === 'COMMUNITY'"> · {{ batchInfo.communityName || batchInfo.communityId }}</template>
+        </el-descriptions-item>
+        <el-descriptions-item label="时间">{{ formatTime(batchInfo.createTime) }}</el-descriptions-item>
+        <el-descriptions-item label="成功">{{ batchInfo.successCount }}</el-descriptions-item>
+        <el-descriptions-item label="跳过">{{ batchInfo.skippedCount }}</el-descriptions-item>
+        <el-descriptions-item label="失败">{{ batchInfo.failedCount }}</el-descriptions-item>
+      </el-descriptions>
+      <el-form :inline="true" :model="batchDetailQuery" class="mb10">
+        <el-form-item label="结果">
+          <el-select v-model="batchDetailQuery.result" placeholder="全部" clearable style="width: 140px" @change="getBatchDetail()">
+            <el-option label="成功" value="SUCCESS" />
+            <el-option label="跳过" value="SKIPPED" />
+            <el-option label="失败" value="FAILED" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="Search" @click="getBatchDetail()">搜索</el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="warning" :disabled="batchInfo && batchInfo.failedCount === 0 && batchInfo.skippedCount === 0" @click="regrantAll">补发全部失败/跳过</el-button>
+        </el-form-item>
+      </el-form>
+      <el-table v-loading="batchDetailLoading" :data="batchDetailList">
+        <el-table-column label="会员ID" prop="memberId" width="90" />
+        <el-table-column label="手机号" prop="memberPhone" width="130"><template #default="{ row }">{{ row.memberPhone || '-' }}</template></el-table-column>
+        <el-table-column label="结果" width="90">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.result === 'SUCCESS' ? 'success' : row.result === 'SKIPPED' ? 'warning' : 'danger'">{{ resultLabel(row.result) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="实际发出" prop="grantedCount" width="90" />
+        <el-table-column label="原因" prop="reason" min-width="200" show-overflow-tooltip><template #default="{ row }">{{ row.reason || '-' }}</template></el-table-column>
+        <el-table-column label="操作" width="90" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.result !== 'SUCCESS'" link type="primary" @click="regrantOne(row)">补发</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination v-show="batchDetailTotal > 0" :total="batchDetailTotal" v-model:page="batchDetailQuery.pageNum" v-model:limit="batchDetailQuery.pageSize" @pagination="getBatchDetail()" />
     </el-dialog>
   </div>
 </template>
 
 <script setup name="WashCoupon">
-import { listCouponTemplate, addCouponTemplate, updateCouponTemplate, changeCouponStatus, delCouponTemplate, grantCoupon, listCouponRecord } from '@/api/wash/coupon'
+import { listCouponTemplate, addCouponTemplate, updateCouponTemplate, changeCouponStatus, delCouponTemplate, grantCoupon, listCouponRecord, batchGrantCoupon, listCouponBatch, getCouponBatch, regrantCouponBatch } from '@/api/wash/coupon'
+import { listCommunity } from '@/api/wash/community'
 
 const { proxy } = getCurrentInstance()
 
@@ -263,6 +381,137 @@ function statusLabel(s) {
 function formatTime(ms) {
   if (!ms) return '-'
   return proxy.parseTime(ms, '{y}-{m}-{d} {h}:{i}')
+}
+
+// ---------------- 批量发放 ----------------
+const batchGrantOpen = ref(false)
+const batchGrantForm = ref({ templateId: undefined, perCount: 1, all: true, communityId: undefined, timeRange: undefined })
+const batchGrantRules = {
+  templateId: [{ required: true, message: '请选择券模板', trigger: 'change' }]
+}
+const templateOptions = ref([])
+const communityOptionsList = ref([])
+const batchGrantResult = ref(null)
+
+// 记录弹窗内的批量批次列表
+const batchList = ref([])
+const batchTotal = ref(0)
+const batchLoading = ref(false)
+const batchQuery = ref({ pageNum: 1, pageSize: 10, templateId: undefined })
+
+// 批量明细弹窗
+const batchDetailOpen = ref(false)
+const batchInfo = ref(null)
+const batchDetailList = ref([])
+const batchDetailTotal = ref(0)
+const batchDetailLoading = ref(false)
+const batchDetailQuery = ref({ pageNum: 1, pageSize: 10, result: undefined })
+let currentBatchId = null
+
+function audienceLabel(t) {
+  return { ALL: '全量会员', COMMUNITY: '按小区', TIME: '按注册时间' }[t] || t || '-'
+}
+function resultLabel(r) {
+  return { SUCCESS: '成功', SKIPPED: '跳过', FAILED: '失败' }[r] || r || '-'
+}
+
+function handleBatchGrant() {
+  batchGrantForm.value = { templateId: undefined, perCount: 1, all: true, communityId: undefined, timeRange: undefined }
+  batchGrantResult.value = null
+  loadTemplateOptions()
+  loadCommunities()
+  batchGrantOpen.value = true
+}
+
+function loadTemplateOptions() {
+  listCouponTemplate({ pageNum: 1, pageSize: 100 }).then((res) => {
+    templateOptions.value = res.rows || []
+  })
+}
+function loadCommunities() {
+  listCommunity({ pageNum: 1, pageSize: 200 }).then((res) => {
+    communityOptionsList.value = res.rows || []
+  })
+}
+
+function submitBatchGrant() {
+  proxy.$refs.batchGrantRef.validate((valid) => {
+    if (!valid) return
+    const f = batchGrantForm.value
+    if (!f.all && !f.communityId && !(f.timeRange && f.timeRange.length === 2)) {
+      proxy.$modal.msgError('受众需选择：全量 / 小区 / 注册时间区间，至少其一')
+      return
+    }
+    const payload = {
+      templateId: f.templateId,
+      perCount: f.perCount,
+      audience: {
+        all: f.all,
+        communityId: f.all ? null : f.communityId,
+        timeFrom: f.all || !f.timeRange ? null : f.timeRange[0],
+        timeTo: f.all || !f.timeRange ? null : f.timeRange[1]
+      }
+    }
+    batchGrantCoupon(payload).then((res) => {
+      batchGrantResult.value = res
+      proxy.$modal.msgSuccess('批量发放完成')
+    })
+  })
+}
+
+function getBatches() {
+  batchLoading.value = true
+  listCouponBatch(batchQuery.value).then((res) => {
+    batchList.value = res.rows || []
+    batchTotal.value = res.total || 0
+    batchLoading.value = false
+  }).catch(() => { batchLoading.value = false })
+}
+
+function handleBatchDetail(row) {
+  currentBatchId = row.batchId
+  batchDetailQuery.value = { pageNum: 1, pageSize: 10, result: undefined }
+  batchDetailOpen.value = true
+  getBatchDetail()
+}
+
+function getBatchDetail() {
+  if (!currentBatchId) return
+  batchDetailLoading.value = true
+  getCouponBatch(currentBatchId, batchDetailQuery.value).then((res) => {
+    batchInfo.value = res.batch || null
+    batchDetailList.value = res.rows || []
+    batchDetailTotal.value = res.total || 0
+    batchDetailLoading.value = false
+  }).catch(() => { batchDetailLoading.value = false })
+}
+
+function regrantOne(row) {
+  proxy.$modal.confirm(`确认给会员 ${row.memberId} 重新发放？`).then(() => {
+    return regrantCouponBatch(currentBatchId, { memberIds: [row.memberId] })
+  }).then(() => {
+    proxy.$modal.msgSuccess('已提交补发')
+    getBatchDetail()
+    getBatches()
+  }).catch(() => {})
+}
+
+function regrantAll() {
+  proxy.$modal.confirm('确认对全部「失败 / 跳过」会员重新发放？').then(() => {
+    return getCouponBatch(currentBatchId, { result: 'FAILED', pageSize: 9999, pageNum: 1 }).then((res) => {
+      const failed = res.rows || []
+      return getCouponBatch(currentBatchId, { result: 'SKIPPED', pageSize: 9999, pageNum: 1 }).then((res2) => {
+        const skipped = res2.rows || []
+        const ids = [...failed, ...skipped].map((x) => x.memberId)
+        if (!ids.length) { proxy.$modal.msgInfo('没有需要补发的会员'); return }
+        return regrantCouponBatch(currentBatchId, { memberIds: ids })
+      })
+    })
+  }).then(() => {
+    proxy.$modal.msgSuccess('已提交补发')
+    getBatchDetail()
+    getBatches()
+  }).catch(() => {})
 }
 
 function getList() {
@@ -383,8 +632,10 @@ function submitGrant() {
 
 function handleRecords(row) {
   recordQuery.value = { pageNum: 1, pageSize: 10, templateId: row.couponTemplateId, status: undefined, phone: undefined }
+  batchQuery.value = { pageNum: 1, pageSize: 10, templateId: row.couponTemplateId }
   recordOpen.value = true
   getRecords()
+  getBatches()
 }
 
 function getRecords() {

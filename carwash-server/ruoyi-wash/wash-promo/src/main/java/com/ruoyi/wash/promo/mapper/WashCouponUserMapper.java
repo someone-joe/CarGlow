@@ -13,8 +13,8 @@ import java.util.List;
 /** 用户优惠券读写。 */
 public interface WashCouponUserMapper {
 
-    @Insert("insert into wash_coupon_user(template_id, member_id, status, obtain_time, expire_time, create_time) " +
-            "values(#{templateId}, #{memberId}, #{status}, #{obtainTime}, #{expireTime}, now())")
+    @Insert("insert into wash_coupon_user(template_id, member_id, batch_id, status, obtain_time, expire_time, create_time) " +
+            "values(#{templateId}, #{memberId}, #{batchId}, #{status}, #{obtainTime}, #{expireTime}, now())")
     @Options(useGeneratedKeys = true, keyProperty = "couponUserId")
     int insert(WashCouponUser user);
 
@@ -53,7 +53,7 @@ public interface WashCouponUserMapper {
             "from wash_coupon_user u " +
             "left join wash_coupon_template t on t.coupon_template_id = u.template_id " +
             "left join wash_member m on m.member_id = u.member_id " +
-            "where u.del_flag = '0' " +
+            "where u.del_flag = '0' and u.batch_id is null " +
             "<if test='templateId != null'> and u.template_id = #{templateId} </if>" +
             "<if test='phone != null and phone != &quot;&quot;'> and m.phone like concat('%', #{phone}, '%') </if>" +
             "<choose>" +
@@ -72,7 +72,7 @@ public interface WashCouponUserMapper {
     @Select("<script>" +
             "select count(*) from wash_coupon_user u " +
             "left join wash_member m on m.member_id = u.member_id " +
-            "where u.del_flag = '0' " +
+            "where u.del_flag = '0' and u.batch_id is null " +
             "<if test='templateId != null'> and u.template_id = #{templateId} </if>" +
             "<if test='phone != null and phone != &quot;&quot;'> and m.phone like concat('%', #{phone}, '%') </if>" +
             "<choose>" +

@@ -2,8 +2,11 @@ package com.ruoyi.wash.promo.controller;
 
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.wash.promo.domain.WashCouponTemplate;
 import com.ruoyi.wash.promo.dto.AdminCouponTemplateVO;
+import com.ruoyi.wash.promo.dto.CouponBatchGrantVO;
+import com.ruoyi.wash.promo.dto.CouponGrantAudience;
 import com.ruoyi.wash.promo.service.WashCouponAdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -114,11 +117,63 @@ public class AdminCouponController {
         return rsp;
     }
 
+    /** 批量发放优惠券（同步）：全量 / 注册时间 / 小区受众，逐人复用单人发放校验，返回汇总。 */
+    @PostMapping("/batch")
+    @PreAuthorize("@ss.hasPermi('wash:coupon:grant')")
+    public AjaxResult batchGrant(@RequestBody CouponBatchGrantRequest body) {
+        CouponGrantAudience a = body == null ? null : body.audience();
+        CouponBatchGrantVO vo = adminService.batchGrant(
+                body == null ? null : body.templateId(),
+                body == null ? null : body.perCount(), a, SecurityUtils.getUsername());
+        return AjaxResult.success(vo);
+    }
+
+    /** 批量发放批次列表：每条批次一行（记录视图里批量发放折叠成单条据此展示）。 */
+    @GetMapping("/batch/list")
+    @PreAuthorize("@ss.hasPermi('wash:coupon:list')")
+    public TableDataInfo batchList(@RequestParam(required = false) Long templateId,
+                                   @RequestParam(defaultValue = "1") Integer pageNum,
+                                   @RequestParam(defaultValue = "10") Integer pageSize) {
+        Map<String, Object> data = adminService.batchList(templateId, pageNum, pageSize);
+        TableDataInfo rsp = new TableDataInfo();
+        rsp.setCode(200);
+        rsp.setMsg("查询成功");
+        rsp.setRows((List<?>) data.get("rows"));
+        rsp.setTotal(Long.parseLong(String.valueOf(data.get("total"))));
+        return rsp;
+    }
+
+    /** 批量发放批次详情 + 明细（记录弹窗点开看完整发放结果）。 */
+    @GetMapping("/batch/{batchId}")
+    @PreAuthorize("@ss.hasPermi('wash:coupon:list')")
+    public AjaxResult batchDetail(@PathVariable Long batchId,
+                                  @RequestParam(required = false) String result,
+                                  @RequestParam(defaultValue = "1") Integer pageNum,
+                                  @RequestParam(defaultValue = "10") Integer pageSize) {
+        return AjaxResult.success(adminService.batchDetail(batchId, result, pageNum, pageSize));
+    }
+
+    /** 批量补发：对失败 / 跳过会员重新发放，更新明细结果并重算汇总。 */
+    @PostMapping("/batch/{batchId}/regrant")
+    @PreAuthorize("@ss.hasPermi('wash:coupon:grant')")
+    public AjaxResult regrant(@PathVariable Long batchId, @RequestBody CouponBatchRegrantRequest body) {
+        List<Long> ids = body == null ? null : body.memberIds();
+        return AjaxResult.success(adminService.regrant(batchId, ids, SecurityUtils.getUsername()));
+    }
+
     /** 与契约 request body 逐字段一致 */
     public record StatusRequest(String status) {
     }
 
     /** 与契约 request body 逐字段一致 */
     public record GrantRequest(Long templateId, Long memberId) {
+    }
+
+    /** 与契约 request body 逐字段一致 */
+    public record CouponBatchGrantRequest(Long templateId, Integer perCount, CouponGrantAudience audience) {
+    }
+
+    /** 与契约 request body 逐字段一致 */
+    public record CouponBatchRegrantRequest(List<Long> memberIds) {
     }
 }
