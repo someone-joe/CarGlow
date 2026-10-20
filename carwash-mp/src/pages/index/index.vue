@@ -1,6 +1,6 @@
 <template>
   <view class="cg-page order">
-    <SiteBar variant="card" />
+    <SiteBar />
 
     <view v-if="loading" class="order-loading">加载中…</view>
 
@@ -67,7 +67,7 @@
       <view class="cg-card cg-card-tint order-step">
         <text class="order-step-no">STEP 4</text>
         <text class="order-step-title">填写车辆信息</text>
-        <VehiclePicker variant="plain" :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
+        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
 
         <!-- 常用停车位置：选一个直接填入，免手输（T6 数据） -->
         <view class="order-park">

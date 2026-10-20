@@ -16,7 +16,7 @@
 
     <!-- 当前服务站点 / 小区（停业、雨天模式由后端下发） -->
     <view class="home-site">
-      <SiteBar variant="card" />
+      <SiteBar />
     </view>
 
     <!-- 服务入口：仅「无感洗车」「自助洗车」两个 -->

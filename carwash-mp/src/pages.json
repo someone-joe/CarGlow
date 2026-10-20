@@ -195,8 +195,8 @@
 		}
 	],
 	"tabBar": {
-		"color": "#888888",
-		"selectedColor": "#1a73e8",
+		"color": "#86868b",
+		"selectedColor": "#007aff",
 		"backgroundColor": "#ffffff",
 		"borderStyle": "black",
 		"list": [
@@ -222,6 +222,6 @@
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "CarGlow",
 		"navigationBarBackgroundColor": "#FFFFFF",
-		"backgroundColor": "#F6F7F9"
+		"backgroundColor": "#F5F5F7"
 	}
 }

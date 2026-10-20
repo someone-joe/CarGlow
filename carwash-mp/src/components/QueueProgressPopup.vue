@@ -47,121 +47,145 @@ const aheadCount = computed(
 .mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9998;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: qp-fade 0.25s ease;
+}
+
+@keyframes qp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .dialog {
   position: fixed;
-  left: 70rpx;
-  right: 70rpx;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 9999;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 36rpx 32rpx;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  box-sizing: border-box;
+  width: 560rpx;
+  max-height: 70vh;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-raised);
+  animation: qp-rise 0.25s ease;
+}
+
+@keyframes qp-rise {
+  from {
+    transform: translate(-50%, -46%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
 }
 
 .dlg-title {
   display: block;
-  text-align: center;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-  margin-bottom: 28rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .dlg-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  padding-bottom: 20rpx;
-  border-bottom: 2rpx solid #eaf1f0;
+  margin-top: 24rpx;
 }
 
 .dlg-ws {
-  font-size: 26rpx;
-  color: #6b7b79;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .dlg-ahead {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-primary);
 }
 
 .dlg-list {
-  padding: 8rpx 0 4rpx;
+  margin-top: 24rpx;
 }
 
 .dlg-empty {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
   padding: 32rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-aux);
+  text-align: center;
 }
 
 .dlg-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18rpx 0;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .dlg-main {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
 }
 
 .dlg-plate {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .dlg-svc {
-  margin-top: 4rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .dlg-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6rpx;
+  flex: none;
+  text-align: right;
 }
 
 .dlg-tag {
-  font-size: 21rpx;
-  border-radius: 16rpx;
-  padding: 4rpx 16rpx;
+  padding: 8rpx 24rpx;
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
 }
 
 .dlg-tag.serving {
-  color: #ff5b4a;
-  background: #ffecea;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
 
 .dlg-tag.queuing {
-  color: #3d7bff;
-  background: #e8efff;
+  background: rgba(255, 149, 0, 0.12);
+  color: var(--cg-warning);
 }
 
 .dlg-min {
-  font-size: 22rpx;
-  color: #6b7b79;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .dlg-btn {
-  margin-top: 28rpx;
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  border-radius: 40rpx;
-  padding: 24rpx 0;
-  font-size: 30rpx;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 32rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 </style>

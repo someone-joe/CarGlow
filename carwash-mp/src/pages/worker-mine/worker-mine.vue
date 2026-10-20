@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page worker-mine">
     <view class="head">
       <view>
         <text class="who">{{ workerState.name || '师傅' }}</text>
@@ -199,51 +199,63 @@ function doLogout(): void {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 140rpx;
-  background: #f6f7f9;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部 WorkerTabBar 占位 */
+.worker-mine {
+  padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
 }
 
+/* ---- 头部 ---- */
 .head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
+  justify-content: space-between;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .who {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #222;
+  display: block;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .site {
-  margin-left: 12rpx;
-  font-size: 24rpx;
-  color: #888;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .logout {
-  font-size: 26rpx;
-  color: #d9534f;
+  min-height: 96rpx;
+  padding: 0 8rpx;
+  color: var(--cg-error);
+  font-size: var(--cg-font-caption);
+  line-height: 96rpx;
 }
 
+/* ---- 卡片 ---- */
 .card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 26rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .card-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #222;
-  margin-bottom: 18rpx;
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* ---- 打卡 ---- */
 .status-row {
   display: flex;
   align-items: center;
@@ -251,30 +263,31 @@ function doLogout(): void {
 }
 
 .status {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1a73e8;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-primary);
 }
 
 .hint {
-  font-size: 22rpx;
-  color: #999;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .clock-ops {
   display: flex;
-  margin-top: 18rpx;
+  margin-top: 32rpx;
 }
 
 .cop {
   flex: 1;
+  height: 88rpx;
+  margin-right: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
+  line-height: 88rpx;
   text-align: center;
-  padding: 18rpx 0;
-  margin-right: 12rpx;
-  border-radius: 10rpx;
-  background: #f0f2f5;
-  color: #555;
-  font-size: 28rpx;
 }
 
 .cop:last-child {
@@ -282,98 +295,113 @@ function doLogout(): void {
 }
 
 .cop.on {
-  background: #1a73e8;
-  color: #fff;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
+/* ---- 资质键值行 ---- */
 .kv {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 12rpx 0;
-  font-size: 28rpx;
-  color: #555;
+  min-height: 88rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid var(--cg-line);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .tag {
-  font-size: 26rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .tag.ok {
-  color: #18a058;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
 
 .tag.no {
-  color: #d9534f;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--cg-error);
 }
 
 .tag.wait {
-  color: #e6a23c;
+  background: rgba(255, 149, 0, 0.12);
+  color: var(--cg-warning);
 }
 
+/* ---- 表单 ---- */
 .form {
-  margin-top: 12rpx;
+  margin-top: 32rpx;
 }
 
 .field {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
+  margin-top: 24rpx;
 }
 
 .label {
-  width: 170rpx;
-  font-size: 26rpx;
-  color: #666;
+  display: block;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .input {
-  flex: 1;
-  border: 1rpx solid #eee;
-  border-radius: 8rpx;
-  padding: 14rpx;
-  font-size: 26rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 16rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .upload {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
+  margin-top: 32rpx;
 }
 
 .up-box {
-  width: 120rpx;
-  height: 120rpx;
-  border: 1rpx dashed #ccc;
-  border-radius: 10rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #bbb;
-  font-size: 48rpx;
+  width: 200rpx;
+  height: 200rpx;
+  margin-top: 16rpx;
+  background: var(--cg-fill);
+  border: 1rpx dashed var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  color: var(--cg-text-aux);
+  font-size: var(--cg-font-subtitle);
 }
 
 .up-img {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 10rpx;
-  background: #f0f0f0;
+  display: block;
+  width: 200rpx;
+  height: 200rpx;
+  margin-top: 16rpx;
+  border-radius: var(--cg-radius-md);
 }
 
 .submit {
-  display: block;
-  text-align: center;
-  background: #1a73e8;
-  color: #fff;
-  padding: 20rpx 0;
-  border-radius: 10rpx;
-  font-size: 30rpx;
-  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 40rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .rejected {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  color: #d9534f;
+  margin-top: 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
+  line-height: 1.6;
 }
 </style>

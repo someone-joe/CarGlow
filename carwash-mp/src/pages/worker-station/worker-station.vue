@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page worker-station">
     <view class="head">
       <view>
         <text class="who">{{ queue?.stationName || '中央站' }}</text>
@@ -8,7 +8,7 @@
       <text class="logout" @click="doLogout">退出</text>
     </view>
 
-    <view v-if="!items.length" class="empty">当前没有作业中的车辆</view>
+    <view v-if="!items.length" class="cg-empty">当前没有作业中的车辆</view>
 
     <view v-for="it in items" :key="it.orderNo" class="card">
       <view class="row">
@@ -186,89 +186,107 @@ function doLogout(): void {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 140rpx;
-  background: #f6f7f9;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部 WorkerTabBar 占位 */
+.worker-station {
+  padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
 }
 
+/* ---- 头部 ---- */
 .head {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20rpx;
+  justify-content: space-between;
+  margin-top: 32rpx;
+  padding: 32rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .who {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #222;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .site {
-  margin-left: 12rpx;
-  font-size: 24rpx;
-  color: #888;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .logout {
-  font-size: 26rpx;
-  color: #d9534f;
+  min-height: 96rpx;
+  padding: 0 8rpx;
+  color: var(--cg-error);
+  font-size: var(--cg-font-caption);
+  line-height: 96rpx;
 }
 
-.empty {
-  text-align: center;
-  color: #aaa;
-  padding: 80rpx 0;
-  font-size: 28rpx;
-}
-
+/* ---- 任务卡 ---- */
 .card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 26rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .plate {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #222;
+  flex: 1;
+  font-size: var(--cg-font-caption);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .status {
-  font-size: 24rpx;
-  color: #1a73e8;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-tint);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
 }
 
 .line.sub {
-  margin-top: 10rpx;
-  color: #999;
-  font-size: 24rpx;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
+/* ---- 操作 ---- */
 .ops {
-  margin-top: 20rpx;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 32rpx;
 }
 
 .op {
-  background: #1a73e8;
-  color: #fff;
-  padding: 14rpx 32rpx;
-  border-radius: 10rpx;
-  font-size: 28rpx;
-  margin-right: 16rpx;
+  min-height: 96rpx;
+  margin: 16rpx 0 0 24rpx;
+  padding: 0 40rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-title);
+  line-height: 96rpx;
+  text-align: center;
 }
 
 .op.danger {
-  background: #d9534f;
+  border-color: var(--cg-error);
+  color: var(--cg-error);
 }
 </style>

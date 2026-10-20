@@ -100,123 +100,134 @@ function cancel(): void {
 
 <style scoped>
 .vf {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
+  box-sizing: border-box;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .vf-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 20rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* ---- 车辆类型 ---- */
 .vtype-row {
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  justify-content: space-between;
+  min-height: 96rpx;
+  margin-top: 24rpx;
 }
 
 .vtype-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
-  margin-right: 20rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .vtype-opts {
-  flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
 }
 
 .vtype-opt {
-  font-size: 25rpx;
-  color: #4d5e5c;
-  background: #f2f7f7;
-  border-radius: 24rpx;
-  padding: 12rpx 28rpx;
+  padding: 12rpx 32rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
+}
+
+.vtype-opt + .vtype-opt {
+  margin-left: 16rpx;
 }
 
 .vtype-opt.on {
-  color: #fff;
-  background: #00aeb5;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
+/* ---- 输入 ---- */
 .vf-input {
-  background: #f6faf9;
-  border-radius: 16rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 24rpx;
   padding: 24rpx;
-  font-size: 28rpx;
-  color: #1b2b2a;
-  margin-bottom: 16rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
+/* ---- iOS 开关 ---- */
 .switch-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8rpx 0 24rpx;
+  min-height: 96rpx;
+  margin-top: 16rpx;
 }
 
 .switch-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .switch-box {
-  width: 88rpx;
-  height: 48rpx;
-  border-radius: 24rpx;
-  background: #d7e3e1;
-  position: relative;
-  transition: background 0.2s;
+  box-sizing: border-box;
+  width: 96rpx;
+  height: 56rpx;
+  padding: 6rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  transition: background-color 0.2s ease;
 }
 
 .switch-box.on {
-  background: #00aeb5;
+  background: var(--cg-primary);
 }
 
 .switch-dot {
-  position: absolute;
-  top: 6rpx;
-  left: 6rpx;
-  width: 36rpx;
-  height: 36rpx;
+  width: 44rpx;
+  height: 44rpx;
+  background: #ffffff;
   border-radius: 50%;
-  background: #fff;
-  transition: left 0.2s;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
 }
 
 .switch-box.on .switch-dot {
-  left: 46rpx;
+  transform: translateX(40rpx);
 }
 
+/* ---- 按钮 ---- */
 .btn-row {
   display: flex;
-  gap: 16rpx;
+  margin-top: 40rpx;
 }
 
 .btn {
   flex: 1;
-  text-align: center;
-  padding: 26rpx 0;
-  border-radius: 40rpx;
-  font-size: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
 }
 
 .btn-primary {
-  background: #14342f;
-  color: #fff;
-  font-weight: 600;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
 .btn-plain {
-  border: 2rpx solid #cfe0de;
-  color: #6b7b79;
+  margin-left: 24rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  color: var(--cg-title);
 }
 </style>

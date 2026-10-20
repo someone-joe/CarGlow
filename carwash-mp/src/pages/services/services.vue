@@ -1,6 +1,6 @@
 <template>
   <view class="cg-page services">
-    <SiteBar variant="card" />
+    <SiteBar />
 
     <view v-if="loading" class="cg-empty">加载中…</view>
 

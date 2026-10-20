@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page worker-login">
     <view class="title">师傅登录</view>
     <view class="sub">工号登录，与顾客微信登录相互隔离</view>
 
@@ -37,38 +37,47 @@ async function submit(): Promise<void> {
 </script>
 
 <style>
-.page {
-  padding: 60rpx 40rpx;
-  background: #f6f7f9;
-  min-height: 100vh;
-  box-sizing: border-box;
+.worker-login {
+  padding-top: 160rpx;
 }
 
 .title {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #222;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .sub {
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #999;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .input {
-  margin-top: 40rpx;
-  background: #fff;
-  border-radius: 12rpx;
-  padding: 28rpx;
-  font-size: 30rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 32rpx;
+  padding: 24rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-md);
+  box-shadow: var(--cg-shadow-card);
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
 }
 
 .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
   margin-top: 48rpx;
-  background: #1a73e8;
-  color: #fff;
-  border-radius: 12rpx;
-  font-size: 32rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
+}
+
+.btn::after {
+  border: none;
 }
 </style>

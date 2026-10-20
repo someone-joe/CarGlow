@@ -132,52 +132,62 @@ watch(
 
 <style scoped>
 .plate-input {
-  width: 100%;
+  box-sizing: border-box;
+  margin-top: 32rpx;
 }
 
-/* ---- 格子显示区 ---- */
+/* ---- 车牌格 ---- */
 .cells {
   display: flex;
-  gap: 8rpx;
-  width: 100%;
 }
 
 .cell {
-  flex: 1;
-  height: 84rpx;
-  min-width: 0;
-  border: 2rpx solid #d7e3e1;
-  border-radius: 12rpx;
-  background: #f6faf9;
-  text-align: center;
-  line-height: 84rpx;
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 84rpx;
+  height: 96rpx;
+  margin-right: 8rpx;
+  background: var(--cg-fill);
+  border: 2rpx solid transparent;
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .cell.active {
-  border-color: #00aeb5;
-  background: #f3fbfb;
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
 }
 
 .cell.new-energy {
-  color: #9fb3b0;
-  font-size: 26rpx;
-  font-weight: 600;
+  background: var(--cg-card);
+  border: 1rpx dashed var(--cg-border);
+  color: var(--cg-text-aux);
 }
 
 .cell.new-energy.disabled {
-  border-style: dashed;
-  color: #c4d2cf;
+  opacity: 0.5;
 }
 
-/* ---- 底部键盘 ---- */
+/* ---- 自定义键盘 ---- */
 .mask {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 9998;
+  z-index: 100;
+  animation: pi-fade 0.25s ease;
+}
+
+@keyframes pi-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .kb {
@@ -185,13 +195,15 @@ watch(
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
-  background: #fff;
-  border-radius: 30rpx 30rpx 0 0;
-  border-top: 2rpx solid #d9d9d9;
+  z-index: 101;
+  box-sizing: border-box;
+  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
+  background: var(--cg-glass-bg);
+  -webkit-backdrop-filter: blur(var(--cg-glass-blur));
+  backdrop-filter: blur(var(--cg-glass-blur));
+  border-top: var(--cg-glass-border);
   transform: translateY(100%);
-  transition: transform 0.3s ease;
-  padding-bottom: env(safe-area-inset-bottom);
+  transition: transform 0.25s ease;
 }
 
 .kb.show {
@@ -199,63 +211,59 @@ watch(
 }
 
 .kb-bar {
-  position: relative;
-  height: 96rpx;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-bottom: 2rpx solid #f0f4f3;
+  justify-content: space-between;
+  padding: 16rpx 0;
 }
 
 .kb-preview {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-  letter-spacing: 2rpx;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+  letter-spacing: 4rpx;
 }
 
 .kb-done {
-  position: absolute;
-  right: 28rpx;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 30rpx;
-  color: #00aeb5;
+  min-height: 96rpx;
+  padding: 0 16rpx;
+  color: var(--cg-primary);
+  font-size: var(--cg-font-caption);
+  line-height: 96rpx;
 }
 
 .kb-body {
-  padding: 16rpx 16rpx 24rpx;
+  padding-top: 16rpx;
 }
 
 .kb-row {
   display: flex;
-  gap: 8rpx;
-  margin-bottom: 8rpx;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
 }
 
 .key {
-  flex: 1;
-  min-width: 0;
-  height: 92rpx;
-  border: 2rpx solid #e2e8e7;
-  border-radius: 12rpx;
-  background: #fff;
-  text-align: center;
-  line-height: 92rpx;
-  font-size: 34rpx;
-  color: #1b2b2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 108rpx;
+  height: 96rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-md);
+  box-shadow: var(--cg-shadow-card);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
 }
 
 .key.disabled {
-  color: #c4d2cf;
-  background: #f3f6f5;
-  border-color: #eef2f1;
+  background: var(--cg-fill);
+  box-shadow: none;
+  color: var(--cg-text-aux);
 }
 
 .key.delete {
-  flex: 1.6;
-  background: #eef2f1;
-  font-size: 40rpx;
-  color: #6b7b79;
+  background: var(--cg-fill);
+  box-shadow: none;
+  color: var(--cg-text-sub);
 }
 </style>

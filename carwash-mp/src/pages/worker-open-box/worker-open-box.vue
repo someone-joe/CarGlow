@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page worker-open-box">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else-if="code">
       <view class="status-bar">
@@ -137,117 +137,133 @@ onUnload(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 60rpx;
-  background: #f6f7f9;
-  min-height: 100vh;
-  box-sizing: border-box;
+.worker-open-box {
+  padding-top: 32rpx;
 }
-.tip {
-  text-align: center;
-  color: #aaa;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
+
+/* ---- 状态头 ---- */
 .status-bar {
-  background: linear-gradient(135deg, #1a73e8, #1456b0);
-  border-radius: 20rpx;
-  padding: 34rpx 30rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
+
 .status {
   display: block;
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #fff;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
+
 .cabinet {
   display: block;
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  color: rgba(255, 255, 255, 0.85);
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
+
+/* ---- 开箱码卡 ---- */
 .card {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 40rpx 30rpx;
+  margin-top: 32rpx;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
   text-align: center;
 }
+
 .code-label {
-  font-size: 25rpx;
-  color: #888;
+  display: block;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
+
 .code-value {
   display: block;
+  margin-top: 16rpx;
   font-size: 72rpx;
-  font-weight: 700;
-  color: #16324a;
-  letter-spacing: 10rpx;
-  margin-top: 8rpx;
+  font-weight: 600;
+  color: var(--cg-title);
+  letter-spacing: 16rpx;
 }
+
 .expire-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16rpx;
-  margin-top: 24rpx;
+  justify-content: space-between;
+  margin-top: 40rpx;
 }
+
 .expire {
-  font-size: 24rpx;
-  color: #888;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
+
 .countdown {
-  font-size: 24rpx;
-  color: #ff5b4a;
-  font-weight: 600;
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
 }
+
 .link {
-  display: inline-block;
-  margin-top: 28rpx;
-  font-size: 28rpx;
-  color: #1a73e8;
-  border: 2rpx solid #1a73e8;
-  border-radius: 36rpx;
-  padding: 14rpx 52rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 40rpx;
+  padding: 0 48rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
 }
+
+/* ---- 扫码主操作 ---- */
 .scan-btn {
-  display: block;
-  margin: 32rpx auto 0;
-  background: #1a73e8;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 600;
-  width: fit-content;
-  padding: 22rpx 60rpx;
-  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 32rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
+
 .scan-btn-done {
-  background: #18a058;
+  background: var(--cg-success);
 }
+
 .scan-tip {
   display: block;
-  margin-top: 16rpx;
-  font-size: 23rpx;
-  color: #999;
-}
-.taken-btn {
-  display: block;
-  margin: 32rpx auto 0;
-  background: #16324a;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 600;
-  width: fit-content;
-  padding: 22rpx 70rpx;
-  border-radius: 44rpx;
-}
-.warn {
   margin-top: 24rpx;
-  background: #fff7e6;
-  border-radius: 20rpx;
-  padding: 26rpx;
-  font-size: 24rpx;
-  color: #9a6b00;
-  line-height: 1.7;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+  line-height: 1.6;
+}
+
+.taken-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 32rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
+}
+
+.warn {
+  margin-top: 32rpx;
+  padding: 32rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
 }
 </style>

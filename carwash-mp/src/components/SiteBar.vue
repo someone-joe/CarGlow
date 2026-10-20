@@ -1,6 +1,5 @@
 <template>
-  <!-- 新版（首页 / 下单页）：白底大卡片 -->
-  <view v-if="variant === 'card'" class="site-card" @click="onTap">
+  <view class="site-card" @click="onTap">
     <view class="site-main">
       <text class="site-name">{{ displayName || '加载中…' }}</text>
       <text class="site-switch">切换 ›</text>
@@ -10,25 +9,12 @@
       <text class="site-card-notice-text">{{ statusNotice }}</text>
     </view>
   </view>
-  <!-- 旧版：其余未改版页面保持原样 -->
-  <view v-else class="site-bar" @click="onTap">
-    <view class="site-main">
-      <text class="site-name">{{ displayName || '加载中…' }}</text>
-      <text class="site-switch">切换 ▾</text>
-    </view>
-    <text v-if="statusNotice" class="site-notice">{{ statusNotice }}</text>
-  </view>
 </template>
 
 <script setup lang="ts">
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import { fetchCommunities, fetchSiteCurrent, type CommunityVO, type SiteVO } from '@/api/home'
-
-/** variant=card 为新版视觉（首页/下单页）；默认 bar 保持旧版，未改版页面不受影响 */
-defineProps<{
-  variant?: 'bar' | 'card'
-}>()
 
 const site = ref<SiteVO | null>(null)
 const communities = ref<CommunityVO[]>([])
@@ -86,11 +72,13 @@ onShow(load)
 </script>
 
 <style>
-.site-bar {
-  background: #1a73e8;
-  color: #fff;
-  padding: 20rpx 32rpx;
+/* 站点栏：白底大卡片（UI 第二版唯一形态，旧版蓝条已随全量换肤移除） */
+.site-card {
   box-sizing: border-box;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .site-main {
@@ -100,46 +88,12 @@ onShow(load)
 }
 
 .site-name {
-  font-size: 30rpx;
-  font-weight: 600;
-}
-
-.site-switch {
-  font-size: 24rpx;
-  opacity: 0.85;
-}
-
-.site-notice {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 8rpx;
-  padding: 8rpx 16rpx;
-}
-
-/* ---- 卡片变体（Apple HIG 新版） ---- */
-.site-card {
-  box-sizing: border-box;
-  padding: 40rpx;
-  background: var(--cg-card);
-  border-radius: var(--cg-radius-lg);
-  box-shadow: var(--cg-shadow-card);
-}
-
-.site-card .site-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.site-card .site-name {
   font-size: var(--cg-font-body);
   font-weight: 600;
   color: var(--cg-title);
 }
 
-.site-card .site-switch {
+.site-switch {
   font-size: var(--cg-font-caption);
   color: var(--cg-primary);
 }

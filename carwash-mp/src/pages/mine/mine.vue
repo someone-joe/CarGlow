@@ -1,6 +1,6 @@
 <template>
   <view class="cg-page mine">
-    <SiteBar variant="card" />
+    <SiteBar />
 
     <!-- 个人资料卡：白底 + 柔和阴影 + 顶部极淡渐变；头像尺寸适中，不做巨大头像 -->
     <view class="cg-card cg-card-tint profile">
