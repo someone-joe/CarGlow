@@ -94,8 +94,6 @@ public class WashOrderQueryService {
         vo.setAppointTime(order.getAppointTime());
         vo.setPlateNo(order.getPlateNo());
         vo.setPayAmount(order.getPayAmount());
-        // 下单时间：与自助洗车订单融合展示时按它排序，必须下发（毫秒）
-        vo.setCreateTime(order.getCreateTime() == null ? null : order.getCreateTime().getTime());
         // 派单信息：钥匙入柜后客户最想知道「有没有人接单、谁接的、什么时候」
         vo.setWorkerId(order.getWorkerId());
         vo.setWorkerName(order.getWorkerName());
