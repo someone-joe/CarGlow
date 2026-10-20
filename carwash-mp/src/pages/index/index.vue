@@ -1,156 +1,155 @@
 <template>
-  <view class="page">
-    <SiteBar />
+  <view class="cg-page order">
+    <SiteBar variant="card" />
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="order-loading">加载中…</view>
 
     <block v-else>
-      <view v-if="selectedCouponId" class="coupon-banner">
-        <text class="coupon-banner-text">已选优惠券 #{{ selectedCouponId }}，提交订单时将尝试抵扣</text>
-        <text class="coupon-banner-clear" @click="clearCoupon">清除</text>
+      <view v-if="selectedCouponId" class="cg-card order-coupon">
+        <view class="order-coupon-dot" />
+        <text class="order-coupon-text">已选优惠券 #{{ selectedCouponId }}，提交订单时将尝试抵扣</text>
+        <view class="cg-btn-text order-coupon-clear" @click="clearCoupon">清除</view>
       </view>
 
       <!-- STEP 1 选择服务时间 -->
-      <view class="step">
-        <view class="step-head">
-          <text class="step-no">STEP 1</text>
-          <text class="step-title">选择服务时间</text>
-        </view>
-        <view class="step-body" @click="openTimeSheet">
-          <text class="step-value">{{ appointDate }} {{ appointTime }}</text>
-          <text class="step-action">选择 ›</text>
+      <view class="cg-card cg-card-tint order-step">
+        <text class="order-step-no">STEP 1</text>
+        <text class="order-step-title">选择服务时间</text>
+        <view class="cg-row order-row cg-tap" hover-class="cg-hover" @click="openTimeSheet">
+          <text class="cg-row-value">{{ appointDate }} {{ appointTime }}</text>
+          <view class="cg-btn-text">选择</view>
         </view>
       </view>
 
       <!-- STEP 2 选择服务方式（取送车 + 钥匙柜） -->
-      <view class="step">
-        <view class="step-head">
-          <text class="step-no">STEP 2</text>
-          <text class="step-title">选择服务方式</text>
-        </view>
-        <view class="switch-row">
+      <view class="cg-card cg-card-tint order-step">
+        <text class="order-step-no">STEP 2</text>
+        <text class="order-step-title">选择服务方式</text>
+        <view class="order-switch-row">
           <view>
-            <text class="switch-label">是否需要取送车服务</text>
-            <text class="switch-sub">师傅上门取车，洗完送回</text>
+            <text class="order-switch-label">是否需要取送车服务</text>
+            <text class="order-switch-sub">师傅上门取车，洗完送回</text>
           </view>
-          <switch :checked="pickupRequired" @change="onPickupChange" color="#00aeb5" />
+          <switch :checked="pickupRequired" @change="onPickupChange" color="#007AFF" />
         </view>
-        <view class="step-body" @click="goCabinet">
-          <view class="step-body-main">
-            <text class="step-value" :class="{ placeholder: !selectedCabinetName }">
+        <view class="cg-row order-row cg-tap" hover-class="cg-hover" @click="goCabinet">
+          <view>
+            <text class="cg-row-value" :class="{ 'is-placeholder': !selectedCabinetName }">
               {{ selectedCabinetName || '请选择就近钥匙柜' }}
             </text>
-            <text class="step-hint">{{ cabinetSub }}</text>
+            <text class="order-row-hint">{{ cabinetSub }}</text>
           </view>
-          <text class="step-action">选择 ›</text>
+          <view class="cg-btn-text">选择</view>
         </view>
       </view>
 
       <!-- STEP 3 选择服务 -->
-      <view class="step">
-        <view class="step-head">
-          <text class="step-no">STEP 3</text>
-          <text class="step-title">选择服务</text>
-        </view>
-        <view v-for="item in services" :key="item.serviceId" class="svc"
-              :class="{ active: serviceId === item.serviceId }" @click="serviceId = item.serviceId">
-          <view class="svc-main">
-            <text class="svc-name">{{ item.name }}</text>
-            <text class="svc-sub">约 {{ item.workMinutes }} 分钟</text>
+      <view class="cg-card cg-card-tint order-step">
+        <text class="order-step-no">STEP 3</text>
+        <text class="order-step-title">选择服务</text>
+        <view v-for="item in services" :key="item.serviceId" class="order-svc cg-tap"
+              :class="{ active: serviceId === item.serviceId }" hover-class="cg-hover" @click="serviceId = item.serviceId">
+          <view>
+            <text class="order-svc-name">{{ item.name }}</text>
+            <text class="order-svc-sub">约 {{ item.workMinutes }} 分钟</text>
           </view>
-          <view class="svc-price">
-            <text class="price-now">¥{{ fen2yuan(item.displayPrice) }}</text>
-            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="price-old">
+          <view class="order-svc-price">
+            <text class="order-svc-now">¥{{ fen2yuan(item.displayPrice) }}</text>
+            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="order-svc-origin">
               ¥{{ fen2yuan(item.originPrice) }}
             </text>
           </view>
         </view>
-        <view v-if="!services.length" class="empty">暂无可预约的服务</view>
+        <view v-if="!services.length" class="order-empty">暂无可预约的服务</view>
       </view>
 
       <!-- STEP 4 填写车辆信息 -->
-      <view class="step">
-        <view class="step-head">
-          <text class="step-no">STEP 4</text>
-          <text class="step-title">填写车辆信息</text>
-        </view>
-        <VehiclePicker :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
+      <view class="cg-card cg-card-tint order-step">
+        <text class="order-step-no">STEP 4</text>
+        <text class="order-step-title">填写车辆信息</text>
+        <VehiclePicker variant="plain" :vehicles="vehicles" v-model="vehicleId" @navigate="openSelect" @manage="onVehicleManage" />
 
         <!-- 常用停车位置：选一个直接填入，免手输（T6 数据） -->
-        <view class="park-block">
-          <view class="park-head">
-            <text class="park-label">常用停车位置</text>
-            <text class="park-manage" @click="goPark">管理 ›</text>
+        <view class="order-park">
+          <view class="order-park-head">
+            <text class="order-park-label">常用停车位置</text>
+            <view class="cg-btn-text order-park-manage" @click="goPark">管理</view>
           </view>
-          <view v-if="parkLocations.length" class="park-chips">
+          <view v-if="parkLocations.length" class="order-park-chips">
             <text
               v-for="p in parkLocations"
               :key="p.locationId"
-              class="park-chip"
-              :class="{ active: selectedParkId === p.locationId }"
+              class="cg-pill cg-tap"
+              :class="{ 'is-active': selectedParkId === p.locationId }"
+              hover-class="cg-hover"
               @click="pickPark(p)"
             >{{ parkLabel(p) }}</text>
           </view>
-          <text v-else class="park-empty" @click="goPark">还没有常用位置，去添加 ›</text>
-          <input v-model="remark" class="input" placeholder="车辆停放位置，如：地库 A 区 23 号" />
+          <view v-else class="cg-btn-text order-park-empty" @click="goPark">还没有常用位置，去添加</view>
+          <input v-model="remark" class="cg-input order-park-input" placeholder="车辆停放位置，如：地库 A 区 23 号" />
         </view>
       </view>
 
       <!-- STEP 5 拍照留言 -->
-      <view class="step">
-        <view class="step-head">
-          <text class="step-no">STEP 5</text>
-          <text class="step-title">拍照留言</text>
-        </view>
-        <view class="photos">
-          <view v-for="(p, i) in photos" :key="i" class="photo">
-            <image class="photo-img" :src="p" mode="aspectFill" />
-            <text class="photo-del" @click="removePhoto(i)">×</text>
+      <view class="cg-card cg-card-tint order-step">
+        <text class="order-step-no">STEP 5</text>
+        <text class="order-step-title">拍照留言</text>
+        <view class="order-photos">
+          <view v-for="(p, i) in photos" :key="i" class="order-photo">
+            <image class="order-photo-img" :src="p" mode="aspectFill" />
+            <view class="order-photo-del cg-tap" hover-class="cg-hover" @click="removePhoto(i)">×</view>
           </view>
-          <view v-if="photos.length < MAX_PHOTOS" class="photo photo-add" @click="choosePhoto">
-            <text class="photo-plus">＋</text>
+          <view v-if="photos.length < MAX_PHOTOS" class="order-photo order-photo-add cg-tap" hover-class="cg-hover" @click="choosePhoto">
+            <text class="order-photo-plus">+</text>
           </view>
         </view>
-        <text class="step-hint">拍一张停放照片，师傅更容易找到您的车（最多 {{ MAX_PHOTOS }} 张）</text>
+        <text class="order-step-hint">拍一张停放照片，师傅更容易找到您的车（最多 {{ MAX_PHOTOS }} 张）</text>
       </view>
 
-      <view class="agree" @click="agreed = !agreed">
-        <text class="checkbox">{{ agreed ? '☑' : '☐' }}</text>
-        <text class="agree-text">我已阅读并同意《代客洗车服务协议》</text>
-      </view>
-
-      <view class="submit" :class="{ disabled: !canSubmit }" @click="onSubmitClick">
-        {{ submitting ? '提交中…' : '确定下单' }}
+      <view class="order-agree cg-tap" hover-class="cg-hover" @click="agreed = !agreed">
+        <view class="cg-check" :class="{ 'is-on': agreed }" />
+        <text class="order-agree-text">我已阅读并同意《代客洗车服务协议》</text>
       </view>
     </block>
 
+    <!-- 底部固定结算栏：选中服务 + 金额 + 确认下单 -->
+    <view v-if="!loading" class="cg-bottom-bar">
+      <view class="order-bar-main">
+        <text class="order-bar-name">{{ selectedService?.name || '请选择服务' }}</text>
+        <text class="order-bar-price">¥{{ fen2yuan(selectedService?.displayPrice) }}</text>
+      </view>
+      <view class="cg-btn cg-btn-primary cg-tap order-bar-btn" :class="{ 'is-disabled': !canSubmit }" hover-class="cg-hover" @click="onSubmitClick">
+        {{ submitting ? '提交中…' : '确认下单' }}
+      </view>
+    </view>
+
     <!-- 时间浮层 -->
-    <view v-if="showTimeSheet" class="sheet-mask" @click="showTimeSheet = false">
-      <view class="sheet" @click.stop>
-        <view class="sheet-head">
-          <text class="sheet-title">选择服务时间</text>
-          <text class="sheet-close" @click="showTimeSheet = false">×</text>
+    <view v-if="showTimeSheet" class="cg-mask" @click="showTimeSheet = false">
+      <view class="cg-sheet" @click.stop>
+        <view class="order-sheet-head">
+          <text class="order-sheet-title">选择服务时间</text>
+          <view class="cg-btn-text order-sheet-close" @click="showTimeSheet = false">×</view>
         </view>
 
-        <scroll-view class="days" scroll-x>
-          <view v-for="d in dayTabs" :key="d.date" class="day" :class="{ active: appointDate === d.date }"
-                @click="pickDay(d.date)">
-            <text class="day-label">{{ d.label }}</text>
-            <text class="day-date">{{ d.md }}</text>
+        <scroll-view class="order-days" scroll-x>
+          <view v-for="d in dayTabs" :key="d.date" class="cg-pill cg-tap order-day" :class="{ 'is-active': appointDate === d.date }"
+                hover-class="cg-hover" @click="pickDay(d.date)">
+            <text class="order-day-label">{{ d.label }}</text>
+            <text class="order-day-date">{{ d.md }}</text>
           </view>
         </scroll-view>
 
-        <view class="slots">
-          <view v-for="t in timeSlots" :key="t" class="slot" :class="{ active: appointTime === t }" @click="pickTime(t)">
+        <view class="order-slots">
+          <view v-for="t in timeSlots" :key="t" class="order-slot cg-tap" :class="{ active: appointTime === t }" hover-class="cg-hover" @click="pickTime(t)">
             {{ t }}
           </view>
         </view>
 
-        <view v-if="capacity" class="sheet-tip">
+        <view v-if="capacity" class="order-sheet-tip">
           最晚存钥匙 {{ capacity.depositDeadline || '—' }} · 承诺还车 {{ capacity.promiseReturnTime || '—' }}
         </view>
 
-        <view class="sheet-confirm" :class="{ disabled: !appointTime }" @click="confirmTime">确定</view>
+        <view class="cg-btn cg-btn-primary cg-tap" :class="{ 'is-disabled': !appointTime }" hover-class="cg-hover" @click="confirmTime">确定</view>
       </view>
     </view>
   </view>
@@ -241,6 +240,9 @@ const cabinetSub = computed(() => {
   return `空闲格口 ${c.slotFree} / ${c.slotTotal}`
 })
 const selectedPlate = computed(() => vehicles.value.find((v) => v.vehicleId === vehicleId.value)?.plateNo || '')
+
+/** 底部结算栏：当前所选服务（未选时展示占位） */
+const selectedService = computed(() => services.value.find((s) => s.serviceId === serviceId.value))
 
 /** 近 7 天，横向日期 tab */
 const dayTabs = computed(() => {
@@ -481,441 +483,358 @@ onShow(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 60rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 下单页：底部固定结算栏占位，页面底部留白需避开 */
+.cg-page.order {
+  padding-bottom: 220rpx;
 }
 
-.tip {
+.order-loading {
+  padding: 96rpx 0;
   text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
-.coupon-banner {
+/* ---- 优惠券提示 ---- */
+.cg-card.order-coupon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: #fff6e5;
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
-  margin-bottom: 20rpx;
-  font-size: 25rpx;
-  color: #a06a1b;
+  margin-top: 32rpx;
+  padding: 16rpx 32rpx;
 }
 
-.coupon-banner-clear {
-  color: #ff5b4a;
+.order-coupon-dot {
+  flex: none;
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 16rpx;
+  border-radius: 50%;
+  background: var(--cg-warning);
+}
+
+.order-coupon-text {
+  flex: 1;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
+}
+
+.order-coupon-clear {
+  color: var(--cg-text-sub);
 }
 
 /* ---- STEP 卡片 ---- */
-.step {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+.order-step {
+  margin-top: 32rpx;
 }
 
-.step-head {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20rpx;
+.order-step-no {
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
+  letter-spacing: 2rpx;
 }
 
-.step-no {
-  font-size: 22rpx;
-  color: #00aeb5;
-  background: #e6f7f7;
-  border-radius: 8rpx;
-  padding: 4rpx 12rpx;
-  margin-right: 12rpx;
-}
-
-.step-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-}
-
-.step-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f6faf9;
-  border-radius: 16rpx;
-  padding: 26rpx 24rpx;
-}
-
-.step-body-main {
-  flex: 1;
-}
-
-.step-value {
-  font-size: 30rpx;
-  color: #1b2b2a;
+.order-step-title {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
   font-weight: 500;
+  color: var(--cg-title);
 }
 
-.step-value.placeholder {
-  color: #8a9a98;
+.order-row {
+  border-radius: var(--cg-radius-md);
 }
 
-.step-hint {
+.order-row-hint {
   display: block;
-  margin-top: 6rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-.step-action {
-  font-size: 26rpx;
-  color: #00aeb5;
-}
-
-.switch-row {
+/* ---- 取送车开关行 ---- */
+.order-switch-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10rpx 0 24rpx;
+  padding: 24rpx 0;
 }
 
-.switch-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
-}
-
-.switch-sub {
+.order-switch-label {
   display: block;
-  margin-top: 4rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
 }
 
-/* ---- 服务列表 ---- */
-.svc {
+.order-switch-sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+/* ---- 服务选择：细蓝边框 + 6% 淡蓝底 + 提升阴影，不放大不发光 ---- */
+.order-svc {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 2rpx solid #eaf1f0;
-  border-radius: 16rpx;
+  box-sizing: border-box;
+  margin-top: 24rpx;
   padding: 24rpx;
-  margin-bottom: 16rpx;
+  border: 2rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-md);
+  transition: border-color 0.28s ease-out, background-color 0.28s ease-out, box-shadow 0.28s ease-out;
 }
 
-.svc.active {
-  border-color: #00aeb5;
-  background: #f3fbfb;
+.order-svc.active {
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
+  box-shadow: var(--cg-shadow-raised);
 }
 
-.svc-name {
-  font-size: 29rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-}
-
-.svc-sub {
+.order-svc-name {
   display: block;
-  margin-top: 6rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
-.svc-check {
-  font-size: 32rpx;
-  color: #00aeb5;
-}
-
-.manage {
-  margin-top: 8rpx;
-  font-size: 26rpx;
-  color: #00aeb5;
-  padding: 12rpx 0;
-}
-
-/* ---- 常用停车位置 ---- */
-.park-block {
-  margin-top: 12rpx;
-  padding-top: 20rpx;
-  border-top: 2rpx solid #f2f7f7;
-}
-
-.park-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14rpx;
-}
-
-.park-label {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-}
-
-.park-manage {
-  font-size: 25rpx;
-  color: #00aeb5;
-}
-
-.park-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14rpx;
-  margin-bottom: 16rpx;
-}
-
-.park-chip {
-  font-size: 25rpx;
-  color: #6b7b79;
-  background: #f2f7f7;
-  border: 2rpx solid #eaf1f0;
-  border-radius: 12rpx;
-  padding: 12rpx 20rpx;
-  max-width: 100%;
-}
-
-.park-chip.active {
-  color: #00aeb5;
-  border-color: #00aeb5;
-  background: #eafbfb;
-}
-
-.park-empty {
+.order-svc-sub {
   display: block;
-  font-size: 25rpx;
-  color: #00aeb5;
-  margin-bottom: 16rpx;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-.svc-price {
+.order-svc-price {
   text-align: right;
 }
 
-.price-now {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+.order-svc-now {
+  display: block;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
-.price-old {
+.order-svc-origin {
   display: block;
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #b6c2c0;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
   text-decoration: line-through;
 }
 
-.empty {
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 20rpx 0;
+.order-empty {
+  padding: 32rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-aux);
 }
 
-/* ---- 输入 ---- */
-.input {
-  margin-top: 16rpx;
-  background: #f6faf9;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
-  color: #1b2b2a;
+/* ---- 常用停车位置 ---- */
+.order-park {
+  margin-top: 32rpx;
+  padding-top: 32rpx;
+  border-top: 1rpx solid var(--cg-line);
+}
+
+.order-park-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-park-label {
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+}
+
+.order-park-chips {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 24rpx 0;
+}
+
+.order-park-chips .cg-pill {
+  margin: 0 16rpx 16rpx 0;
+}
+
+.order-park-empty {
+  margin: 24rpx 0;
+}
+
+.order-park-input {
+  margin-top: 24rpx;
 }
 
 /* ---- 照片 ---- */
-.photos {
+.order-photos {
   display: flex;
   flex-wrap: wrap;
+  margin-top: 24rpx;
 }
 
-.photo {
+.order-photo {
   position: relative;
-  width: 150rpx;
-  height: 150rpx;
+  width: 160rpx;
+  height: 160rpx;
   margin: 0 16rpx 16rpx 0;
-  border-radius: 14rpx;
+  border-radius: var(--cg-radius-md);
   overflow: hidden;
 }
 
-.photo-img {
+.order-photo-img {
   width: 100%;
   height: 100%;
 }
 
-.photo-del {
+.order-photo-del {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 16rpx;
+  right: 16rpx;
   width: 40rpx;
   height: 40rpx;
-  line-height: 36rpx;
-  text-align: center;
+  border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 28rpx;
-  border-bottom-left-radius: 12rpx;
+  color: #ffffff;
+  font-size: var(--cg-font-caption);
+  line-height: 40rpx;
+  text-align: center;
 }
 
-.photo-add {
-  background: #f6faf9;
-  border: 2rpx dashed #cfe0de;
+.order-photo-add {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2rpx dashed var(--cg-border);
 }
 
-.photo-plus {
-  font-size: 56rpx;
-  color: #00aeb5;
+.order-photo-plus {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 300;
+  color: var(--cg-primary);
 }
 
-/* ---- 协议与提交 ---- */
-.agree {
+.order-step-hint {
+  display: block;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
+}
+
+/* ---- 协议 ---- */
+.order-agree {
   display: flex;
   align-items: center;
-  padding: 16rpx 8rpx 32rpx;
+  padding: 32rpx 8rpx;
 }
 
-.checkbox {
-  font-size: 32rpx;
-  color: #00aeb5;
-  margin-right: 12rpx;
+.order-agree-text {
+  margin-left: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-.agree-text {
-  font-size: 25rpx;
-  color: #6b7b79;
+/* ---- 底部结算栏 ---- */
+.order-bar-main {
+  flex: 1;
 }
 
-.submit {
-  background: #00aeb5;
-  color: #fff;
-  text-align: center;
-  padding: 30rpx 0;
-  border-radius: 44rpx;
-  font-size: 32rpx;
+.order-bar-name {
+  display: block;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.order-bar-price {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
   font-weight: 600;
+  color: var(--cg-title);
 }
 
-.submit.disabled {
-  background: #cfe0de;
+.order-bar-btn {
+  width: 280rpx;
+  margin-left: 32rpx;
 }
 
 /* ---- 时间浮层 ---- */
-.sheet-mask {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 20;
-  display: flex;
-  align-items: flex-end;
-}
-
-.sheet {
-  width: 100%;
-  background: #fff;
-  border-radius: 28rpx 28rpx 0 0;
-  padding: 28rpx 28rpx 40rpx;
-  box-sizing: border-box;
-}
-
-.sheet-head {
+.order-sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
 }
 
-.sheet-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+.order-sheet-title {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
-.sheet-close {
-  font-size: 40rpx;
-  color: #8a9a98;
+.cg-btn-text.order-sheet-close {
+  color: var(--cg-text-aux);
+  font-size: var(--cg-font-subtitle);
 }
 
-.days {
+.order-days {
   white-space: nowrap;
-  margin-bottom: 20rpx;
+  margin: 32rpx 0;
 }
 
-.day {
+.order-day {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 16rpx 26rpx;
   margin-right: 16rpx;
-  border-radius: 16rpx;
-  background: #f2f7f7;
 }
 
-.day.active {
-  background: #00aeb5;
+.order-day-label {
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-.day-label {
-  font-size: 24rpx;
-  color: #6b7b79;
+.order-day.is-active .order-day-label {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.day-date {
-  margin-top: 4rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+.order-day-date {
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
-.day.active .day-label,
-.day.active .day-date {
-  color: #fff;
+.order-day.is-active .order-day-date {
+  color: #ffffff;
 }
 
-.slots {
+.order-slots {
   display: flex;
   flex-wrap: wrap;
 }
 
-.slot {
+.order-slot {
+  box-sizing: border-box;
   width: 22%;
-  margin: 0 3% 18rpx 0;
+  margin: 0 3% 16rpx 0;
+  padding: 24rpx 0;
   text-align: center;
-  padding: 22rpx 0;
-  border-radius: 14rpx;
-  background: #f2f7f7;
-  font-size: 27rpx;
-  color: #1b2b2a;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
-.slot.active {
-  background: #14342f;
-  color: #fff;
+.order-slot.active {
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
-.sheet-tip {
-  font-size: 24rpx;
-  color: #8a9a98;
-  padding: 8rpx 0 24rpx;
-}
-
-.sheet-confirm {
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  padding: 28rpx 0;
-  border-radius: 44rpx;
-  font-size: 31rpx;
-  font-weight: 600;
-}
-
-.sheet-confirm.disabled {
-  background: #cfe0de;
+.order-sheet-tip {
+  padding: 16rpx 0 32rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 </style>

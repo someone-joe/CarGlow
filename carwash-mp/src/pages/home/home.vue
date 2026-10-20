@@ -1,138 +1,180 @@
 <template>
-  <view class="page">
-    <!-- 品牌头图 -->
-    <view class="hero">
-      <text class="hero-title">夜间代客洗车</text>
-      <text class="hero-sub">今晚下单 · 明早干净上路</text>
-    </view>
-
-    <SiteBar />
-
-    <!-- 滚动广告位：后台 banner 优先；无配置时按产品要求播放服务理念（无感/安全/专业洁净） -->
-    <swiper class="banner" indicator-dots autoplay circular :interval="4000">
-      <swiper-item v-for="(s, i) in slides" :key="s.bannerId ?? i" @click="onBanner(s)">
-        <image v-if="s.imageUrl" :src="s.imageUrl" class="slide-img" mode="aspectFill" />
-        <view v-else class="slide-philosophy">
-          <text class="sp-title">{{ s.title }}</text>
-          <text class="sp-desc">{{ s.desc }}</text>
+  <view class="cg-page home" :style="{ paddingTop: navHeight + 'px' }">
+    <!-- 毛玻璃导航栏：居中标题 + 右上角个人中心入口；滚动时平缓增强 -->
+    <view class="cg-glass-nav home-nav" :class="{ 'is-scrolled': navScrolled }" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="home-nav-inner">
+        <view class="home-nav-side" />
+        <text class="home-nav-title">CarGlow</text>
+        <view class="home-nav-entry cg-tap" hover-class="cg-hover" @click="goMine">
+          <view class="cg-icon-person" />
         </view>
-      </swiper-item>
-    </swiper>
-
-    <!-- 卖点条 -->
-    <view class="features">
-      <view class="feature">
-        <text class="f-ico">🚗</text>
-        <text class="f-text">上门取送车</text>
-      </view>
-      <view class="feature">
-        <text class="f-ico">🌙</text>
-        <text class="f-text">夜间随心约</text>
-      </view>
-      <view class="feature">
-        <text class="f-ico">🛡️</text>
-        <text class="f-text">全程影像留痕</text>
       </view>
     </view>
 
-    <!-- 服务入口：无感洗车 / 自助洗车 -->
-    <view class="entries">
-      <view class="entry-card" @click="goServices">
-        <text class="ec-ico">🌙</text>
-        <text class="ec-title">无感洗车</text>
-        <text class="ec-sub">师傅上门取送 · 睡醒即净</text>
-      </view>
-      <view class="entry-card" @click="goSelfWash">
-        <text class="ec-ico">🚿</text>
-        <text class="ec-title">自助洗车</text>
-        <text class="ec-sub">到店自助 · 计时计费</text>
-      </view>
+    <!-- 首屏 Banner：独立组件（拖动时仅在组件内重渲染，避免整页 setData 卡顿） -->
+    <HomeBanner :slides="slides" :active="pageActive" @tap="onBanner" />
+
+    <!-- 当前服务站点 / 小区（停业、雨天模式由后端下发） -->
+    <view class="home-site">
+      <SiteBar variant="card" />
     </view>
 
-    <!-- 优惠推荐窗口：储值充值 + 领券 -->
-    <view class="promo">
-      <view class="promo-card recharge" @click="goRecharge">
-        <text class="promo-title">储值充值</text>
-        <text class="promo-sub">充多送多 · 支付更优惠</text>
-        <text class="promo-cta">去充值 ›</text>
-      </view>
-      <view class="promo-card coupon" @click="goCoupons">
-        <text class="promo-title">优惠券</text>
-        <text class="promo-sub">领券下单更省钱</text>
-        <text class="promo-cta">领中心 ›</text>
-      </view>
-    </view>
-
-    <!-- 服务流程简介：自助 / 无感 / 监管 -->
-    <view class="panel">
-      <view class="panel-title">服务流程</view>
-      <view class="flow">
-        <text class="flow-name">自助洗车</text>
-        <text class="flow-steps">选工位 → 到店激活 → 计时服务 → 断电结算</text>
-      </view>
-      <view class="flow">
-        <text class="flow-name">无感洗车</text>
-        <text class="flow-steps">下单 → 存钥匙 → 站内精洗 → 归位还钥匙</text>
-      </view>
-      <view class="flow">
-        <text class="flow-name">监管留痕</text>
-        <text class="flow-steps">取/洗/还三时段拍照 · 钥匙柜开柜记录 · 全程可查</text>
-      </view>
-    </view>
-
-    <view v-if="loading" class="tip">加载中…</view>
-
-    <block v-else>
-      <view class="block-title">本月爆品</view>
-      <view v-for="item in services" :key="item.serviceId" class="hot" @click="goCreate(item.serviceId as number)">
-        <view class="hot-main">
-          <text class="hot-name">{{ item.name }}</text>
-          <text class="hot-sub">约 {{ item.workMinutes }} 分钟</text>
+    <!-- 服务入口：仅「无感洗车」「自助洗车」两个 -->
+    <view class="home-entries">
+      <view class="cg-card home-entry cg-tap" hover-class="cg-hover" @click="goServices">
+        <view class="home-entry-art">
+          <view class="cg-art-car is-sm">
+            <view class="art-cabin" />
+            <view class="art-body" />
+            <view class="art-wheel w-back" />
+            <view class="art-wheel w-front" />
+          </view>
         </view>
-        <view class="hot-right">
-          <view class="hot-price">
-            <text class="price-now">¥{{ fen2yuan(item.displayPrice) }}</text>
-            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="price-old">
+        <text class="home-entry-title">无感洗车</text>
+        <text class="home-entry-sub">师傅上门取送 · 睡醒即净</text>
+        <text class="cg-chevron home-entry-chevron">›</text>
+      </view>
+      <view class="cg-card home-entry cg-tap" hover-class="cg-hover" @click="goSelfWash">
+        <view class="home-entry-art">
+          <view class="cg-art-drop is-sm home-entry-drop" />
+          <view class="cg-art-drop is-sm home-entry-drop-2" />
+        </view>
+        <text class="home-entry-title">自助洗车</text>
+        <text class="home-entry-sub">到店自助 · 计时计费</text>
+        <text class="cg-chevron home-entry-chevron">›</text>
+      </view>
+    </view>
+
+    <!-- 附近钥匙柜：对应规范的「附近工位卡片列表」，数据全部来自 /api/v1/cabinets -->
+    <view class="home-section">
+      <view class="home-section-head">
+        <text class="home-section-title">附近钥匙柜</text>
+        <view class="cg-btn-text home-section-more" @click="goCabinetPage">查看全部 ›</view>
+      </view>
+      <view v-for="c in cabinets" :key="c.cabinetId" class="cg-card home-cabinet cg-tap" hover-class="cg-hover" @click="goCabinetPage">
+        <view class="home-cabinet-preview">
+          <view v-for="(cell, i) in slotCells(c)" :key="i" class="home-cabinet-cell" :class="cell" />
+        </view>
+        <view class="home-cabinet-main">
+          <text class="home-cabinet-name">{{ c.name }}</text>
+          <text class="home-cabinet-sub">空闲格口 {{ c.slotFree ?? 0 }} / {{ c.slotTotal ?? 0 }}</text>
+        </view>
+        <view class="cg-status home-cabinet-pill" :class="cabinetStatus(c).cls">{{ cabinetStatus(c).label }}</view>
+      </view>
+      <view v-if="!cabinets.length" class="home-empty">附近暂无钥匙柜</view>
+    </view>
+
+    <!-- 精选套餐：横向滑动卡片组 -->
+    <view class="home-section">
+      <view class="home-section-head">
+        <text class="home-section-title">精选套餐</text>
+      </view>
+      <scroll-view class="home-packages" scroll-x enhanced show-scrollbar="false">
+        <view v-for="item in services" :key="item.serviceId" class="cg-card home-package cg-tap" hover-class="cg-hover" @click="goCreate(item.serviceId as number)">
+          <image v-if="item.coverUrl" class="home-package-cover" :src="item.coverUrl" mode="aspectFill" />
+          <text class="home-package-name">{{ item.name }}</text>
+          <view class="home-package-meta">
+            <text class="home-package-minutes">约 {{ item.workMinutes }} 分钟</text>
+          </view>
+          <view class="home-package-price">
+            <text class="home-package-now">¥{{ fen2yuan(item.displayPrice) }}</text>
+            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="home-package-origin">
               ¥{{ fen2yuan(item.originPrice) }}
             </text>
           </view>
-          <view class="hot-btn">立即下单</view>
         </view>
+      </scroll-view>
+      <view v-if="loading" class="home-loading">加载中…</view>
+      <view v-else-if="!services.length" class="home-empty">暂无可预约的服务</view>
+    </view>
+
+    <!-- 优惠入口 -->
+    <view class="cg-card cg-card-tint home-promo">
+      <view class="home-promo-row cg-tap" hover-class="cg-hover" @click="goRecharge">
+        <text class="home-promo-label">储值充值</text>
+        <text class="home-promo-sub">充多送多 · 支付更优惠</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view v-if="!services.length" class="empty">暂无可预约的服务</view>
-    </block>
+      <view class="home-promo-divider" />
+      <view class="home-promo-row cg-tap" hover-class="cg-hover" @click="goCoupons">
+        <text class="home-promo-label">优惠券</text>
+        <text class="home-promo-sub">领券下单更省钱</text>
+        <text class="cg-chevron">›</text>
+      </view>
+    </view>
+
+    <!-- 服务流程 -->
+    <view class="cg-card cg-card-tint home-flow">
+      <text class="home-section-title">服务流程</text>
+      <view class="home-flow-item">
+        <text class="home-flow-name">无感洗车</text>
+        <text class="home-flow-steps">下单 → 存钥匙 → 站内精洗 → 归位还钥匙</text>
+      </view>
+      <view class="home-flow-item">
+        <text class="home-flow-name">自助洗车</text>
+        <text class="home-flow-steps">选工位 → 到店激活 → 计时服务 → 断电结算</text>
+      </view>
+      <view class="home-flow-item">
+        <text class="home-flow-name">监管留痕</text>
+        <text class="home-flow-steps">取/洗/还三时段拍照 · 钥匙柜开柜记录 · 全程可查</text>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { onShow } from '@dcloudio/uni-app'
+import { onHide, onLoad, onPageScroll, onShow } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import { fetchBanners, type BannerVO } from '@/api/home'
-import { fetchServices, type ServiceVO } from '@/api/catalog'
+import { fetchCabinets, fetchServices, type CabinetVO, type ServiceVO } from '@/api/catalog'
+import HomeBanner, { type Slide } from '@/components/HomeBanner.vue'
 import SiteBar from '@/components/SiteBar.vue'
 import { setOrderDraft } from '@/store/orderDraft'
 
 const services = ref<ServiceVO[]>([])
 const banners = ref<BannerVO[]>([])
+const cabinets = ref<CabinetVO[]>([])
 const loading = ref(true)
 
-/** 轮播片：后台 banner 优先，无配置时用服务理念占位（产品要求：前期播放无感/安全/专业洁净） */
-interface Slide {
-  bannerId?: number
-  imageUrl?: string
-  title?: string
-  desc?: string
-  linkType?: string
-  linkValue?: string
-}
+/** 自定义导航栏避让状态栏（iPhone 刘海）；取不到时兜底 20px（常见非刘海屏值） */
+const statusBarHeight = ref(20)
 
+/** 毛玻璃导航总高（状态栏 + 44px 内容区），用于页面顶部留白 */
+const navHeight = computed(() => statusBarHeight.value + 44)
+
+/** 滚动超过 8px 时毛玻璃平缓增强（规范：安静过渡，不弹跳） */
+const navScrolled = ref(false)
+
+/** 页面是否可见：传给 Banner 控制轮播启停（跳转/切后台时暂停，避免空转） */
+const pageActive = ref(true)
+
+/** 后台无 banner 配置时播放服务理念（产品要求：无感/安全/专业洁净） */
 const philosophy: Slide[] = [
-  { title: '无感', desc: '到店即走，无需排队等待' },
-  { title: '安全', desc: '取洗还全程影像留痕' },
-  { title: '专业洁净', desc: '标准化SOP，中央站精洗' },
+  { title: '今晚下单，明早干净上路', desc: '夜间代客洗车 · 睡醒即净' },
+  { title: '全程影像留痕', desc: '取/洗/还三时段拍照 · 钥匙柜开柜记录可查' },
+  { title: '标准化 SOP 中央站精洗', desc: '专业洁净 · 品质稳定' },
 ]
 
+/** 轮播片：后台 banner 优先，无配置时降级服务理念 */
 const slides = computed<Slide[]>(() => (banners.value.length ? banners.value : philosophy))
+
+/** 柜口预览格：按占用比例取 8 格（已占用在前）；无格口数据时置灰 */
+function slotCells(c: CabinetVO): string[] {
+  const total = Math.max(0, Math.min(8, c.slotTotal ?? 0))
+  const free = Math.max(0, Math.min(total, c.slotFree ?? 0))
+  const cells: string[] = []
+  for (let i = 0; i < 8; i++) {
+    cells.push(total === 0 ? 'is-off' : i < total - free ? 'is-busy' : 'is-free')
+  }
+  return cells
+}
+
+/** 柜口状态 pill：离线 > 已约满 > 有空位；取值全部来自后端字段，前端不推断 */
+function cabinetStatus(c: CabinetVO): { cls: string; label: string } {
+  if (!c.online) return { cls: 'is-off', label: '离线' }
+  if (c.full) return { cls: 'is-busy', label: '已约满' }
+  return { cls: 'is-free', label: '有空位' }
+}
 
 /** 金额一律以「分」传给后端，展示时才转元 */
 function fen2yuan(fen?: number): string {
@@ -146,6 +188,16 @@ function goServices(): void {
 
 function goSelfWash(): void {
   uni.navigateTo({ url: '/pages/self-wash/self-wash' })
+}
+
+function goMine(): void {
+  // mine 是 tabBar 页，必须 switchTab；navigateTo 会报 "can not navigateTo a tabbar page"
+  uni.switchTab({ url: '/pages/mine/mine' })
+}
+
+/** 查看全部钥匙柜：柜机选择页（完整九宫格） */
+function goCabinetPage(): void {
+  uni.navigateTo({ url: '/pages/cabinet/cabinet' })
 }
 
 function goRecharge(): void {
@@ -177,6 +229,18 @@ function goCreate(serviceId: number): void {
   uni.navigateTo({ url: '/pages/index/index' })
 }
 
+onLoad(() => {
+  try {
+    statusBarHeight.value = uni.getWindowInfo().statusBarHeight || 20
+  } catch {
+    statusBarHeight.value = 20
+  }
+})
+
+onPageScroll((e) => {
+  navScrolled.value = (e.scrollTop ?? 0) > 8
+})
+
 onShow(() => {
   loading.value = true
   fetchServices()
@@ -184,10 +248,20 @@ onShow(() => {
     .catch(() => (services.value = []))
     .finally(() => (loading.value = false))
   fetchBanners()
-    // 后端 banner 的 subtitle 映射为文字图的 desc；无配置时前端降级为「服务理念」
+    // 后端 banner 的 subtitle 映射为文字片的 desc；无配置时降级为「服务理念」片
     .then((b) => (banners.value = (b || []).map((x) => ({ ...x, desc: x.subtitle }))))
     .catch(() => (banners.value = []))
+  // 附近钥匙柜：首页只展示前 3 个，完整列表在柜机选择页
+  fetchCabinets()
+    .then((list) => (cabinets.value = (list || []).slice(0, 3)))
+    .catch(() => (cabinets.value = []))
+  pageActive.value = true
   maybeShowFirstOrderPopup()
+})
+
+// 页面隐藏（跳转/切后台）时通知 Banner 停轮播；组件内部负责定时器清理
+onHide(() => {
+  pageActive.value = false
 })
 
 /** 新用户首单弹窗（需求 1.4）：只弹一次；不写死价格，引导去领券中心（新人券） */
@@ -212,295 +286,308 @@ function maybeShowFirstOrderPopup(): void {
 </script>
 
 <style>
-.page {
-  padding: 0 24rpx 60rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.hero {
-  margin: 0 -24rpx 20rpx;
-  padding: 48rpx 32rpx 40rpx;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-bottom-left-radius: 32rpx;
-  border-bottom-right-radius: 32rpx;
-}
-
-.hero-title {
-  display: block;
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #fff;
-}
-
-.hero-sub {
-  display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-/* ---- 轮播 ---- */
-.banner {
-  margin-bottom: 20rpx;
-  height: 260rpx;
-  border-radius: 20rpx;
-  overflow: hidden;
-}
-
-.slide-img {
-  width: 100%;
-  height: 260rpx;
-}
-
-.slide-philosophy {
-  width: 100%;
-  height: 260rpx;
+/* ---- 毛玻璃导航栏 ---- */
+.home-nav-inner {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 40rpx;
+}
+
+.home-nav-side {
+  width: 64rpx;
+}
+
+.home-nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
+}
+
+.home-nav-entry {
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0e8f94, #14342f);
-  color: #fff;
+  width: 64rpx;
+  height: 64rpx;
 }
 
-.sp-title {
-  font-size: 56rpx;
-  font-weight: 700;
-  letter-spacing: 6rpx;
+/* ---- 服务入口：仅两个 ---- */
+.home-site {
+  margin-top: 32rpx;
 }
 
-.sp-desc {
-  margin-top: 14rpx;
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* ---- 卖点条 ---- */
-.features {
+.home-entries {
   display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 26rpx 0;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
 }
 
-.feature {
+.cg-card.home-entry {
+  position: relative;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  min-height: 216rpx;
+  padding: 32rpx;
 }
 
-.f-ico {
-  font-size: 44rpx;
+.home-entry + .home-entry {
+  margin-left: 32rpx;
 }
 
-.f-text {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #6b7b79;
+.home-entry-art {
+  position: relative;
+  width: 96rpx;
+  height: 48rpx;
+  margin-bottom: 24rpx;
 }
 
-/* ---- 两大服务入口 ---- */
-.entries {
-  display: flex;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
+.home-entry-art .cg-art-car.is-sm {
+  left: 0;
+  bottom: 0;
 }
 
-.entry-card {
-  flex: 1;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 34rpx 24rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.home-entry-drop {
+  left: 12rpx;
+  top: 8rpx;
 }
 
-.ec-ico {
-  font-size: 56rpx;
+.home-entry-drop-2 {
+  left: 48rpx;
+  top: 24rpx;
 }
 
-.ec-title {
-  margin-top: 14rpx;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-}
-
-.ec-sub {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
-}
-
-/* ---- 优惠推荐 ---- */
-.promo {
-  display: flex;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
-}
-
-.promo-card {
-  flex: 1;
-  border-radius: 20rpx;
-  padding: 26rpx 24rpx;
-  color: #fff;
-}
-
-.promo-card.recharge {
-  background: linear-gradient(135deg, #ff8a5b, #ff5b4a);
-}
-
-.promo-card.coupon {
-  background: linear-gradient(135deg, #7b6cf6, #5a48e0);
-}
-
-.promo-title {
+.home-entry-title {
   display: block;
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
-.promo-sub {
+.home-entry-sub {
   display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.promo-cta {
-  display: inline-block;
   margin-top: 16rpx;
-  font-size: 24rpx;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 30rpx;
-  padding: 6rpx 20rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-/* ---- 流程简介 ---- */
-.panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+.home-entry-chevron {
+  position: absolute;
+  top: 32rpx;
+  right: 24rpx;
 }
 
-.panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 12rpx;
+/* ---- 区块 ---- */
+.home-section {
+  margin-top: 64rpx;
 }
 
-.flow {
-  padding: 16rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.flow:last-child {
-  border-bottom: none;
-}
-
-.flow-name {
-  display: block;
-  font-size: 27rpx;
-  font-weight: 600;
-  color: #00aeb5;
-}
-
-.flow-steps {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #6b7b79;
-  line-height: 36rpx;
-}
-
-/* ---- 爆品 ---- */
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
-.block-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-  margin: 8rpx 4rpx 18rpx;
-}
-
-.hot {
+.home-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 26rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 24rpx;
 }
 
-.hot-main {
+.home-section-title {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
+}
+
+.home-section-more {
+  min-height: 64rpx;
+  font-size: var(--cg-font-note);
+}
+
+/* ---- 附近钥匙柜卡片 ---- */
+.cg-card.home-cabinet {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+  padding: 32rpx;
+}
+
+.home-cabinet-preview {
+  display: flex;
+  flex-wrap: wrap;
+  flex: none;
+  width: 88rpx;
+  height: 44rpx;
+  margin-right: 32rpx;
+}
+
+.home-cabinet-cell {
+  width: 16rpx;
+  height: 16rpx;
+  margin: 3rpx;
+  border-radius: 6rpx;
+}
+
+.home-cabinet-cell.is-free {
+  background: rgba(52, 199, 89, 0.30);
+}
+
+.home-cabinet-cell.is-busy {
+  background: #d2d2d7;
+}
+
+.home-cabinet-cell.is-off {
+  background: #e8e8ed;
+}
+
+.home-cabinet-main {
   flex: 1;
 }
 
-.hot-name {
+.home-cabinet-name {
   display: block;
-  font-size: 30rpx;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+}
+
+.home-cabinet-sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.home-cabinet-pill {
+  flex: none;
+  margin-left: 24rpx;
+}
+
+/* ---- 精选套餐：横向滑动 ---- */
+.home-packages {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.cg-card.home-package {
+  display: inline-block;
+  width: 260rpx;
+  margin-right: 24rpx;
+  padding: 32rpx;
+  white-space: normal;
+  vertical-align: top;
+}
+
+.home-package-cover {
+  display: block;
+  width: 100%;
+  height: 140rpx;
+  margin-bottom: 24rpx;
+  border-radius: var(--cg-radius-md);
+}
+
+.home-package-name {
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+}
+
+.home-package-meta {
+  margin-top: 16rpx;
+}
+
+.home-package-minutes {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.home-package-price {
+  margin-top: 24rpx;
+}
+
+.home-package-now {
+  font-size: var(--cg-font-subtitle);
   font-weight: 600;
-  color: #1b2b2a;
+  color: var(--cg-title);
 }
 
-.hot-sub {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
-}
-
-.hot-right {
-  display: flex;
-  align-items: center;
-}
-
-.hot-price {
-  text-align: right;
-  margin-right: 18rpx;
-}
-
-.price-now {
-  display: block;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #ff5b4a;
-}
-
-.price-old {
-  display: block;
-  font-size: 22rpx;
-  color: #b6c2c0;
+.home-package-origin {
+  margin-left: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
   text-decoration: line-through;
 }
 
-.hot-btn {
-  background: #14342f;
-  color: #fff;
-  font-size: 26rpx;
-  padding: 14rpx 28rpx;
-  border-radius: 30rpx;
+/* ---- 优惠入口 ---- */
+.cg-card.home-promo {
+  margin-top: 32rpx;
+  padding: 8rpx 40rpx;
 }
 
-.empty {
+.home-promo-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.home-promo-label {
+  width: 160rpx;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
+}
+
+.home-promo-sub {
+  flex: 1;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.home-promo-divider {
+  height: 1rpx;
+  background: var(--cg-line);
+}
+
+/* ---- 服务流程 ---- */
+.cg-card.home-flow {
+  margin-top: 32rpx;
+}
+
+.home-flow-item {
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--cg-line);
+}
+
+.home-flow-item:first-of-type {
+  border-top: none;
+}
+
+.home-flow-name {
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-text);
+}
+
+.home-flow-steps {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
+}
+
+.home-empty {
+  padding: 64rpx 0;
   text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-aux);
+}
+
+.home-loading {
+  padding: 64rpx 0;
+  text-align: center;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 </style>
