@@ -40,7 +40,7 @@
 
       <view class="tip-inline">储值金额仅可消费，不可提现。本地开发使用模拟支付到账。</view>
 
-      <view class="submit" :class="{ disabled: submitting }" @click="submit">
+      <view class="submit" :class="{ disabled: submitting }" @click="onSubmitClick">
         {{ submitting ? '充值中…' : '立即充值' }}
       </view>
     </block>
@@ -51,6 +51,7 @@
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { fetchRechargeRules, fetchWallet, mockPayRecharge, recharge, type GiftRuleVO } from '@/api/wallet'
+import { requirePhone } from '@/store/auth'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -83,6 +84,11 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+/** 充值入口：先过手机号授权门控——已绑直接充值，未绑弹授权、登后自动继续 */
+function onSubmitClick(): void {
+  requirePhone(() => submit())
 }
 
 async function submit(): Promise<void> {

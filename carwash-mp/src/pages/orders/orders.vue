@@ -94,6 +94,7 @@ import { computed, ref } from 'vue'
 import { cancelOrder, fetchOrderList, type OrderAction, type OrderListItemVO, type OrderTab } from '@/api/order'
 import { fetchCustomerService } from '@/api/config'
 import { fetchSelfwashOrders, type SelfwashOrderVO } from '@/api/selfwash'
+import { requirePhone } from '@/store/auth'
 
 /**
  * 融合后的订单列表项。
@@ -332,7 +333,8 @@ function switchTab(key: OrderTab): void {
 }
 
 onShow(() => {
-  loadOrders()
+  // 订单属强用户相关信息：进入即过手机号授权门控——已绑直接加载，未绑弹授权、登后自动继续
+  requirePhone(() => loadOrders())
 })
 
 // 触底加载下一页（bug 修复：之前固定只取第 1 页，第 11 条起的订单永远看不到）

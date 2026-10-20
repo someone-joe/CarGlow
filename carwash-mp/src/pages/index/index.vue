@@ -119,7 +119,7 @@
         <text class="agree-text">我已阅读并同意《代客洗车服务协议》</text>
       </view>
 
-      <view class="submit" :class="{ disabled: !canSubmit }" @click="submitOrder">
+      <view class="submit" :class="{ disabled: !canSubmit }" @click="onSubmitClick">
         {{ submitting ? '提交中…' : '确定下单' }}
       </view>
     </block>
@@ -175,6 +175,7 @@ import SiteBar from '@/components/SiteBar.vue'
 import VehiclePicker from '@/components/VehiclePicker.vue'
 import { consumePickedVehicle } from '@/store/vehicleSelect'
 import { orderDraft } from '@/store/orderDraft'
+import { requirePhone } from '@/store/auth'
 
 const services = ref<ServiceVO[]>([])
 const vehicles = ref<VehicleVO[]>([])
@@ -418,6 +419,11 @@ async function uploadParkPhotos(): Promise<string[]> {
     }
   }
   return ids
+}
+
+/** 下单入口：先过手机号授权门控——已绑直接提交，未绑弹授权、登后自动继续 */
+function onSubmitClick(): void {
+  requirePhone(() => submitOrder())
 }
 
 async function submitOrder(): Promise<void> {

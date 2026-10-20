@@ -75,7 +75,7 @@
 
     <QueueProgressPopup :show="queueWs != null" :ws="queueWs ?? undefined" @close="queueWs = undefined" />
 
-    <view class="submit" :class="{ disabled: !canSubmit }" @click="submit">
+    <view class="submit" :class="{ disabled: !canSubmit }" @click="onSubmitClick">
       {{ submitting ? '下单中…' : '确认下单' }}
     </view>
   </view>
@@ -91,6 +91,7 @@ import { createSelfwashOrder, fetchSelfwashPricing, fetchWorkstations, type Self
 import VehiclePicker from '@/components/VehiclePicker.vue'
 import QueueProgressPopup from '@/components/QueueProgressPopup.vue'
 import { consumePickedVehicle } from '@/store/vehicleSelect'
+import { requirePhone } from '@/store/auth'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -186,6 +187,11 @@ function pickCoupon(): void {
       }
     },
   })
+}
+
+/** 下单入口：先过手机号授权门控——已绑直接提交，未绑弹授权、登后自动继续 */
+function onSubmitClick(): void {
+  requirePhone(() => submit())
 }
 
 async function submit(): Promise<void> {
