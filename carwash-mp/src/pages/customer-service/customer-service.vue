@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page customer-service">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <!-- 专属管家（企微二维码由后台配置下发，未配置不显示） -->
@@ -90,109 +90,106 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 卡片 ---- */
 .card {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .card-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .qr {
-  width: 260rpx;
-  height: 260rpx;
-  margin: 0 auto;
   display: block;
+  width: 320rpx;
+  height: 320rpx;
+  margin: 0 auto;
 }
 
 .qr-tip {
   display: block;
+  margin-top: 24rpx;
   text-align: center;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-/* 问题标签网格 */
+.muted {
+  padding: 32rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-aux);
+}
+
+/* ---- FAQ 网格 ---- */
 .faq {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  margin: 0 -8rpx;
 }
 
 .faq-item {
-  padding: 14rpx 24rpx;
-  border-radius: 32rpx;
-  background: #f2f7f7;
-  font-size: 25rpx;
-  color: #4a5a58;
+  box-sizing: border-box;
+  width: calc(50% - 16rpx);
+  margin: 8rpx;
+  padding: 32rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
+  line-height: 1.5;
 }
 
+/* ---- 电话 ---- */
 .night {
-  font-size: 24rpx;
-  color: #8a9a98;
-  padding-bottom: 16rpx;
+  margin-bottom: 24rpx;
+  padding: 16rpx 24rpx;
+  background: rgba(255, 149, 0, 0.10);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-note);
+  color: var(--cg-warning);
 }
 
 .phone {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
+  min-height: 108rpx;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
-.phone:last-of-type {
-  border-bottom: none;
+.phone-main {
+  flex: 1;
 }
 
 .phone-num {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .phone-label {
   display: block;
-  margin-top: 4rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .dial {
-  background: #14342f;
-  color: #fff;
-  font-size: 25rpx;
-  padding: 12rpx 32rpx;
-  border-radius: 32rpx;
-}
-
-.muted {
-  color: #8a9a98;
-  font-size: 25rpx;
-  padding: 16rpx 0;
+  flex: none;
+  min-height: 96rpx;
+  padding: 0 8rpx;
+  color: var(--cg-primary);
+  font-size: var(--cg-font-caption);
+  line-height: 96rpx;
 }
 </style>

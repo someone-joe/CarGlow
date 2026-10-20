@@ -1,17 +1,18 @@
 <template>
-  <view class="page">
-    <view class="tabs">
+  <view class="cg-page aftersale">
+    <view class="cg-tabs">
       <view
         v-for="t in tabs"
         :key="t.key"
-        :class="['tab', activeTab === t.key && 'tab-active']"
+        class="cg-tab"
+        :class="{ 'is-active': activeTab === t.key }"
         @click="switchTab(t.key)"
       >
         {{ t.label }}
       </view>
     </view>
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <view v-else-if="list.length === 0" class="empty">
       <text class="empty-title">{{ activeTab === 'sale' ? '暂无售后工单' : '暂无退款记录' }}</text>
@@ -178,200 +179,171 @@ onShow(() => {
 </script>
 
 <style scoped>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-}
-
-.tabs {
-  display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 10rpx;
-  margin-bottom: 24rpx;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 18rpx 0;
-  font-size: 28rpx;
-  color: #6b7d7a;
-  border-radius: 14rpx;
-}
-
-.tab-active {
-  background: #00aeb5;
-  color: #fff;
-  font-weight: 600;
-}
-
-.tip,
-.empty {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
-}
-
 .empty-title {
   display: block;
-  font-size: 30rpx;
-  color: #14342f;
-  font-weight: 600;
-  margin-bottom: 12rpx;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
 }
 
 .empty-sub {
   display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
+/* ---- 工单卡 ---- */
 .card {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .card-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16rpx;
+  justify-content: space-between;
 }
 
 .no {
-  font-size: 26rpx;
-  color: #14342f;
-  font-weight: 600;
+  flex: 1;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* 状态徽标：处理后绿、进行中蓝、驳回/失败红 */
 .badge {
-  font-size: 22rpx;
-  padding: 6rpx 16rpx;
-  border-radius: 20rpx;
-  background: #eef2f1;
-  color: #6b7d7a;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-.badge-INIT {
-  background: #fff4e6;
-  color: #e67e22;
-}
-.badge-PROCESSING {
-  background: #e6f4ff;
-  color: #1677ff;
-}
 .badge-DONE,
 .badge-SUCCESS {
-  background: #e6f7ee;
-  color: #00a86b;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
+
+.badge-INIT,
+.badge-PROCESSING {
+  background: var(--cg-tint);
+  color: var(--cg-primary);
+}
+
 .badge-REJECTED,
 .badge-FAILED {
-  background: #fdecec;
-  color: #e04b4b;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--cg-error);
+}
+
+.meta {
+  margin-top: 24rpx;
 }
 
 .meta-line {
   display: block;
-  font-size: 25rpx;
-  color: #6b7d7a;
-  line-height: 1.9;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .amount-line {
-  color: #ff5b4a;
-  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .fail-line {
-  color: #e04b4b;
+  color: var(--cg-error);
 }
 
 .more {
   display: block;
-  text-align: center;
-  font-size: 24rpx;
-  color: #00aeb5;
-  margin-top: 12rpx;
+  margin-top: 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
 }
 
+/* ---- 展开详情 ---- */
 .detail {
-  border-top: 1rpx solid #eef2f1;
-  margin-top: 16rpx;
-  padding-top: 16rpx;
+  margin-top: 24rpx;
+  padding: 24rpx 32rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
 }
 
 .detail-row {
   display: flex;
-  font-size: 25rpx;
-  line-height: 1.9;
+  justify-content: space-between;
+  padding: 16rpx 0;
 }
 
 .detail-label {
-  width: 140rpx;
-  color: #8a9a98;
-  flex-shrink: 0;
+  flex: none;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .detail-value {
-  color: #14342f;
   flex: 1;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text);
+  text-align: right;
 }
 
+/* ---- 退款进度 ---- */
 .refund-box {
-  margin-top: 16rpx;
-  background: #f7fbfb;
-  border-radius: 14rpx;
-  padding: 18rpx;
+  margin-top: 24rpx;
+  padding: 24rpx 32rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-md);
 }
 
 .refund-title {
   display: block;
-  font-size: 25rpx;
-  color: #14342f;
-  font-weight: 600;
-  margin-bottom: 10rpx;
+  font-size: var(--cg-font-caption);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .refund-empty {
-  font-size: 24rpx;
-  color: #8a9a98;
+  padding: 24rpx 0;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .refund-item {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex-wrap: wrap;
-  margin-top: 8rpx;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .refund-no {
-  font-size: 24rpx;
-  color: #14342f;
+  display: block;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text);
 }
 
 .refund-fail {
-  font-size: 23rpx;
-  color: #e04b4b;
-  width: 100%;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
 }
 
 .notice {
   margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #b06a00;
-  background: #fff8e6;
-  border-radius: 12rpx;
-  padding: 14rpx 18rpx;
-  line-height: 1.7;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+  line-height: 1.6;
 }
 
 .notice-ok {
-  color: #00875a;
-  background: #e9f8f1;
+  color: var(--cg-success);
 }
 </style>

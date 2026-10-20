@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page vehicle">
     <view class="add-bar" @click="startAdd">
       <text class="add-icon">＋</text>
       <text>新增车辆</text>
@@ -11,8 +11,8 @@
     <!-- 车辆列表 -->
     <view class="panel">
       <text class="panel-title">我的车辆（{{ list.length }}）</text>
-      <view v-if="loading" class="tip">加载中…</view>
-      <view v-else-if="list.length === 0" class="tip">还没有车辆，先添加一辆吧</view>
+      <view v-if="loading" class="cg-empty">加载中…</view>
+      <view v-else-if="list.length === 0" class="cg-empty">还没有车辆，先添加一辆吧</view>
 
       <view v-for="item in list" :key="item.vehicleId" class="vehicle">
         <view class="vehicle-top">
@@ -77,103 +77,86 @@ onShow(loadList)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
+/* ---- 新增按钮 ---- */
 .add-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  background: #14342f;
-  color: #fff;
-  border-radius: 20rpx;
-  padding: 30rpx 0;
-  font-size: 30rpx;
-  font-weight: 600;
-  margin-bottom: 20rpx;
+  height: 104rpx;
+  margin-top: 32rpx;
+  background: var(--cg-card);
+  border: 1rpx dashed var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-primary);
 }
 
 .add-icon {
-  font-size: 38rpx;
-  line-height: 1;
+  margin-right: 16rpx;
+  font-size: var(--cg-font-body);
+  font-weight: 300;
 }
 
+/* ---- 车辆列表面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
-  margin-top: 20rpx;
+  margin-top: 32rpx;
+  padding: 8rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 20rpx;
+  padding: 32rpx 0 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
-/* ---- 车辆大卡 ---- */
+/* ---- 车辆行 ---- */
 .vehicle {
   position: relative;
-  background: linear-gradient(135deg, #f3fbfb, #eaf5f4);
-  border: 2rpx solid #eaf1f0;
-  border-radius: 20rpx;
-  padding: 30rpx 28rpx;
-  margin-bottom: 20rpx;
+  padding: 32rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .vehicle-top {
   display: flex;
   align-items: center;
-  gap: 14rpx;
 }
 
 .plate {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
   letter-spacing: 2rpx;
 }
 
 .tag {
-  font-size: 21rpx;
-  color: #00aeb5;
-  background: #e6f7f7;
-  border-radius: 18rpx;
-  padding: 4rpx 14rpx;
+  margin-left: 24rpx;
+  padding: 4rpx 20rpx;
+  background: var(--cg-tint);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
 }
 
 .sub {
   display: block;
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  color: #6b7b79;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .edit-btn {
   position: absolute;
-  right: 24rpx;
-  bottom: 24rpx;
-  font-size: 25rpx;
-  color: #00aeb5;
-  border: 2rpx solid #00aeb5;
-  border-radius: 30rpx;
-  padding: 8rpx 26rpx;
+  top: 32rpx;
+  right: 0;
+  min-height: 96rpx;
+  padding: 0 8rpx;
+  color: var(--cg-primary);
+  font-size: var(--cg-font-caption);
+  line-height: 96rpx;
 }
 </style>

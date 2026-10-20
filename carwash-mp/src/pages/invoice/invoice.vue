@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page invoice">
     <!-- 申请表单 -->
     <view class="panel">
       <text class="panel-title">申请开票</text>
@@ -32,8 +32,8 @@
     <!-- 我的申请 -->
     <view class="panel">
       <text class="panel-title">我的申请</text>
-      <view v-if="loading" class="tip">加载中…</view>
-      <view v-else-if="!invoices.length" class="tip">暂无开票申请</view>
+      <view v-if="loading" class="cg-empty">加载中…</view>
+      <view v-else-if="!invoices.length" class="cg-empty">暂无开票申请</view>
       <view v-for="i in invoices" :key="i.invoiceId" class="inv">
         <view class="inv-top">
           <text class="inv-amount">¥{{ fen2yuan(i.amount) }}</text>
@@ -157,116 +157,125 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+.invoice {
+  padding-bottom: 96rpx;
 }
 
+/* ---- 面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 12rpx;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* ---- 选择行 ---- */
 .picker-row {
   display: flex;
   align-items: center;
-  padding: 22rpx 0;
+  justify-content: space-between;
+  min-height: 96rpx;
 }
 
 .picker-label {
-  width: 150rpx;
-  font-size: 27rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .picker-value {
   flex: 1;
-  font-size: 26rpx;
-  color: #1b2b2a;
+  margin-left: 24rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
   text-align: right;
 }
 
 .picker-value.placeholder {
-  color: #b6c2c0;
+  color: var(--cg-text-aux);
 }
 
+.arrow {
+  color: var(--cg-text-aux);
+  font-size: var(--cg-font-caption);
+}
+
+/* ---- 抬头类型 ---- */
 .type-row {
   display: flex;
   align-items: center;
-  padding: 12rpx 0 20rpx;
+  justify-content: space-between;
+  min-height: 96rpx;
+  margin-top: 16rpx;
 }
 
 .type-label {
-  width: 150rpx;
-  font-size: 27rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .type-opts {
   display: flex;
-  gap: 16rpx;
 }
 
 .type-opt {
-  padding: 10rpx 28rpx;
-  border-radius: 30rpx;
-  background: #f2f7f7;
-  font-size: 26rpx;
-  color: #6b7b79;
+  padding: 12rpx 32rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
+}
+
+.type-opt + .type-opt {
+  margin-left: 16rpx;
 }
 
 .type-opt.on {
-  background: #00aeb5;
-  color: #fff;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
+/* ---- 输入 ---- */
 .input {
-  background: #f2f7f7;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  font-size: 27rpx;
-  margin-bottom: 16rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
+/* ---- 提交 ---- */
 .submit {
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  padding: 24rpx 0;
-  border-radius: 40rpx;
-  font-size: 29rpx;
-  font-weight: 600;
-  margin-top: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 40rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .submit.disabled {
-  background: #cfe0de;
+  opacity: 0.4;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
+/* ---- 申请列表 ---- */
 .inv {
-  padding: 20rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
+  padding: 32rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .inv:last-child {
@@ -280,46 +289,46 @@ onShow(load)
 }
 
 .inv-amount {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .inv-status {
-  font-size: 24rpx;
-  font-weight: 600;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .inv-status.applying {
-  color: #ff8a3d;
+  background: var(--cg-tint);
+  color: var(--cg-primary);
 }
 
 .inv-status.done {
-  color: #00aeb5;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
 
 .inv-status.reject {
-  color: #ff5b4a;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--cg-error);
 }
 
 .inv-sub {
   display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #6b7b79;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .inv-sub.muted {
-  color: #b6c2c0;
-  font-size: 22rpx;
+  color: var(--cg-text-aux);
 }
 
 .inv-sub.danger {
-  color: #ff5b4a;
-}
-
-.arrow {
-  color: #b6c2c0;
-  font-size: 32rpx;
+  color: var(--cg-error);
 }
 </style>

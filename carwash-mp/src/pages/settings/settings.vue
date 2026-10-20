@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page settings">
     <!-- 消息通知 -->
     <view class="panel">
       <text class="panel-title">消息通知</text>
@@ -97,107 +97,90 @@ function doc(name: string): void {
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
+/* ---- 面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 8rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 8rpx;
+  padding: 32rpx 0 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
+/* ---- 开关行 ---- */
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 128rpx;
   padding: 24rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.row:last-child {
-  border-bottom: none;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .row-main {
   flex: 1;
+  margin-right: 32rpx;
 }
 
 .row-label {
   display: block;
-  font-size: 28rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
 }
 
 .row-sub {
   display: block;
-  margin-top: 6rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
+/* ---- iOS 开关 ---- */
 .switch-box {
-  width: 88rpx;
-  height: 48rpx;
-  border-radius: 24rpx;
-  background: #dfe6e5;
-  padding: 6rpx;
+  flex: none;
   box-sizing: border-box;
-  flex-shrink: 0;
+  width: 96rpx;
+  height: 56rpx;
+  padding: 6rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  transition: background-color 0.2s ease;
 }
 
 .switch-box.on {
-  background: #00aeb5;
+  background: var(--cg-primary);
 }
 
 .switch-dot {
-  width: 36rpx;
-  height: 36rpx;
+  width: 44rpx;
+  height: 44rpx;
+  background: #ffffff;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.15s;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
 }
 
 .switch-box.on .switch-dot {
   transform: translateX(40rpx);
 }
 
+/* ---- 链接行 ---- */
 .link-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 26rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.link-row:last-child {
-  border-bottom: none;
+  min-height: 108rpx;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .arrow {
-  color: #b6c2c0;
-  font-size: 32rpx;
-}
-
-.note {
-  text-align: center;
-  font-size: 22rpx;
-  color: #8a9a98;
-  line-height: 34rpx;
-  padding: 8rpx 24rpx;
+  color: var(--cg-text-aux);
+  font-size: var(--cg-font-caption);
 }
 </style>

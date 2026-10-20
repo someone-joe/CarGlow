@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page park-location">
     <!-- 新增 / 编辑表单 -->
     <view class="panel">
       <text class="panel-title">{{ editingId ? '编辑停车位置' : '添加停车位置' }}</text>
@@ -34,8 +34,8 @@
     <!-- 位置列表 -->
     <view class="panel">
       <text class="panel-title">我的停车位置（{{ list.length }}）</text>
-      <view v-if="loading" class="tip">加载中…</view>
-      <view v-else-if="!list.length" class="tip">还没有停车位置，先添加一个吧</view>
+      <view v-if="loading" class="cg-empty">加载中…</view>
+      <view v-else-if="!list.length" class="cg-empty">还没有停车位置，先添加一个吧</view>
 
       <view v-for="item in list" :key="item.locationId" class="loc">
         <view class="loc-top">
@@ -172,134 +172,137 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
+/* ---- 表单面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 16rpx;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .picker-row {
   display: flex;
   align-items: center;
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
+  justify-content: space-between;
+  min-height: 96rpx;
 }
 
 .picker-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
-  width: 160rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .picker-value {
   flex: 1;
-  font-size: 28rpx;
-  color: #1b2b2a;
+  margin-left: 24rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
   text-align: right;
 }
 
 .picker-value.placeholder {
-  color: #b6c2c0;
+  color: var(--cg-text-aux);
+}
+
+.arrow {
+  color: var(--cg-text-aux);
+  font-size: var(--cg-font-caption);
 }
 
 .input {
-  background: #f2f7f7;
-  border-radius: 12rpx;
-  padding: 22rpx 20rpx;
-  font-size: 28rpx;
-  margin-bottom: 16rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
+/* ---- iOS 开关 ---- */
 .switch-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
+  min-height: 96rpx;
+  margin-top: 16rpx;
 }
 
 .switch-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .switch-box {
-  width: 88rpx;
-  height: 48rpx;
-  border-radius: 24rpx;
-  background: #dfe6e5;
-  padding: 6rpx;
   box-sizing: border-box;
+  width: 96rpx;
+  height: 56rpx;
+  padding: 6rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  transition: background-color 0.2s ease;
 }
 
 .switch-box.on {
-  background: #00aeb5;
+  background: var(--cg-primary);
 }
 
 .switch-dot {
-  width: 36rpx;
-  height: 36rpx;
+  width: 44rpx;
+  height: 44rpx;
+  background: #ffffff;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.15s;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
 }
 
 .switch-box.on .switch-dot {
   transform: translateX(40rpx);
 }
 
+/* ---- 按钮 ---- */
 .btn-row {
   display: flex;
-  gap: 20rpx;
-  margin-top: 12rpx;
+  margin-top: 40rpx;
 }
 
 .btn {
   flex: 1;
-  text-align: center;
-  padding: 22rpx 0;
-  border-radius: 40rpx;
-  font-size: 29rpx;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
 }
 
 .btn-primary {
-  background: #14342f;
-  color: #fff;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
 .btn-plain {
-  background: #eef3f2;
-  color: #6b7b79;
+  margin-left: 24rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  color: var(--cg-title);
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 50rpx 0;
-}
-
+/* ---- 位置列表 ---- */
 .loc {
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
+  position: relative;
+  padding: 32rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .loc:last-child {
@@ -309,48 +312,46 @@ onShow(load)
 .loc-top {
   display: flex;
   align-items: center;
-  gap: 12rpx;
 }
 
 .loc-name {
-  font-size: 29rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .tag {
-  font-size: 20rpx;
-  color: #00aeb5;
-  background: #e6f6f6;
-  border-radius: 20rpx;
-  padding: 4rpx 14rpx;
+  margin-left: 24rpx;
+  padding: 4rpx 20rpx;
+  background: var(--cg-tint);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
 }
 
 .loc-sub {
   display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .loc-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 28rpx;
-  margin-top: 12rpx;
+  margin-top: 16rpx;
 }
 
 .op {
-  font-size: 26rpx;
-  color: #00aeb5;
+  min-height: 96rpx;
+  margin-left: 32rpx;
+  padding: 0 8rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-primary);
+  line-height: 96rpx;
 }
 
 .op.danger {
-  color: #ff5b4a;
-}
-
-.arrow {
-  color: #b6c2c0;
-  font-size: 32rpx;
+  color: var(--cg-error);
 }
 </style>

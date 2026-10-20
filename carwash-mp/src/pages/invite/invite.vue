@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page invite">
     <!-- 我的邀请码 -->
     <view class="code-card">
       <text class="cc-label">我的邀请码</text>
@@ -22,8 +22,8 @@
     <!-- 我邀请的人 -->
     <view class="panel">
       <text class="panel-title">我邀请的人（{{ invitedCount }}）</text>
-      <view v-if="loading" class="tip">加载中…</view>
-      <view v-else-if="!list.length" class="tip">还没有邀请到好友，快把邀请码分享出去吧</view>
+      <view v-if="loading" class="cg-empty">加载中…</view>
+      <view v-else-if="!list.length" class="cg-empty">还没有邀请到好友，快把邀请码分享出去吧</view>
       <view v-for="i in list" :key="i.inviteId" class="inv">
         <text class="inv-id">会员 #{{ i.inviteeMemberId }}</text>
         <text class="inv-status" :class="{ done: i.status === 'REWARDED' }">{{ i.statusLabel }}</text>
@@ -91,132 +91,127 @@ onShareAppMessage(() => ({
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
+/* ---- 邀请码卡 ---- */
 .code-card {
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 36rpx 30rpx;
-  margin-bottom: 20rpx;
-  color: #fff;
+  margin-top: 32rpx;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
   text-align: center;
 }
 
 .cc-label {
   display: block;
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .cc-code {
   display: block;
-  margin-top: 12rpx;
-  font-size: 56rpx;
-  font-weight: 700;
-  letter-spacing: 6rpx;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
+  letter-spacing: 8rpx;
 }
 
 .cc-actions {
-  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 40rpx;
 }
 
 .cc-copy {
-  display: inline-block;
-  background: #fff;
-  color: #0e8f94;
-  font-size: 26rpx;
-  font-weight: 600;
-  padding: 12rpx 40rpx;
-  border-radius: 34rpx;
+  min-height: 96rpx;
+  padding: 0 40rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: #ffffff;
+  line-height: 96rpx;
 }
 
 .cc-tip {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+  text-align: left;
 }
 
+/* ---- 面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 8rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 12rpx;
+  padding: 32rpx 0 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .input {
-  background: #f2f7f7;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  font-size: 27rpx;
-  margin-bottom: 16rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 16rpx 0 32rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .bind-btn {
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  padding: 22rpx 0;
-  border-radius: 40rpx;
-  font-size: 28rpx;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-bottom: 40rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .bind-btn.disabled {
-  background: #cfe0de;
+  opacity: 0.4;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
+/* ---- 邀请列表 ---- */
 .inv {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.inv:last-child {
-  border-bottom: none;
+  padding: 32rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .inv-id {
-  font-size: 27rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
 }
 
 .inv-status {
-  font-size: 24rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .inv-status.done {
-  color: #00aeb5;
+  color: var(--cg-success);
 }
 
 .inv-sum {
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #00aeb5;
+  padding: 32rpx 0;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  border-top: 1rpx solid var(--cg-line);
 }
 </style>

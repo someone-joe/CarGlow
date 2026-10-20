@@ -1,10 +1,10 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page insurance">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <!-- 可投保产品 -->
-      <view class="block-title">保障方案</view>
+      <text class="cg-section-title">保障方案</text>
       <view v-if="!products.length" class="empty">暂无可投保的保障方案</view>
       <view v-for="p in products" :key="p.productId" class="product">
         <view class="product-main">
@@ -16,7 +16,7 @@
       </view>
 
       <!-- 我的保单 -->
-      <view class="block-title">我的保单</view>
+      <text class="cg-section-title">我的保单</text>
       <view v-if="!policies.length" class="empty">还没有保单，选上面的方案投保吧</view>
       <view v-for="pol in policies" :key="pol.policyId" class="policy">
         <view class="policy-top">
@@ -128,125 +128,110 @@ onShow(loadAll)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
-.block-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding: 12rpx 4rpx 18rpx;
-}
-
-.empty {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 25rpx;
-  padding: 40rpx 0;
-}
-
-/* ---- 保障方案 ---- */
+/* ---- 产品卡 ---- */
 .product {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .product-main {
   flex: 1;
+  margin-right: 32rpx;
 }
 
 .product-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .product-desc {
   display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
 }
 
 .product-price {
   display: block;
-  margin-top: 10rpx;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  margin-top: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .buy-btn {
-  background: #14342f;
-  color: #fff;
-  font-size: 26rpx;
-  padding: 14rpx 34rpx;
-  border-radius: 34rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 176rpx;
+  height: 104rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
-/* ---- 我的保单 ---- */
+/* ---- 保单卡 ---- */
 .policy {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .policy-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16rpx;
-  border-bottom: 2rpx solid #eaf1f0;
 }
 
 .policy-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  flex: 1;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .badge {
-  font-size: 23rpx;
-  border-radius: 20rpx;
-  padding: 5rpx 18rpx;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .badge.st-active {
-  color: #00aeb5;
-  background: #e6f7f7;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
 
 .badge.st-expired {
-  color: #8a9a98;
-  background: #f2f7f7;
+  background: rgba(134, 134, 139, 0.14);
+  color: var(--cg-text-sub);
 }
 
 .badge.st-canceled {
-  color: #ff5b4a;
-  background: #ffeeeb;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--cg-error);
 }
 
 .policy-line {
   display: block;
-  margin-top: 10rpx;
-  font-size: 25rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 </style>

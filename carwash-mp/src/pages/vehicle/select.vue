@@ -1,11 +1,11 @@
 <template>
-  <view class="page">
+  <view class="cg-page vehicle-select">
     <view class="head">选择车辆</view>
 
     <view class="panel">
       <text class="panel-title">我的车辆（{{ list.length }}）</text>
-      <view v-if="loading" class="tip">加载中…</view>
-      <view v-else-if="list.length === 0" class="tip">还没有车辆，先添加一辆吧</view>
+      <view v-if="loading" class="cg-empty">加载中…</view>
+      <view v-else-if="list.length === 0" class="cg-empty">还没有车辆，先添加一辆吧</view>
 
       <view
         v-for="item in list"
@@ -88,117 +88,132 @@ function goManage(): void {
 </script>
 
 <style scoped>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+.vehicle-select {
+  padding-bottom: 220rpx;
 }
 
+/* ---- 页头 ---- */
 .head {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-  padding: 8rpx 4rpx 20rpx;
+  margin: 32rpx 8rpx 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* ---- 车辆列表面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  padding: 8rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 20rpx;
+  padding: 32rpx 0 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
+/* ---- 车辆行：选中 = 2px 蓝边 + 6% 淡蓝底 + 提升阴影 ---- */
 .vehicle {
   position: relative;
-  background: linear-gradient(135deg, #f3fbfb, #eaf5f4);
-  border: 2rpx solid #eaf1f0;
-  border-radius: 20rpx;
-  padding: 30rpx 28rpx;
-  margin-bottom: 20rpx;
+  box-sizing: border-box;
+  margin-bottom: 24rpx;
+  padding: 32rpx;
+  background: var(--cg-card);
+  border: 2rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-md);
+  transition: border-color 0.28s ease-out, background-color 0.28s ease-out, box-shadow 0.28s ease-out;
 }
 
 .vehicle.active {
-  border-color: #00aeb5;
-  background: #f3fbfb;
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
+  box-shadow: var(--cg-shadow-raised);
 }
 
 .vehicle-top {
   display: flex;
   align-items: center;
-  gap: 14rpx;
 }
 
 .plate {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
   letter-spacing: 2rpx;
 }
 
 .tag {
-  font-size: 21rpx;
-  color: #00aeb5;
-  background: #e6f7f7;
-  border-radius: 18rpx;
-  padding: 4rpx 14rpx;
+  margin-left: 24rpx;
+  padding: 4rpx 20rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .sub {
   display: block;
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  color: #6b7b79;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .check {
   position: absolute;
-  right: 24rpx;
   top: 50%;
+  right: 32rpx;
   transform: translateY(-50%);
-  color: #00aeb5;
-  font-size: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: var(--cg-primary);
+  color: #ffffff;
+  font-size: var(--cg-font-note);
 }
 
+/* ---- 底部操作 ---- */
 .actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
   display: flex;
-  gap: 16rpx;
-  margin-top: 8rpx;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 16rpx 40rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--cg-glass-bg);
+  -webkit-backdrop-filter: blur(var(--cg-glass-blur));
+  backdrop-filter: blur(var(--cg-glass-blur));
+  border-top: var(--cg-glass-border);
+  box-shadow: 0 -4rpx 40rpx rgba(0, 0, 0, 0.06);
 }
 
 .btn {
   flex: 1;
-  text-align: center;
-  padding: 26rpx 0;
-  border-radius: 40rpx;
-  font-size: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
 }
 
 .btn-primary {
-  background: #14342f;
-  color: #fff;
-  font-weight: 600;
+  background: var(--cg-primary);
+  color: #ffffff;
 }
 
 .btn-plain {
-  border: 2rpx solid #cfe0de;
-  color: #6b7b79;
+  margin-left: 24rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  color: var(--cg-title);
 }
 </style>
