@@ -1,10 +1,12 @@
 <template>
-  <view class="page">
-    <SiteBar />
+  <view class="cg-page mine">
+    <SiteBar variant="card" />
 
-    <!-- 用户卡（余额/充值无后端支撑，按约定隐藏） -->
-    <view class="profile">
-      <text class="avatar">🚗</text>
+    <!-- 个人资料卡：白底 + 柔和阴影 + 顶部极淡渐变；头像尺寸适中，不做巨大头像 -->
+    <view class="cg-card cg-card-tint profile">
+      <view class="avatar">
+        <view class="cg-icon-person" />
+      </view>
       <view class="profile-main">
         <text class="nick">{{ phoneBound ? '已绑定手机号' : '微信用户' }}</text>
         <text class="sub">夜间代客洗车 · 睡一觉车就干净了</text>
@@ -21,70 +23,78 @@
     </view>
 
     <!-- 储值余额 -->
-    <view class="wallet-bar" @click="go('/pages/wallet/wallet')">
+    <view class="cg-card wallet-bar" @click="go('/pages/wallet/wallet')">
       <view class="wb-left">
         <text class="wb-label">储值余额</text>
         <text class="wb-value">¥{{ yuan(balance) }}</text>
       </view>
       <view class="wb-right">
         <text class="wb-recharge" @click.stop="go('/pages/recharge/recharge')">充值</text>
-        <text class="arrow">›</text>
+        <text class="cg-chevron">›</text>
       </view>
     </view>
 
-    <!-- 常用入口：卡券 / 车辆（订单已常驻底部 tab，这里不再放入口） -->
-    <view class="quick">
-      <view class="quick-item" @click="go('/pages/coupons/coupons')">
-        <text class="quick-ico">🎟️</text>
-        <text class="quick-text">我的卡券</text>
+    <!-- 常用功能：iOS 风格分组列表 -->
+    <view class="cg-list">
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/coupons/coupons')">
+        <text class="cg-list-label">我的卡券</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="quick-item" @click="go('/pages/vehicle/vehicle')">
-        <text class="quick-ico">🚙</text>
-        <text class="quick-text">我的车辆</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/vehicle/vehicle')">
+        <text class="cg-list-label">我的车辆</text>
+        <text class="cg-chevron">›</text>
       </view>
-    </view>
-
-    <!-- 常用功能 -->
-    <view class="list">
-      <view class="list-item" @click="go('/pages/park-location/park-location')">
-        <text>常用停车位置</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/park-location/park-location')">
+        <text class="cg-list-label">常用停车位置</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/settings/settings')">
-        <text>设置</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/selfwash-orders/selfwash-orders')">
+        <text class="cg-list-label">我的自助洗车</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/selfwash-orders/selfwash-orders')">
-        <text>我的自助洗车</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/invoice/invoice')">
+        <text class="cg-list-label">发票申请</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/invoice/invoice')">
-        <text>发票申请</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/invite/invite')">
+        <text class="cg-list-label">邀请好友</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/invite/invite')">
-        <text>邀请好友</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/aftersale/aftersale')">
+        <text class="cg-list-label">售后与退款进度</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/aftersale/aftersale')">
-        <text>售后与退款进度</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/insurance/insurance')">
+        <text class="cg-list-label">车损保障</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/insurance/insurance')">
-        <text>车损保障</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/customer-service/customer-service')">
+        <text class="cg-list-label">客服中心</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="go('/pages/customer-service/customer-service')">
-        <text>客服中心</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/settings/settings')">
+        <text class="cg-list-label">设置</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="toast('服务条款')">
-        <text>服务条款</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="toast('服务条款')">
+        <text class="cg-list-label">服务条款</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="toast('隐私政策')">
-        <text>隐私政策</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="toast('隐私政策')">
+        <text class="cg-list-label">隐私政策</text>
+        <text class="cg-chevron">›</text>
       </view>
-      <view class="list-item" @click="about">
-        <text>关于 CarGlow</text><text class="arrow">›</text>
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="about">
+        <text class="cg-list-label">关于 CarGlow</text>
+        <text class="cg-chevron">›</text>
       </view>
     </view>
 
     <!-- 师傅端入口（入口 A） -->
-    <view class="list">
-      <view class="list-item worker" @click="go('/pages/worker-login/worker-login')">
-        <text>我是洗车师傅</text><text class="arrow">›</text>
+    <view class="cg-list">
+      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/worker-login/worker-login')">
+        <text class="cg-list-label">我是洗车师傅</text>
+        <text class="cg-chevron">›</text>
       </view>
     </view>
   </view>
@@ -185,84 +195,84 @@ function about(): void {
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* tabBar 页：底部留白需避开原生 tabBar */
+.mine {
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
+/* ---- 个人资料卡 ---- */
 .profile {
   display: flex;
   align-items: center;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 32rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
 }
 
-/* 手机号授权按钮：微信原生 open-type，样式要去掉按钮默认边框 */
+.avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: var(--cg-fill);
+}
+
+.profile-main {
+  flex: 1;
+  margin-left: 32rpx;
+}
+
+.nick {
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
+}
+
+.sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
 .bind-btn {
-  flex-shrink: 0;
-  font-size: 24rpx;
-  color: #00aeb5;
-  background: #eaf7f7;
-  border: 1rpx solid #00aeb5;
-  border-radius: 30rpx;
-  padding: 10rpx 24rpx;
-  line-height: 1.4;
+  flex: none;
+  height: 72rpx;
   margin: 0;
+  padding: 0 32rpx;
+  background: var(--cg-primary);
+  color: #ffffff;
+  font-size: var(--cg-font-note);
+  line-height: 72rpx;
+  border-radius: var(--cg-radius-md);
 }
 
 .bind-btn::after {
   border: none;
 }
 
-.avatar {
-  font-size: 76rpx;
-  margin-right: 24rpx;
-}
-
-.profile-main {
-  flex: 1;
-}
-
-.nick {
-  display: block;
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-}
-
-.sub {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
-}
-
+/* ---- 储值余额 ---- */
 .wallet-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 28rpx 30rpx;
-  margin-bottom: 20rpx;
-  color: #fff;
+  margin-top: 32rpx;
 }
 
 .wb-label {
   display: block;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .wb-value {
   display: block;
-  margin-top: 6rpx;
-  font-size: 40rpx;
-  font-weight: 700;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .wb-right {
@@ -271,71 +281,7 @@ function about(): void {
 }
 
 .wb-recharge {
-  background: #fff;
-  color: #0e8f94;
-  font-size: 24rpx;
-  font-weight: 600;
-  padding: 8rpx 26rpx;
-  border-radius: 30rpx;
-  margin-right: 16rpx;
-}
-
-.wallet-bar .arrow {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.quick {
-  display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 32rpx 0;
-  margin-bottom: 20rpx;
-}
-
-.quick-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.quick-ico {
-  font-size: 48rpx;
-}
-
-.quick-text {
-  margin-top: 12rpx;
-  font-size: 26rpx;
-  color: #6b7b79;
-}
-
-.list {
-  background: #fff;
-  border-radius: 20rpx;
-  overflow: hidden;
-  margin-bottom: 20rpx;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 30rpx 28rpx;
-  font-size: 29rpx;
-  color: #1b2b2a;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.list-item:last-child {
-  border-bottom: none;
-}
-
-.list-item.worker {
-  color: #00aeb5;
-}
-
-.arrow {
-  color: #b6c2c0;
-  font-size: 32rpx;
+  color: var(--cg-primary);
+  font-size: var(--cg-font-caption);
 }
 </style>

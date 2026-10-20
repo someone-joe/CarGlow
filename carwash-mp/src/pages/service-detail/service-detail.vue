@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page service-detail">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else-if="detail">
       <!-- 封面 -->
@@ -118,66 +118,65 @@ onLoad((opts) => {
 </script>
 
 <style>
-.page {
-  padding-bottom: 160rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部下单条占位 */
+.service-detail {
+  padding-bottom: 220rpx;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
-/* ---- 空态兜底页 ---- */
+/* ---- 兜底态 ---- */
 .fallback {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 200rpx;
+  padding: 160rpx 0;
+  text-align: center;
 }
 
 .fallback-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
 }
 
 .fallback-sub {
-  margin-top: 14rpx;
-  font-size: 26rpx;
-  color: #8a9a98;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .fallback-btn {
-  margin-top: 60rpx;
-  background: #14342f;
-  color: #fff;
-  font-size: 30rpx;
-  padding: 22rpx 80rpx;
-  border-radius: 44rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin: 48rpx auto 0;
+  padding: 0 48rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
 }
 
+/* ---- 封面：通栏大圆角 ---- */
 .cover {
+  display: block;
   width: 100%;
-  height: 380rpx;
-  background: #eef3f2;
+  height: 420rpx;
+  margin-top: 32rpx;
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .cover-empty {
-  padding: 40rpx 0;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
+  background: var(--cg-fill);
 }
 
+/* ---- 头部信息 ---- */
 .head {
-  background: #fff;
-  border-radius: 20rpx;
-  margin: -40rpx 24rpx 20rpx;
-  padding: 30rpx;
-  position: relative;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .head-top {
@@ -187,127 +186,138 @@ onLoad((opts) => {
 }
 
 .name {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  flex: 1;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .price {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .subtitle {
   display: block;
-  margin-top: 10rpx;
-  font-size: 26rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .meta-row {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  margin-top: 18rpx;
+  flex-wrap: wrap;
+  margin-top: 24rpx;
 }
 
 .origin {
-  font-size: 24rpx;
-  color: #b6c2c0;
+  margin-right: 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
   text-decoration: line-through;
 }
 
 .tag {
-  font-size: 22rpx;
-  color: #00aeb5;
-  background: #e6f7f7;
-  border-radius: 20rpx;
-  padding: 6rpx 16rpx;
+  margin: 0 24rpx 16rpx 0;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
+/* ---- 内容面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin: 0 24rpx 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 18rpx;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .li {
-  font-size: 26rpx;
-  color: #4a5a58;
-  line-height: 1.9;
+  padding: 16rpx 0;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
+  line-height: 1.6;
 }
 
 .li.muted {
-  color: #b6c2c0;
+  color: var(--cg-text-aux);
 }
 
 .text {
-  font-size: 26rpx;
-  color: #4a5a58;
-  line-height: 1.8;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
+  line-height: 1.6;
 }
 
+/* ---- 样图 ---- */
 .gallery {
   display: flex;
   flex-wrap: wrap;
-  gap: 14rpx;
 }
 
 .sample {
   width: 200rpx;
   height: 200rpx;
-  border-radius: 14rpx;
-  background: #eef3f2;
+  margin: 0 16rpx 16rpx 0;
+  border-radius: var(--cg-radius-md);
 }
 
-/* ---- 底部下单条 ---- */
+/* ---- 底部下单条：轻毛玻璃 ---- */
 .bottom-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
-  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
-}
-
-.bb-left {
-  display: flex;
-  flex-direction: column;
+  box-sizing: border-box;
+  padding: 16rpx 40rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--cg-glass-bg);
+  -webkit-backdrop-filter: blur(var(--cg-glass-blur));
+  backdrop-filter: blur(var(--cg-glass-blur));
+  border-top: var(--cg-glass-border);
+  box-shadow: 0 -4rpx 40rpx rgba(0, 0, 0, 0.06);
 }
 
 .bb-label {
-  font-size: 22rpx;
-  color: #8a9a98;
+  display: block;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .bb-price {
-  font-size: 38rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .bottom-btn {
-  background: #14342f;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 600;
-  padding: 24rpx 60rpx;
-  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280rpx;
+  height: 104rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="cg-page review">
     <view class="panel">
       <text class="panel-title">这次服务还满意吗？</text>
 
@@ -95,95 +95,98 @@ onLoad((options) => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+.review {
+  padding-top: 32rpx;
 }
 
+/* ---- 评价面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 36rpx 30rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
   display: block;
-  font-size: 34rpx;
-  color: #1b2b2a;
-  font-weight: 600;
-  text-align: center;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* ---- 星级 ---- */
 .stars {
   display: flex;
   justify-content: center;
-  margin-top: 36rpx;
+  margin-top: 32rpx;
 }
 
 .star {
+  margin: 0 16rpx;
   font-size: 64rpx;
-  color: #d7e3e1;
-  padding: 0 14rpx;
+  color: var(--cg-line);
+  line-height: 1;
 }
 
 .star-on {
-  color: #f7ba2a;
+  color: var(--cg-warning);
 }
 
 .rating-text {
   display: block;
+  margin-top: 24rpx;
   text-align: center;
-  font-size: 27rpx;
-  color: #8a9a98;
-  margin-top: 12rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
+/* ---- 标签 ---- */
 .tags {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 40rpx;
+  margin-top: 32rpx;
 }
 
 .tag {
-  padding: 14rpx 28rpx;
-  border: 2rpx solid #dfe9e7;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-  color: #6b7b79;
   margin: 0 16rpx 16rpx 0;
+  padding: 16rpx 32rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .tag-on {
-  border-color: #00aeb5;
-  color: #00aeb5;
-  background: #f3fbfb;
+  background: var(--cg-tint);
+  color: var(--cg-primary);
 }
 
+/* ---- 输入 ---- */
 .textarea {
-  width: 100%;
   box-sizing: border-box;
-  background: #f6faf9;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  font-size: 28rpx;
+  width: 100%;
   margin-top: 16rpx;
-  height: 180rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
+/* ---- 提交 ---- */
 .btn {
-  margin-top: 44rpx;
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  padding: 28rpx 0;
-  border-radius: 44rpx;
-  font-size: 32rpx;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  margin-top: 48rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .btn.disabled {
-  background: #cfe0de;
+  opacity: 0.4;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page pay">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else-if="detail">
       <!-- 状态头：待支付 + 倒计时 -->
@@ -56,7 +56,7 @@
         <view class="panel-title">支付方式</view>
         <view class="pt-row" :class="{ on: channel === 'wechat' }" @click="channel = 'wechat'">
           <view class="pt-main">
-            <text class="pt-ico">💚</text>
+            <view class="pt-ico pt-ico-wechat" />
             <view class="pt-text">
               <text class="pt-name">微信支付</text>
               <text class="pt-hint link" @click.stop="goRecharge">储值充值 · 支付更优惠 ›</text>
@@ -70,7 +70,7 @@
           @click="pickBalance"
         >
           <view class="pt-main">
-            <text class="pt-ico">💰</text>
+            <view class="pt-ico pt-ico-wallet" />
             <view class="pt-text">
               <text class="pt-name">储值余额抵扣</text>
               <text class="pt-hint">
@@ -83,7 +83,7 @@
       </view>
     </block>
 
-    <view v-else class="tip">订单不存在或已支付</view>
+    <view v-else class="cg-empty">订单不存在或已支付</view>
 
     <!-- 底部支付条 -->
     <view v-if="detail" class="bottom">
@@ -241,34 +241,27 @@ onUnload(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 200rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部支付条占位 */
+.pay {
+  padding-bottom: 220rpx;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 状态头：待支付 + 倒计时 ---- */
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 32rpx 30rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .status {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #fff;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .countdown {
@@ -277,33 +270,33 @@ onUnload(() => {
 
 .cd-label {
   display: block;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .cd-time {
   display: block;
-  margin-top: 4rpx;
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 2rpx;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-error);
 }
 
+/* ---- 面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 18rpx;
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .svc-row {
@@ -313,128 +306,191 @@ onUnload(() => {
 }
 
 .svc-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .svc-sub {
   display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .svc-price {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14rpx 0;
+  min-height: 72rpx;
 }
 
 .label {
-  font-size: 26rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .value {
-  font-size: 26rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .discount {
-  color: #ff5b4a;
+  color: var(--cg-error);
 }
 
-.total {
-  border-top: 2rpx solid #eaf1f0;
-  margin-top: 10rpx;
-  padding-top: 20rpx;
+.total .label {
+  color: var(--cg-title);
 }
 
-.price {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+.total .price {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
-.pay-type {
+/* ---- 支付方式 ---- */
+.pt-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 24rpx;
+  border: 2rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-md);
+  transition: border-color 0.28s ease-out, background-color 0.28s ease-out;
+}
+
+.pt-row + .pt-row {
+  margin-top: 24rpx;
+}
+
+.pt-row.on {
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
+}
+
+.pt-row.insufficient {
+  opacity: 0.6;
 }
 
 .pt-main {
   display: flex;
   align-items: center;
+  flex: 1;
 }
 
+/* 支付图标：低饱和扁平圆形，替代 emoji */
 .pt-ico {
-  font-size: 40rpx;
-  margin-right: 14rpx;
+  flex: none;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+}
+
+.pt-ico-wechat {
+  background: radial-gradient(circle at 50% 50%, #b8e6c8 0%, #8fd4a8 100%);
+}
+
+.pt-ico-wallet {
+  background: radial-gradient(circle at 50% 50%, #ffe3b8 0%, #ffcf8f 100%);
+}
+
+.pt-text {
+  flex: 1;
+  margin-left: 24rpx;
 }
 
 .pt-name {
-  font-size: 29rpx;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
+}
+
+.pt-hint {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.pt-hint.link {
+  color: var(--cg-primary);
 }
 
 .pt-check {
-  color: #00aeb5;
-  font-size: 34rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: var(--cg-primary);
+  color: #ffffff;
+  font-size: var(--cg-font-note);
 }
 
-/* ---- 底部支付条 ---- */
+/* ---- 底部支付条：轻毛玻璃 ---- */
 .bottom {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  background: #fff;
-  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
-}
-
-.bottom-left {
-  margin-right: auto;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 16rpx 40rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--cg-glass-bg);
+  -webkit-backdrop-filter: blur(var(--cg-glass-blur));
+  backdrop-filter: blur(var(--cg-glass-blur));
+  border-top: var(--cg-glass-border);
+  box-shadow: 0 -4rpx 40rpx rgba(0, 0, 0, 0.06);
 }
 
 .bl-label {
   display: block;
-  font-size: 22rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .bl-price {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .cancel {
-  font-size: 26rpx;
-  color: #8a9a98;
-  padding: 0 24rpx;
+  flex: 1;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .pay-btn {
-  background: #14342f;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 600;
-  padding: 24rpx 46rpx;
-  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 240rpx;
+  height: 104rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .pay-btn.disabled {
-  background: #cfe0de;
+  opacity: 0.4;
 }
 </style>

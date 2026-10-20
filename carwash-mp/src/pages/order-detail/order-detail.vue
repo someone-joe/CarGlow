@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page order-detail">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else-if="detail">
       <!-- 状态头 -->
@@ -93,7 +93,7 @@
       </view>
     </block>
 
-    <view v-else class="tip">订单不存在或无权查看</view>
+    <view v-else class="cg-empty">订单不存在或无权查看</view>
   </view>
 </template>
 
@@ -200,66 +200,66 @@ onLoad((options) => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 180rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部操作条占位：页面底部留白避开固定操作条 */
+.order-detail {
+  padding-bottom: 220rpx;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 状态头：顶部重点，醒目 ---- */
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 34rpx 30rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
+}
+
+.status-main {
+  flex: 1;
 }
 
 .status {
   display: block;
-  font-size: 38rpx;
-  font-weight: 700;
-  color: #fff;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .status-desc {
   display: block;
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  color: rgba(255, 255, 255, 0.85);
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .overdue {
-  font-size: 24rpx;
-  color: #fff;
-  background: #ff5b4a;
-  border-radius: 20rpx;
-  padding: 6rpx 18rpx;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: rgba(255, 59, 48, 0.10);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
 }
 
+/* ---- 模块卡片 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 18rpx;
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .svc-row {
@@ -269,116 +269,124 @@ onLoad((options) => {
 }
 
 .svc-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .svc-sub {
   display: block;
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .svc-price {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
+/* ---- 明细行：靠留白区分，不用分割线 ---- */
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14rpx 0;
+  min-height: 72rpx;
 }
 
 .label {
-  font-size: 26rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .value {
-  font-size: 26rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .discount {
-  color: #ff5b4a;
+  color: var(--cg-error);
 }
 
-.total {
-  border-top: 2rpx solid #eaf1f0;
-  margin-top: 10rpx;
-  padding-top: 20rpx;
+.total .label {
+  color: var(--cg-title);
 }
 
-.price {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+.total .price {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 /* ---- 时间轴 ---- */
 .node {
   display: flex;
-  min-height: 96rpx;
+  align-items: stretch;
 }
 
 .node-line {
-  width: 40rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 40rpx;
 }
 
 .dot {
+  flex: none;
+  box-sizing: border-box;
   width: 20rpx;
   height: 20rpx;
+  margin-top: 12rpx;
   border-radius: 50%;
-  background: #d7e3e1;
-  margin-top: 8rpx;
+  background: var(--cg-line);
 }
 
 .dot-reached {
-  background: #00aeb5;
+  background: var(--cg-primary);
 }
 
 .dot-current {
-  background: #14342f;
-  box-shadow: 0 0 0 8rpx rgba(0, 174, 181, 0.18);
+  box-shadow: 0 0 0 6rpx rgba(0, 122, 255, 0.15);
 }
 
 .line {
   flex: 1;
   width: 2rpx;
-  background: #e6eeec;
+  margin: 12rpx 0;
+  background: var(--cg-line);
 }
 
 .line-reached {
-  background: #00aeb5;
+  background: var(--cg-primary);
 }
 
 .node-body {
   flex: 1;
-  padding-bottom: 28rpx;
+  padding: 0 0 32rpx 24rpx;
+}
+
+.node:last-child .node-body {
+  padding-bottom: 0;
 }
 
 .node-title {
-  font-size: 28rpx;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
 }
 
 .node-title-todo {
-  color: #b6c2c0;
+  color: var(--cg-text-aux);
 }
 
 .node-time {
   display: block;
-  margin-top: 4rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 /* ---- 底部操作 ---- */
@@ -387,27 +395,35 @@ onLoad((options) => {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 10;
   display: flex;
-  gap: 16rpx;
-  background: #fff;
-  padding: 20rpx 24rpx;
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  padding: 16rpx 40rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--cg-glass-bg);
+  -webkit-backdrop-filter: blur(var(--cg-glass-blur));
+  backdrop-filter: blur(var(--cg-glass-blur));
+  border-top: var(--cg-glass-border);
+  box-shadow: 0 -4rpx 40rpx rgba(0, 0, 0, 0.06);
 }
 
 .foot-btn {
-  flex: 1;
+  min-height: 104rpx;
+  margin-left: 24rpx;
+  padding: 0 40rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
+  line-height: 104rpx;
   text-align: center;
-  padding: 26rpx 0;
-  border-radius: 44rpx;
-  font-size: 30rpx;
-  color: #6b7b79;
-  border: 2rpx solid #cfe0de;
 }
 
 .foot-btn.primary {
-  background: #14342f;
-  border-color: #14342f;
-  color: #fff;
-  font-weight: 600;
+  background: var(--cg-primary);
+  border-color: var(--cg-primary);
+  color: #ffffff;
 }
 </style>

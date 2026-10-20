@@ -1,8 +1,8 @@
 <template>
-  <view class="page">
-    <SiteBar />
+  <view class="cg-page cabinet">
+    <SiteBar variant="card" />
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <view v-if="!cabinets.length" class="empty">
@@ -67,60 +67,42 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 0;
-}
-
 .empty-title {
-  font-size: 30rpx;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
 }
 
 .empty-sub {
-  margin-top: 12rpx;
-  font-size: 25rpx;
-  color: #8a9a98;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
+/* ---- 柜机网格：两列卡片 ---- */
 .grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 18rpx;
+  margin: 0 -8rpx;
 }
 
 .slot {
   position: relative;
-  width: calc((100% - 36rpx) / 3);
-  background: #fff;
-  border-radius: 18rpx;
-  border: 2rpx solid #eaf1f0;
-  padding: 26rpx 18rpx;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: calc(50% - 16rpx);
+  margin: 16rpx 8rpx 0;
+  padding: 32rpx;
+  background: var(--cg-card);
+  border: 2rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
+  transition: border-color 0.28s ease-out, box-shadow 0.28s ease-out;
 }
 
 .slot.active {
-  border-color: #00aeb5;
-  background: #f3fbfb;
+  border-color: var(--cg-primary);
+  box-shadow: var(--cg-shadow-raised);
 }
 
 .slot.disabled {
@@ -128,23 +110,32 @@ onShow(load)
 }
 
 .slot-name {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  text-align: center;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+  line-height: 1.4;
 }
 
 .slot-free {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #8a9a98;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .slot-check {
   position: absolute;
-  top: 8rpx;
-  right: 12rpx;
-  font-size: 24rpx;
-  color: #00aeb5;
+  top: 32rpx;
+  right: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: var(--cg-primary);
+  color: #ffffff;
+  font-size: var(--cg-font-note);
 }
 </style>

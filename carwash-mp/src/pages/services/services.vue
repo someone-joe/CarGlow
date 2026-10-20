@@ -1,35 +1,36 @@
 <template>
-  <view class="page">
-    <SiteBar />
+  <view class="cg-page services">
+    <SiteBar variant="card" />
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <!-- 分类 Tab：来自后台 service-categories，支持空态 -->
-      <view class="tabs">
+      <view class="cg-tabs">
         <view
           v-for="c in categories"
           :key="c.categoryId"
-          :class="['tab', activeCat === c.categoryId && 'tab-active']"
+          class="cg-tab"
+          :class="{ 'is-active': activeCat === c.categoryId }"
           @click="activeCat = c.categoryId"
         >
           {{ c.name }}
         </view>
-        <view v-if="!categories.length" class="tab tab-active">洗车服务</view>
+        <view v-if="!categories.length" class="cg-tab is-active">洗车服务</view>
       </view>
 
-      <view v-if="!currentList.length" class="empty">
+      <view v-if="!currentList.length" class="cg-empty">
         <text class="empty-title">该分类暂无服务</text>
         <text class="empty-sub">去其他分类看看吧</text>
       </view>
 
       <!-- 服务卡片：价格/工时/取送费全部后端下发，前端不写死任何价格 -->
-      <view v-for="item in currentList" :key="item.serviceId" class="card" :class="{ disabled: item.soldOut }">
+      <view v-for="item in currentList" :key="item.serviceId" class="cg-card card" :class="{ disabled: item.soldOut }">
         <image v-if="item.coverUrl" class="cover" :src="item.coverUrl" mode="aspectFill" />
         <view class="card-body">
           <view class="card-top">
             <text class="name">{{ item.name }}</text>
-            <text v-if="item.soldOut" class="badge">今夜已约满</text>
+            <text v-if="item.soldOut" class="cg-status is-busy badge">今夜已约满</text>
           </view>
           <text v-if="item.subtitle" class="subtitle">{{ item.subtitle }}</text>
 
@@ -46,9 +47,9 @@
           </view>
 
           <view class="card-actions">
-            <text class="detail" @click="goDetail(item.serviceId)">详情 ›</text>
-            <text v-if="!item.soldOut" class="book" @click="book(item.serviceId)">确定下单</text>
-            <text v-else class="book book-disabled">明晚可约</text>
+            <view class="cg-btn-text detail" @click="goDetail(item.serviceId)">详情</view>
+            <view v-if="!item.soldOut" class="cg-btn cg-btn-primary book" @click="book(item.serviceId)">确定下单</view>
+            <view v-else class="cg-btn cg-btn-secondary book book-disabled">明晚可约</view>
           </view>
         </view>
       </view>
@@ -110,66 +111,29 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
-}
-
-.tabs {
-  display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 22rpx 0;
-  font-size: 28rpx;
-  color: #6b7b79;
-  border-radius: 14rpx;
-}
-
-.tab-active {
-  background: #00aeb5;
-  color: #fff;
-  font-weight: 600;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100rpx 0;
+/* tabBar 页：底部留白需避开原生 tabBar */
+.services {
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
 .empty-title {
-  font-size: 30rpx;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
 }
 
 .empty-sub {
-  font-size: 26rpx;
-  color: #8a9a98;
-  margin-top: 12rpx;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
+/* ---- 服务卡片 ---- */
 .card {
-  background: #fff;
-  border-radius: 20rpx;
+  margin-bottom: 32rpx;
+  padding: 0;
   overflow: hidden;
-  margin-bottom: 20rpx;
 }
 
 .card.disabled {
@@ -177,13 +141,13 @@ onShow(load)
 }
 
 .cover {
+  display: block;
   width: 100%;
   height: 240rpx;
-  background: #eef3f2;
 }
 
 .card-body {
-  padding: 26rpx;
+  padding: 32rpx 40rpx 40rpx;
 }
 
 .card-top {
@@ -193,80 +157,76 @@ onShow(load)
 }
 
 .name {
-  font-size: 32rpx;
-  color: #1b2b2a;
-  font-weight: 600;
+  flex: 1;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .badge {
-  font-size: 22rpx;
-  color: #ff5b4a;
-  background: #ffeeeb;
-  border-radius: 20rpx;
-  padding: 6rpx 16rpx;
+  flex: none;
+  margin-left: 24rpx;
 }
 
 .subtitle {
   display: block;
-  margin-top: 8rpx;
-  font-size: 25rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .price-row {
   display: flex;
   align-items: baseline;
-  gap: 14rpx;
-  margin-top: 18rpx;
+  margin-top: 24rpx;
 }
 
 .price {
-  font-size: 40rpx;
-  color: #ff5b4a;
-  font-weight: 700;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .origin {
-  font-size: 24rpx;
-  color: #b6c2c0;
+  margin-left: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
   text-decoration: line-through;
 }
 
 .meta {
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  margin-top: 12rpx;
-  font-size: 24rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+}
+
+.work {
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .pickup {
-  color: #00aeb5;
+  margin-left: 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-success);
 }
 
 .card-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 22rpx;
+  margin-top: 32rpx;
 }
 
 .detail {
-  font-size: 27rpx;
-  color: #8a9a98;
+  min-height: 104rpx;
 }
 
 .book {
-  background: #14342f;
-  color: #fff;
-  font-size: 27rpx;
-  padding: 14rpx 38rpx;
-  border-radius: 34rpx;
+  width: 240rpx;
 }
 
 .book-disabled {
-  background: #cfe0de;
-  color: #fff;
+  opacity: 0.5;
 }
 </style>

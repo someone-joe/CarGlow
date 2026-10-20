@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page recharge">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <view class="current">
@@ -120,135 +120,143 @@ onShow(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 60rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
+/* 底部提交条占位 */
+.recharge {
+  padding-bottom: 220rpx;
 }
 
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 当前余额 ---- */
 .current {
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 32rpx;
-  margin-bottom: 20rpx;
-  color: #fff;
+  margin-top: 32rpx;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .cur-label {
   display: block;
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .cur-value {
   display: block;
-  margin-top: 8rpx;
-  font-size: 48rpx;
-  font-weight: 700;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
+/* ---- 档位面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 20rpx;
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .tiers {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
+  margin: 0 -8rpx;
 }
 
+/* 档位卡：选中 = 2px 蓝边 + 6% 淡蓝底 + 提升阴影，不放大 */
 .tier {
-  width: calc(33.333% - 14rpx);
   box-sizing: border-box;
-  border: 2rpx solid #e3ecea;
-  border-radius: 16rpx;
-  padding: 26rpx 0;
+  width: calc(33.333% - 16rpx);
+  margin: 8rpx;
+  padding: 32rpx 16rpx;
+  background: var(--cg-card);
+  border: 2rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-md);
   text-align: center;
+  transition: border-color 0.28s ease-out, background-color 0.28s ease-out, box-shadow 0.28s ease-out;
 }
 
 .tier.on {
-  border-color: #00aeb5;
-  background: #eaf8f8;
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
+  box-shadow: var(--cg-shadow-raised);
 }
 
 .tier-amount {
   display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1b2b2a;
+  font-size: var(--cg-font-body);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .tier-gift {
   display: block;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #ff5b4a;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
 }
 
 .tier-gift.none {
-  color: #b6c2c0;
+  color: var(--cg-text-aux);
 }
 
+/* ---- 自定义金额 ---- */
 .custom {
-  display: flex;
-  align-items: center;
-  margin-top: 28rpx;
-  padding-top: 24rpx;
-  border-top: 2rpx solid #f2f7f7;
+  margin-top: 32rpx;
 }
 
 .custom-label {
-  font-size: 28rpx;
-  color: #1b2b2a;
-  margin-right: 20rpx;
+  display: block;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .custom-input {
-  flex: 1;
-  background: #f2f7f7;
-  border-radius: 12rpx;
-  padding: 18rpx 20rpx;
-  font-size: 28rpx;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 16rpx;
+  padding: 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .tip-inline {
-  font-size: 22rpx;
-  color: #8a9a98;
-  line-height: 34rpx;
-  padding: 0 8rpx 24rpx;
+  display: block;
+  margin-top: 32rpx;
+  padding: 0 8rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+  line-height: 1.6;
 }
 
+/* ---- 底部提交条 ---- */
 .submit {
-  background: #14342f;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 600;
-  text-align: center;
-  padding: 26rpx 0;
-  border-radius: 44rpx;
+  position: fixed;
+  left: 40rpx;
+  right: 40rpx;
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
 .submit.disabled {
-  background: #cfe0de;
+  opacity: 0.4;
 }
 </style>

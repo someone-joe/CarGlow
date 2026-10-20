@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page wallet">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
       <!-- 余额卡 -->
@@ -100,47 +100,32 @@ onShow(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 60rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 余额总卡 ---- */
 .balance-card {
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 24rpx;
-  padding: 40rpx 32rpx;
-  margin-bottom: 20rpx;
-  color: #fff;
-  position: relative;
+  margin-top: 32rpx;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .bc-total-label {
   display: block;
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .bc-total-value {
   display: block;
-  margin-top: 10rpx;
-  font-size: 64rpx;
-  font-weight: 700;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .bc-split {
   display: flex;
-  margin-top: 30rpx;
-  padding-top: 26rpx;
-  border-top: 2rpx solid rgba(255, 255, 255, 0.25);
+  margin-top: 32rpx;
 }
 
 .bc-item {
@@ -149,97 +134,95 @@ onShow(() => {
 
 .bc-item-label {
   display: block;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .bc-item-value {
   display: block;
-  margin-top: 6rpx;
-  font-size: 30rpx;
-  font-weight: 600;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-text);
 }
 
 .bc-recharge {
-  position: absolute;
-  right: 32rpx;
-  top: 40rpx;
-  background: #fff;
-  color: #0e8f94;
-  font-size: 26rpx;
-  font-weight: 600;
-  padding: 12rpx 32rpx;
-  border-radius: 40rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 176rpx;
+  height: 104rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: #ffffff;
 }
 
+/* ---- 流水面板 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
+  margin-top: 32rpx;
+  padding: 8rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 8rpx;
+  display: block;
+  padding: 32rpx 0 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .empty {
+  padding: 64rpx 0;
   text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-aux);
 }
 
 .flow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22rpx 0;
-  border-bottom: 2rpx solid #f2f7f7;
-}
-
-.flow:last-child {
-  border-bottom: none;
+  padding: 32rpx 0;
+  border-top: 1rpx solid var(--cg-line);
 }
 
 .flow-type {
-  display: block;
-  font-size: 28rpx;
-  color: #1b2b2a;
+  flex: 1;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text);
 }
 
 .flow-time {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #8a9a98;
+  flex: none;
+  margin: 0 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
 .flow-amount {
-  text-align: right;
+  flex: none;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .flow-num {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 600;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .flow-gift {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 22rpx;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
-.in {
-  color: #ff5b4a;
-}
-
-.out {
-  color: #1b2b2a;
+.in .flow-amount {
+  color: var(--cg-success);
 }
 </style>

@@ -1,12 +1,12 @@
 <template>
-  <view class="page">
+  <view class="cg-page coupons">
     <!-- 顶部切换：领券中心 / 我的优惠券（激活码与卡包无后端支撑，按约定不展示） -->
-    <view class="tabs">
-      <view class="tab" :class="{ active: tab === 'center' }" @click="tab = 'center'">领券中心</view>
-      <view class="tab" :class="{ active: tab === 'mine' }" @click="switchToMine">我的优惠券</view>
+    <view class="cg-tabs">
+      <view class="cg-tab" :class="{ 'is-active': tab === 'center' }" @click="tab = 'center'">领券中心</view>
+      <view class="cg-tab" :class="{ 'is-active': tab === 'mine' }" @click="switchToMine">我的优惠券</view>
     </view>
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <!-- 领券中心 -->
     <block v-else-if="tab === 'center'">
@@ -168,76 +168,15 @@ onShow(loadAll)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tabs {
-  display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 22rpx 0;
-  font-size: 28rpx;
-  color: #6b7b79;
-  border-radius: 14rpx;
-}
-
-.tab.active {
-  background: #00aeb5;
-  color: #fff;
-  font-weight: 600;
-}
-
-.sub-tabs {
-  display: flex;
-  gap: 16rpx;
-  margin-bottom: 20rpx;
-}
-
-.sub-tab {
-  padding: 12rpx 28rpx;
-  border-radius: 30rpx;
-  background: #fff;
-  font-size: 25rpx;
-  color: #6b7b79;
-}
-
-.sub-tab.active {
-  background: #14342f;
-  color: #fff;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
-}
-
-.empty {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
-/* ---- 券卡 ---- */
+/* ---- 券卡：左金额右信息，白卡 + 细分割 ---- */
 .coupon {
   display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  overflow: hidden;
-  margin-bottom: 20rpx;
+  align-items: center;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .coupon.invalid {
@@ -245,31 +184,26 @@ onShow(loadAll)
 }
 
 .coupon-left {
-  width: 220rpx;
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 30rpx 10rpx;
+  flex: none;
+  width: 200rpx;
+  padding-right: 32rpx;
+  border-right: 1rpx solid var(--cg-line);
+  text-align: center;
 }
 
 .amount {
-  font-size: 52rpx;
-  font-weight: 700;
-}
-
-.amount::before {
-  content: '¥';
-  font-size: 28rpx;
-  margin-right: 4rpx;
+  display: block;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-error);
+  line-height: 1.1;
 }
 
 .cond {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  opacity: 0.9;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .coupon-right {
@@ -277,7 +211,7 @@ onShow(loadAll)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 26rpx 24rpx;
+  margin-left: 32rpx;
 }
 
 .coupon-main {
@@ -285,42 +219,75 @@ onShow(loadAll)
 }
 
 .name {
-  font-size: 29rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .tag {
-  margin-left: 10rpx;
-  font-size: 21rpx;
-  color: #ff5b4a;
-  background: #ffeeeb;
-  border-radius: 18rpx;
-  padding: 3rpx 12rpx;
+  display: inline-block;
+  margin-top: 16rpx;
+  padding: 4rpx 20rpx;
+  background: var(--cg-tint);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-primary);
 }
 
 .meta {
   display: block;
-  margin-top: 8rpx;
-  font-size: 23rpx;
-  color: #8a9a98;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .btn {
-  background: #14342f;
-  color: #fff;
-  font-size: 25rpx;
-  padding: 12rpx 30rpx;
-  border-radius: 32rpx;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 144rpx;
+  height: 72rpx;
+  margin-left: 24rpx;
+  background: var(--cg-primary);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: #ffffff;
 }
 
 .btn-disabled {
-  background: #cfe0de;
-  color: #fff;
+  background: var(--cg-fill);
+  color: var(--cg-text-aux);
 }
 
 .status-text {
-  font-size: 24rpx;
-  color: #8a9a98;
+  flex: none;
+  margin-left: 24rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+}
+
+/* ---- 我的券状态子 Tab ---- */
+.sub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 32rpx;
+}
+
+.sub-tab {
+  margin: 0 16rpx 16rpx 0;
+  padding: 12rpx 32rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-line);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.sub-tab.active {
+  border-color: var(--cg-primary);
+  background: var(--cg-tint);
+  color: var(--cg-primary);
 }
 </style>

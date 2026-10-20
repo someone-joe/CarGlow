@@ -1,25 +1,25 @@
 <template>
-  <view class="page">
-    <view class="tabs">
+  <view class="cg-page orders">
+    <view class="cg-tabs">
       <view
         v-for="t in tabs"
         :key="t.key"
-        :class="['tab', activeTab === t.key && 'tab-active']"
+        class="cg-tab"
+        :class="{ 'is-active': activeTab === t.key }"
         @click="switchTab(t.key)"
       >
         {{ t.label }}
       </view>
     </view>
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
-    <view v-else-if="list.length === 0" class="empty">
-      <image class="empty-img" src="/static/logo.png" mode="aspectFit" />
+    <view v-else-if="list.length === 0" class="cg-empty">
       <text class="empty-title">暂无订单</text>
       <text class="empty-sub">洗车订单会出现在这里</text>
     </view>
 
-    <view v-for="item in list" :key="item.orderNo" class="card" @click="goDetail(item)">
+    <view v-for="item in list" :key="item.orderNo" class="cg-card card" @click="goDetail(item)">
       <view class="card-top">
         <text class="svc">{{ item.serviceName }}</text>
         <text class="badge">{{ item.statusLabel }}</text>
@@ -83,8 +83,8 @@
       </template>
     </view>
 
-    <view v-if="loadingMore" class="tip">加载中…</view>
-    <view v-else-if="!loading && list.length > 0 && !hasMore" class="tip">没有更多了</view>
+    <view v-if="loadingMore" class="cg-empty">加载中…</view>
+    <view v-else-if="!loading && list.length > 0 && !hasMore" class="cg-empty">没有更多了</view>
   </view>
 </template>
 
@@ -344,153 +344,102 @@ onReachBottom(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tabs {
-  display: flex;
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 22rpx 0;
-  font-size: 28rpx;
-  color: #6b7b79;
-  border-radius: 14rpx;
-}
-
-.tab-active {
-  background: #00aeb5;
-  color: #fff;
-  font-weight: 600;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 40rpx 0;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 0;
-}
-
-.empty-img {
-  width: 160rpx;
-  height: 160rpx;
-  opacity: 0.4;
-  margin-bottom: 32rpx;
+/* tabBar 页：底部留白需避开原生 tabBar */
+.orders {
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
 .empty-title {
-  font-size: 32rpx;
-  color: #1b2b2a;
+  display: block;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
 }
 
 .empty-sub {
-  font-size: 26rpx;
-  color: #8a9a98;
-  margin-top: 12rpx;
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
 }
 
+/* ---- 订单卡 ---- */
 .card {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 32rpx;
 }
 
 .card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
 }
 
 .svc {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  /* 服务名长时单行省略，不挤压右侧状态徽章（bug092405） */
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
+/* 状态标签：待处理=橙、服务中=蓝、已完成=绿由后端 statusLabel 仅作文案，颜色按分组常量映射 */
 .badge {
-  font-size: 23rpx;
-  color: #00aeb5;
-  background: #e6f7f7;
-  border-radius: 20rpx;
-  padding: 6rpx 18rpx;
-  flex-shrink: 0;
-  margin-left: 16rpx;
-  white-space: nowrap;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .meta {
-  padding: 18rpx 0;
+  margin-top: 24rpx;
 }
 
 .meta-line {
   display: block;
-  font-size: 25rpx;
-  color: #8a9a98;
-  line-height: 1.8;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
-/* 派单信息要醒目一点：钥匙入柜后客户最想知道有没有人接单 */
 .meta-dispatch {
-  color: #00aeb5;
-  font-weight: 500;
+  color: var(--cg-primary);
 }
 
 .card-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 18rpx;
-  border-top: 2rpx solid #eaf1f0;
+  margin-top: 32rpx;
 }
 
 .amount {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ff5b4a;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .ops {
   display: flex;
-  gap: 16rpx;
+  align-items: center;
 }
 
 .op {
-  border: 2rpx solid #cfe0de;
-  color: #6b7b79;
-  font-size: 26rpx;
-  padding: 12rpx 26rpx;
-  border-radius: 32rpx;
+  min-height: 72rpx;
+  margin-left: 24rpx;
+  padding: 0 32rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-caption);
+  color: var(--cg-title);
+  line-height: 72rpx;
+  text-align: center;
 }
 
 .op-primary {
-  background: #14342f;
-  border-color: #14342f;
-  color: #fff;
+  background: var(--cg-primary);
+  border-color: var(--cg-primary);
+  color: #ffffff;
 }
 </style>
