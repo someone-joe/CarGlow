@@ -1,18 +1,18 @@
 <template>
-  <view class="page">
-    <view class="tabs">
+  <view class="cg-page selfwash-orders">
+    <view class="cg-tabs">
       <view
         v-for="t in tabs"
         :key="t.key"
-        class="tab"
-        :class="{ active: tab === t.key }"
+        class="cg-tab"
+        :class="{ 'is-active': tab === t.key }"
         @click="switchTab(t.key)"
       >
         {{ t.label }}
       </view>
     </view>
 
-    <view v-if="loading" class="tip">加载中…</view>
+    <view v-if="loading" class="cg-empty">加载中…</view>
     <view v-else-if="!list.length" class="empty">暂无相关订单</view>
 
     <view v-for="o in list" :key="o.orderNo" class="card" @click="goDetail(o.orderNo)">
@@ -83,49 +83,13 @@ onShow(load)
 </script>
 
 <style>
-.page {
-  padding: 24rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tabs {
-  display: flex;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 8rpx;
-  margin-bottom: 20rpx;
-}
-
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 18rpx 0;
-  font-size: 26rpx;
-  color: #6b7b79;
-  border-radius: 12rpx;
-}
-
-.tab.active {
-  background: #00aeb5;
-  color: #fff;
-  font-weight: 600;
-}
-
-.tip,
-.empty {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 60rpx 0;
-}
-
+/* ---- 订单卡 ---- */
 .card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .card-top {
@@ -135,43 +99,52 @@ onShow(load)
 }
 
 .svc {
-  font-size: 29rpx;
-  font-weight: 600;
-  color: #1b2b2a;
+  flex: 1;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .status {
-  font-size: 25rpx;
-  font-weight: 600;
-  color: #00aeb5;
+  flex: none;
+  margin-left: 24rpx;
+  padding: 8rpx 24rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .status.busy {
-  color: #ff8a3d;
+  background: rgba(255, 59, 48, 0.10);
+  color: var(--cg-error);
 }
 
 .status.queue {
-  color: #7b6cf6;
+  background: rgba(255, 149, 0, 0.12);
+  color: var(--cg-warning);
 }
 
 .status.done {
-  color: #8a9a98;
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--cg-success);
 }
 
 .status.cancel {
-  color: #ff5b4a;
+  background: rgba(134, 134, 139, 0.14);
+  color: var(--cg-text-sub);
 }
 
 .card-sub {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #6b7b79;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .card-sub.muted {
-  color: #b6c2c0;
-  font-size: 22rpx;
+  color: var(--cg-text-aux);
 }
 </style>

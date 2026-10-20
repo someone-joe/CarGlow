@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view v-if="loading" class="tip">加载中…</view>
+  <view class="cg-page selfwash-detail">
+    <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else-if="order">
       <!-- 状态头 -->
@@ -40,7 +40,7 @@
       </view>
     </block>
 
-    <view v-else class="tip">订单不存在</view>
+    <view v-else class="cg-empty">订单不存在</view>
 
     <!-- 加时确认：用页面内弹层，不用 uni.showModal（该 API 在运行环境偶发不弹窗，点击会毫无反应） -->
     <view v-if="addTimeDlg">
@@ -278,190 +278,192 @@ onUnload(() => {
 </script>
 
 <style>
-.page {
-  padding: 24rpx 24rpx 60rpx;
-  background: #f2f7f7;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  color: #8a9a98;
-  font-size: 26rpx;
-  padding: 80rpx 0;
-}
-
+/* ---- 状态头 ---- */
 .status-bar {
-  background: linear-gradient(135deg, #00aeb5, #0e8f94);
-  border-radius: 20rpx;
-  padding: 36rpx 30rpx;
-  margin-bottom: 20rpx;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .status {
-  font-size: 36rpx;
-  font-weight: 700;
+  flex: 1;
+  font-size: var(--cg-font-title);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .countdown {
-  margin-top: 16rpx;
+  text-align: right;
 }
 
 .cd-label {
   display: block;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 
 .cd-time {
   display: block;
-  margin-top: 6rpx;
-  font-size: 56rpx;
-  font-weight: 700;
-  letter-spacing: 3rpx;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-primary);
 }
 
 .queue-tip {
-  display: block;
-  margin-top: 14rpx;
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.95);
+  flex: 1;
+  margin-left: 32rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-warning);
+  text-align: right;
 }
 
+/* ---- 订单信息 ---- */
 .panel {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  margin-top: 32rpx;
+  padding: 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-card);
 }
 
 .panel-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1b2b2a;
-  padding-bottom: 18rpx;
-  border-bottom: 2rpx solid #eaf1f0;
-  margin-bottom: 12rpx;
+  display: block;
+  margin-bottom: 24rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 500;
+  color: var(--cg-title);
 }
 
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14rpx 0;
+  min-height: 72rpx;
 }
 
 .label {
-  font-size: 26rpx;
-  color: #8a9a98;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
 }
 
 .value {
-  font-size: 26rpx;
-  color: #1b2b2a;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text);
 }
 
 .value.price {
-  color: #ff5b4a;
-  font-weight: 700;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .value.discount {
-  color: #ff5b4a;
+  color: var(--cg-error);
 }
 
+/* ---- 操作区 ---- */
 .ops {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
+  justify-content: flex-end;
+  margin-top: 32rpx;
 }
 
 .op {
-  flex: 1;
-  min-width: 200rpx;
+  min-height: 104rpx;
+  margin: 16rpx 0 0 24rpx;
+  padding: 0 40rpx;
+  background: var(--cg-card);
+  border: 1rpx solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  font-size: var(--cg-font-body);
+  color: var(--cg-title);
+  line-height: 104rpx;
   text-align: center;
-  background: #14342f;
-  color: #fff;
-  font-size: 29rpx;
-  font-weight: 600;
-  padding: 24rpx 0;
-  border-radius: 40rpx;
 }
 
 .op.primary {
-  background: #00aeb5;
+  background: var(--cg-primary);
+  border-color: var(--cg-primary);
+  color: #ffffff;
 }
 
 .op.plain {
-  background: #eef3f2;
-  color: #6b7b79;
+  background: var(--cg-fill);
+  border-color: transparent;
 }
 
 .op.danger {
-  background: #ffeeeb;
-  color: #ff5b4a;
+  border-color: var(--cg-error);
+  color: var(--cg-error);
 }
 
+/* ---- 加时弹层 ---- */
 .mask {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9998;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.4);
+  animation: cg-fade 0.25s ease;
+}
+
+@keyframes cg-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .dialog {
   position: fixed;
-  left: 70rpx;
-  right: 70rpx;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 9999;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 36rpx 32rpx;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  box-sizing: border-box;
+  width: 560rpx;
+  padding: 48rpx 40rpx;
+  background: var(--cg-card);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-raised);
+  text-align: center;
+  animation: cg-rise 0.25s ease;
+}
+
+@keyframes cg-rise {
+  from {
+    transform: translate(-50%, -46%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
 }
 
 .dlg-title {
   display: block;
-  text-align: center;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1b2b2a;
-  margin-bottom: 20rpx;
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
 }
 
 .dlg-desc {
   display: block;
-  font-size: 26rpx;
-  color: #6b7b79;
-  line-height: 42rpx;
-}
-
-.dlg-btns {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 32rpx;
-}
-
-.dlg-btn {
-  flex: 1;
-  background: #14342f;
-  color: #fff;
-  text-align: center;
-  border-radius: 40rpx;
-  padding: 22rpx 0;
-  font-size: 29rpx;
-  font-weight: 600;
-}
-
-.dlg-btn.plain {
-  background: #eef3f2;
-  color: #6b7b79;
-}
-
-.dlg-btn.disabled {
-  opacity: 0.6;
+  margin-top: 24rpx;
+  font-size: var(--cg-font-caption);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
 }
 </style>
