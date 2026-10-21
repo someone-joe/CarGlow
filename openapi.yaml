@@ -4756,6 +4756,18 @@ components:
           enum: [OPEN, CLOSED, RAINY]
           description: 正常 / 停业 / 雨天模式
         closedNotice: { type: string }
+        detailTitle:
+          type: string
+          description: 站点详情标题（服务页 Hero）；未配置时 C 端回退站点名
+        detailSubtitle:
+          type: string
+          description: 站点详情副标题；未配置时 C 端回退默认卖点文案
+        detailImageUrl:
+          type: string
+          description: 站点详情头图 URL；为空时 C 端渲染渐变+插图占位
+        detailDesc:
+          type: string
+          description: 站点详情补充文案（可选）
 
     CommunityVO:
       type: object
@@ -5585,6 +5597,10 @@ components:
         businessEnd: { type: string, description: 营业时段止，如 23:00 }
         serviceStatus: { type: string, description: 营业状态 OPEN/CLOSED }
         closedNotice: { type: string, description: 停业公告 }
+        detailTitle: { type: string, description: 站点详情标题（服务页 Hero），未配置回退站点名 }
+        detailSubtitle: { type: string, description: 站点详情副标题 }
+        detailImageUrl: { type: string, description: 站点详情头图 URL，为空时 C 端渲染占位 }
+        detailDesc: { type: string, description: 站点详情补充文案（可选） }
 
     WashCommunity:
       type: object
