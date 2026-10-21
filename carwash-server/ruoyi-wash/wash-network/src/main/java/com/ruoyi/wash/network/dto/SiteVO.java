@@ -11,6 +11,11 @@ public class SiteVO {
     private String displayName;
     private String serviceStatus;
     private String closedNotice;
+    /** 站点详情（服务页 Hero）：后台可配；未配置时 C 端回退，故允许为空 */
+    private String detailTitle;
+    private String detailSubtitle;
+    private String detailImageUrl;
+    private String detailDesc;
 
     public Long getSiteId() {
         return siteId;
@@ -66,5 +71,37 @@ public class SiteVO {
 
     public void setClosedNotice(String closedNotice) {
         this.closedNotice = closedNotice;
+    }
+
+    public String getDetailTitle() {
+        return detailTitle;
+    }
+
+    public void setDetailTitle(String detailTitle) {
+        this.detailTitle = detailTitle;
+    }
+
+    public String getDetailSubtitle() {
+        return detailSubtitle;
+    }
+
+    public void setDetailSubtitle(String detailSubtitle) {
+        this.detailSubtitle = detailSubtitle;
+    }
+
+    public String getDetailImageUrl() {
+        return detailImageUrl;
+    }
+
+    public void setDetailImageUrl(String detailImageUrl) {
+        this.detailImageUrl = detailImageUrl;
+    }
+
+    public String getDetailDesc() {
+        return detailDesc;
+    }
+
+    public void setDetailDesc(String detailDesc) {
+        this.detailDesc = detailDesc;
     }
 }

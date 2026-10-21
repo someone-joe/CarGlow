@@ -52,6 +52,11 @@ public class WashSiteQueryService {
         vo.setSiteName(site.getSiteName());
         vo.setServiceStatus(site.getServiceStatus());
         vo.setClosedNotice(site.getClosedNotice());
+        // 站点详情：后台可配，原样下发；未配置时由 C 端回退（后端不做默认值，避免双份文案）
+        vo.setDetailTitle(site.getDetailTitle());
+        vo.setDetailSubtitle(site.getDetailSubtitle());
+        vo.setDetailImageUrl(site.getDetailImageUrl());
+        vo.setDetailDesc(site.getDetailDesc());
         if (community != null) {
             vo.setCommunityId(community.getCommunityId());
             vo.setCommunityName(community.getCommunityName());

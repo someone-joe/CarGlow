@@ -14,6 +14,11 @@ public class WashSite {
     private String businessEnd;
     private String serviceStatus;
     private String closedNotice;
+    /** 站点详情（服务页 Hero）：标题/副标题/头图/补充文案，全部后台可配，空则 C 端回退 */
+    private String detailTitle;
+    private String detailSubtitle;
+    private String detailImageUrl;
+    private String detailDesc;
 
     public Long getSiteId() {
         return siteId;
@@ -85,5 +90,37 @@ public class WashSite {
 
     public void setClosedNotice(String closedNotice) {
         this.closedNotice = closedNotice;
+    }
+
+    public String getDetailTitle() {
+        return detailTitle;
+    }
+
+    public void setDetailTitle(String detailTitle) {
+        this.detailTitle = detailTitle;
+    }
+
+    public String getDetailSubtitle() {
+        return detailSubtitle;
+    }
+
+    public void setDetailSubtitle(String detailSubtitle) {
+        this.detailSubtitle = detailSubtitle;
+    }
+
+    public String getDetailImageUrl() {
+        return detailImageUrl;
+    }
+
+    public void setDetailImageUrl(String detailImageUrl) {
+        this.detailImageUrl = detailImageUrl;
+    }
+
+    public String getDetailDesc() {
+        return detailDesc;
+    }
+
+    public void setDetailDesc(String detailDesc) {
+        this.detailDesc = detailDesc;
     }
 }

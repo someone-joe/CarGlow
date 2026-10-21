@@ -12,16 +12,16 @@ import java.util.List;
 public interface WashSiteMapper {
 
     @Select("select site_id, site_name, daily_limit, deposit_deadline, promise_return_time, " +
-            "business_start, business_end, service_status, closed_notice from wash_site where site_id = #{siteId} and del_flag = '0' limit 1")
+            "business_start, business_end, service_status, closed_notice, detail_title, detail_subtitle, detail_image_url, detail_desc from wash_site where site_id = #{siteId} and del_flag = '0' limit 1")
     WashSite selectById(@Param("siteId") Long siteId);
 
     /** 全部未删除站点：给产能初始化任务用（已停业的站点也要有产能，否则无法限制下单） */
     @Select("select site_id, site_name, daily_limit, deposit_deadline, promise_return_time, " +
-            "business_start, business_end, service_status, closed_notice from wash_site where del_flag = '0' order by site_id asc")
+            "business_start, business_end, service_status, closed_notice, detail_title, detail_subtitle, detail_image_url, detail_desc from wash_site where del_flag = '0' order by site_id asc")
     List<WashSite> selectAll();
 
     @Select("<script>select site_id, site_name, daily_limit, deposit_deadline, promise_return_time, " +
-            "business_start, business_end, service_status, closed_notice from wash_site where del_flag = '0' " +
+            "business_start, business_end, service_status, closed_notice, detail_title, detail_subtitle, detail_image_url, detail_desc from wash_site where del_flag = '0' " +
             "<if test='siteName != null and siteName != \"\"'>and site_name like concat('%', #{siteName}, '%')</if> " +
             "order by site_id asc limit #{offset}, #{limit}</script>")
     List<WashSite> selectList(@Param("siteName") String siteName,
@@ -40,6 +40,10 @@ public interface WashSiteMapper {
             "<if test='businessEnd != null'>business_end,</if>" +
             "<if test='serviceStatus != null'>service_status,</if>" +
             "<if test='closedNotice != null'>closed_notice,</if>" +
+            "<if test='detailTitle != null'>detail_title,</if>" +
+            "<if test='detailSubtitle != null'>detail_subtitle,</if>" +
+            "<if test='detailImageUrl != null'>detail_image_url,</if>" +
+            "<if test='detailDesc != null'>detail_desc,</if>" +
             "del_flag, create_time" +
             "</trim> " +
             "<trim prefix='values (' suffix=')' suffixOverrides=','>" +
@@ -50,6 +54,10 @@ public interface WashSiteMapper {
             "<if test='businessEnd != null'>#{businessEnd},</if>" +
             "<if test='serviceStatus != null'>#{serviceStatus},</if>" +
             "<if test='closedNotice != null'>#{closedNotice},</if>" +
+            "<if test='detailTitle != null'>#{detailTitle},</if>" +
+            "<if test='detailSubtitle != null'>#{detailSubtitle},</if>" +
+            "<if test='detailImageUrl != null'>#{detailImageUrl},</if>" +
+            "<if test='detailDesc != null'>#{detailDesc},</if>" +
             "'0', now()" +
             "</trim></script>")
     int insert(WashSite site);
@@ -64,6 +72,10 @@ public interface WashSiteMapper {
             "<if test='businessEnd != null'>business_end = #{businessEnd},</if>" +
             "<if test='serviceStatus != null'>service_status = #{serviceStatus},</if>" +
             "<if test='closedNotice != null'>closed_notice = #{closedNotice},</if>" +
+            "<if test='detailTitle != null'>detail_title = #{detailTitle},</if>" +
+            "<if test='detailSubtitle != null'>detail_subtitle = #{detailSubtitle},</if>" +
+            "<if test='detailImageUrl != null'>detail_image_url = #{detailImageUrl},</if>" +
+            "<if test='detailDesc != null'>detail_desc = #{detailDesc},</if>" +
             "update_time = now()" +
             "</set> where site_id = #{siteId} and del_flag = '0'</script>")
     int update(WashSite site);
