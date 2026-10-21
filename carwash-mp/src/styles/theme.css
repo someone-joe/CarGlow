@@ -445,6 +445,11 @@ page {
   transform-origin: left bottom;
 }
 
+.cg-art-car.is-xs {
+  transform: scale(0.18);
+  transform-origin: left bottom;
+}
+
 /* ---- 低饱和简约插图：水滴 ---- */
 .cg-art-drop {
   position: absolute;
