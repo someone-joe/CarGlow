@@ -2,54 +2,74 @@
   <view class="cg-page services">
     <SiteBar />
 
+    <!-- 页头：一句话定位 -->
+    <view class="svc-head">
+      <text class="svc-head-title">洗车服务</text>
+      <text class="svc-head-sub">夜间中央站精洗 · 师傅上门取送 · 全程影像留痕</text>
+    </view>
+
     <view v-if="loading" class="cg-empty">加载中…</view>
 
     <block v-else>
-      <!-- 分类 Tab：来自后台 service-categories，支持空态 -->
-      <view class="cg-tabs">
+      <!-- 分类：横向滚动 pill，商品分类可无限扩展不挤爆布局 -->
+      <scroll-view class="cats" scroll-x enhanced show-scrollbar="false">
         <view
           v-for="c in categories"
           :key="c.categoryId"
-          class="cg-tab"
+          class="cg-pill cat"
           :class="{ 'is-active': activeCat === c.categoryId }"
           @click="activeCat = c.categoryId"
         >
           {{ c.name }}
         </view>
-        <view v-if="!categories.length" class="cg-tab is-active">洗车服务</view>
-      </view>
+        <view v-if="!categories.length" class="cg-pill cat is-active">洗车服务</view>
+      </scroll-view>
 
-      <view v-if="!currentList.length" class="cg-empty">
-        <text class="empty-title">该分类暂无服务</text>
-        <text class="empty-sub">去其他分类看看吧</text>
-      </view>
+      <view v-if="!currentList.length" class="cg-empty">该分类暂无服务</view>
 
-      <!-- 服务卡片：价格/工时/取送费全部后端下发，前端不写死任何价格 -->
-      <view v-for="item in currentList" :key="item.serviceId" class="cg-card card" :class="{ disabled: item.soldOut }">
-        <image v-if="item.coverUrl" class="cover" :src="item.coverUrl" mode="aspectFill" />
-        <view class="card-body">
-          <view class="card-top">
-            <text class="name">{{ item.name }}</text>
-            <text v-if="item.soldOut" class="cg-status is-busy badge">今夜已约满</text>
+      <!-- 商品网格：两列；点卡进详情，主按钮直接下单 -->
+      <view class="products">
+        <view
+          v-for="item in currentList"
+          :key="item.serviceId"
+          class="cg-card product"
+          :class="{ disabled: item.soldOut }"
+          @click="goDetail(item.serviceId)"
+        >
+          <view class="product-media">
+            <image v-if="item.coverUrl" class="product-cover" :src="item.coverUrl" mode="aspectFill" />
+            <view v-else class="product-cover product-cover-ph">
+              <view class="ph-art">
+                <view class="cg-art-car is-sm">
+                  <view class="art-cabin" />
+                  <view class="art-body" />
+                  <view class="art-wheel w-back" />
+                  <view class="art-wheel w-front" />
+                </view>
+              </view>
+            </view>
+            <text v-if="item.soldOut" class="cg-status is-busy product-badge">今夜已约满</text>
           </view>
-          <text v-if="item.subtitle" class="subtitle">{{ item.subtitle }}</text>
-
-          <view class="price-row">
-            <text class="price">¥{{ fen2yuan(item.displayPrice) }}</text>
-            <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="origin">
-              ¥{{ fen2yuan(item.originPrice) }}
-            </text>
-          </view>
-
-          <view class="meta">
-            <text class="work">约 {{ item.workMinutes || '—' }} 分钟</text>
-            <text class="pickup">¥0 取送车 · 免代驾费</text>
-          </view>
-
-          <view class="card-actions">
-            <view class="cg-btn-text detail" @click="goDetail(item.serviceId)">详情</view>
-            <view v-if="!item.soldOut" class="cg-btn cg-btn-primary book" @click="book(item.serviceId)">确定下单</view>
-            <view v-else class="cg-btn cg-btn-secondary book book-disabled">明晚可约</view>
+          <view class="product-body">
+            <text class="product-name">{{ item.name }}</text>
+            <text v-if="item.subtitle" class="product-sub">{{ item.subtitle }}</text>
+            <view class="product-tags">
+              <text class="product-tag">约 {{ item.workMinutes || '—' }} 分钟</text>
+              <text class="product-tag">¥0 取送</text>
+            </view>
+            <view class="product-price">
+              <text class="price-now">¥{{ fen2yuan(item.displayPrice) }}</text>
+              <text v-if="item.originPrice && item.originPrice !== item.displayPrice" class="price-old">
+                ¥{{ fen2yuan(item.originPrice) }}
+              </text>
+            </view>
+            <view
+              class="cg-btn cg-btn-primary product-btn"
+              :class="{ 'is-disabled': item.soldOut }"
+              @click.stop="book(item.serviceId)"
+            >
+              {{ item.soldOut ? '明晚可约' : '立即下单' }}
+            </view>
           </view>
         </view>
       </view>
@@ -116,117 +136,160 @@ onShow(load)
   padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
-.empty-title {
+/* ---- 页头 ---- */
+.svc-head {
+  margin: 32rpx 8rpx 8rpx;
+}
+
+.svc-head-title {
   display: block;
-  font-size: var(--cg-font-body);
-  color: var(--cg-text-sub);
-}
-
-.empty-sub {
-  display: block;
-  margin-top: 16rpx;
-  font-size: var(--cg-font-note);
-  color: var(--cg-text-aux);
-}
-
-/* ---- 服务卡片 ---- */
-.card {
-  margin-bottom: 32rpx;
-  padding: 0;
-  overflow: hidden;
-}
-
-.card.disabled {
-  opacity: 0.6;
-}
-
-.cover {
-  display: block;
-  width: 100%;
-  height: 240rpx;
-}
-
-.card-body {
-  padding: 32rpx 40rpx 40rpx;
-}
-
-.card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.name {
-  flex: 1;
-  font-size: var(--cg-font-subtitle);
-  font-weight: 500;
-  color: var(--cg-title);
-}
-
-.badge {
-  flex: none;
-  margin-left: 24rpx;
-}
-
-.subtitle {
-  display: block;
-  margin-top: 16rpx;
-  font-size: var(--cg-font-caption);
-  color: var(--cg-text-sub);
-}
-
-.price-row {
-  display: flex;
-  align-items: baseline;
-  margin-top: 24rpx;
-}
-
-.price {
   font-size: var(--cg-font-title);
   font-weight: 600;
   color: var(--cg-title);
 }
 
-.origin {
+.svc-head-sub {
+  display: block;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+/* ---- 分类：横向滚动 pill ---- */
+.cats {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.cat {
+  display: inline-flex;
+  margin: 24rpx 16rpx 24rpx 0;
+}
+
+.cat.is-active {
+  background: var(--cg-primary);
+  color: #ffffff;
+}
+
+/* ---- 两列商品网格 ---- */
+.products {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -8rpx;
+}
+
+.product {
+  box-sizing: border-box;
+  width: calc(50% - 16rpx);
+  margin: 16rpx 8rpx 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.product.disabled {
+  opacity: 0.6;
+}
+
+/* ---- 商品媒体区 ---- */
+.product-media {
+  position: relative;
+  height: 200rpx;
+  background: var(--cg-fill);
+}
+
+.product-cover {
+  display: block;
+  width: 100%;
+  height: 200rpx;
+}
+
+/* 无封面图：低饱和渐变 + 洗车插图占位，不出现空白卡 */
+.product-cover-ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #e8f1fd 0%, #f5f5f7 62%);
+}
+
+.ph-art {
+  position: relative;
+  width: 96rpx;
+  height: 48rpx;
+}
+
+.product-badge {
+  position: absolute;
+  top: 16rpx;
+  left: 16rpx;
+}
+
+/* ---- 商品信息 ---- */
+.product-body {
+  padding: 24rpx 24rpx 32rpx;
+}
+
+.product-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 96rpx;
+  font-size: var(--cg-font-body);
+  font-weight: 500;
+  color: var(--cg-title);
+  line-height: 1.4;
+}
+
+.product-sub {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.5;
+}
+
+.product-tags {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 16rpx;
+}
+
+.product-tag {
+  margin: 0 16rpx 16rpx 0;
+  padding: 8rpx 16rpx;
+  background: var(--cg-fill);
+  border-radius: var(--cg-radius-pill);
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+}
+
+.product-price {
+  display: flex;
+  align-items: baseline;
+  margin-top: 24rpx;
+}
+
+.price-now {
+  font-size: var(--cg-font-subtitle);
+  font-weight: 600;
+  color: var(--cg-title);
+}
+
+.price-old {
   margin-left: 16rpx;
   font-size: var(--cg-font-note);
   color: var(--cg-text-aux);
   text-decoration: line-through;
 }
 
-.meta {
-  display: flex;
-  align-items: center;
-  margin-top: 16rpx;
-}
-
-.work {
-  font-size: var(--cg-font-note);
-  color: var(--cg-text-sub);
-}
-
-.pickup {
-  margin-left: 24rpx;
-  font-size: var(--cg-font-note);
-  color: var(--cg-success);
-}
-
-.card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 32rpx;
-}
-
-.detail {
-  min-height: 104rpx;
-}
-
-.book {
-  width: 240rpx;
-}
-
-.book-disabled {
-  opacity: 0.5;
+/* ---- 下单按钮：96rpx = 48px 最小触控区 ---- */
+.product-btn {
+  width: 100%;
+  height: 96rpx;
+  margin-top: 24rpx;
+  font-size: var(--cg-font-caption);
 }
 </style>

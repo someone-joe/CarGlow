@@ -167,6 +167,7 @@ import {
   type ServiceVO,
   type VehicleVO,
 } from '@/api/catalog'
+import { selectedCommunityId } from '@/store/community'
 import { fetchParkLocations, type ParkLocationVO } from '@/api/park'
 import { uploadMedia, MAX_UPLOAD_MB } from '@/api/media'
 import { fetchCapacity, type CapacityVO } from '@/api/home'
@@ -381,9 +382,22 @@ function removePhoto(i: number): void {
 }
 
 /** 三个列表一次性拉齐，失败由 request 层统一提示；缺任一选项就不允许提交 */
+/**
+ * 钥匙柜：优先用户所选小区（契约 communityId 已支持过滤）；
+ * 所选小区无可用格口时回退全量——下单流程是主链路，不能被小区偏好阻断。
+ */
+async function loadCabinets(): Promise<CabinetVO[]> {
+  const communityId = selectedCommunityId()
+  if (!communityId) return (await fetchCabinets()) || []
+  const scoped = (await fetchCabinets(communityId)) || []
+  if (scoped.some((c) => !c.full && c.online)) return scoped
+  const all = (await fetchCabinets()) || []
+  return all.some((c) => !c.full && c.online) ? all : scoped
+}
+
 function loadOptions(): void {
   loading.value = true
-  Promise.all([fetchServices(), fetchVehicles(), fetchCabinets(), fetchParkLocations()])
+  Promise.all([fetchServices(), fetchVehicles(), loadCabinets(), fetchParkLocations()])
     .then(([serviceList, vehicleList, cabinetList, parkList]) => {
       services.value = serviceList || []
       vehicles.value = vehicleList || []

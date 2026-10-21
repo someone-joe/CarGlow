@@ -15,6 +15,12 @@
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import { computed, ref } from 'vue'
 import { fetchCommunities, fetchSiteCurrent, type CommunityVO, type SiteVO } from '@/api/home'
+import {
+  clearSelectedCommunity,
+  hydrateSelectedCommunity,
+  selectedCommunity,
+  setSelectedCommunity,
+} from '@/store/community'
 
 const site = ref<SiteVO | null>(null)
 const communities = ref<CommunityVO[]>([])
@@ -40,29 +46,48 @@ function noticeOf(s: SiteVO): string {
 }
 
 async function load(): Promise<void> {
+  hydrateSelectedCommunity()
   try {
     const [s, list] = await Promise.all([fetchSiteCurrent(), fetchCommunities()])
     site.value = s
     communities.value = list || []
-    displayName.value = s.displayName || [s.communityName, s.siteName].filter(Boolean).join(' · ')
-    statusNotice.value = noticeOf(s)
+    // 用户手动选过小区：以本地选择回显（后端暂无切换接口）；否则用站点默认
+    const picked = communities.value.find((c) => c.communityId === selectedCommunity.communityId)
+    displayName.value =
+      picked?.name ||
+      selectedCommunity.name ||
+      s.displayName ||
+      [s.communityName, s.siteName].filter(Boolean).join(' · ')
+    // 手动选的小区没有服务状态数据，默认站点的停业/雨天提示不适用于它，隐藏避免误导
+    statusNotice.value = selectedCommunity.communityId != null ? '' : noticeOf(s)
   } catch {
     displayName.value = 'CarGlow'
   }
 }
 
 function onTap(): void {
-  const items = (communities.value || []).map((c) => c.name || `小区${c.communityId}`)
-  if (items.length === 0) {
+  const names = (communities.value || []).map((c) => c.name || `小区${c.communityId}`)
+  if (names.length === 0) {
     uni.showToast({ title: '暂无可切换的小区', icon: 'none' })
     return
   }
+  // 第一项为「默认站点」：给用户一条明确的回到路径，避免本地选择改不回去
   uni.showActionSheet({
-    itemList: items,
+    itemList: ['默认站点', ...names],
     success: (res) => {
-      const chosen = communities.value[res.tapIndex]
-      uni.showToast({ title: `已选择 ${chosen.name || ''}`, icon: 'none' })
-      // V1.0 后端未提供切换接口，仅本地提示；数据仍以 site/current 为准
+      if (res.tapIndex === 0) {
+        clearSelectedCommunity()
+        uni.showToast({ title: '已恢复默认站点', icon: 'none' })
+        load() // 默认站点的名称与服务状态以 /site/current 为准，重新拉取
+        return
+      }
+      const chosen = communities.value[res.tapIndex - 1]
+      if (!chosen) return
+      setSelectedCommunity({ communityId: chosen.communityId, name: chosen.name })
+      // 立即回显，不等下一次 onShow
+      displayName.value = chosen.name || displayName.value
+      statusNotice.value = ''
+      uni.showToast({ title: `已切换至 ${chosen.name || ''}`, icon: 'none' })
     },
   })
 }

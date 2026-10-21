@@ -129,6 +129,7 @@ import { fetchBanners, type BannerVO } from '@/api/home'
 import { fetchCabinets, fetchServices, type CabinetVO, type ServiceVO } from '@/api/catalog'
 import HomeBanner, { type Slide } from '@/components/HomeBanner.vue'
 import SiteBar from '@/components/SiteBar.vue'
+import { selectedCommunityId } from '@/store/community'
 import { setOrderDraft } from '@/store/orderDraft'
 
 const services = ref<ServiceVO[]>([])
@@ -251,8 +252,8 @@ onShow(() => {
     // 后端 banner 的 subtitle 映射为文字片的 desc；无配置时降级为「服务理念」片
     .then((b) => (banners.value = (b || []).map((x) => ({ ...x, desc: x.subtitle }))))
     .catch(() => (banners.value = []))
-  // 附近钥匙柜：首页只展示前 3 个，完整列表在柜机选择页
-  fetchCabinets()
+  // 附近钥匙柜：按用户所选小区过滤（后端契约 communityId 已支持）；首页只展示前 3 个，完整列表在柜机选择页
+  fetchCabinets(selectedCommunityId())
     .then((list) => (cabinets.value = (list || []).slice(0, 3)))
     .catch(() => (cabinets.value = []))
   pageActive.value = true

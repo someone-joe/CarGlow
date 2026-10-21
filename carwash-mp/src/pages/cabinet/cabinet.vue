@@ -9,6 +9,7 @@
         <text class="empty-title">附近暂无可用的钥匙柜</text>
         <text class="empty-sub">可联系客服申请在您的小区布柜</text>
       </view>
+      <view v-else-if="fallbackAll" class="cg-empty fallback-tip">所选小区暂无钥匙柜，已显示全部</view>
 
       <!-- 柜机九宫格：名称/空闲格口/在线状态，全部后端下发 -->
       <view class="grid">
@@ -36,19 +37,31 @@ import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import SiteBar from '@/components/SiteBar.vue'
 import { fetchCabinets, type CabinetVO } from '@/api/catalog'
+import { selectedCommunityId } from '@/store/community'
 import { orderDraft, setOrderDraft } from '@/store/orderDraft'
 
 const cabinets = ref<CabinetVO[]>([])
 const currentId = ref<number | undefined>(orderDraft.cabinetId)
 const loading = ref(true)
+/** 所选小区无柜机时回退全量，避免选个柜都选不了 */
+const fallbackAll = ref(false)
 
 async function load(): Promise<void> {
   loading.value = true
   try {
-    cabinets.value = (await fetchCabinets()) || []
+    const communityId = selectedCommunityId()
+    let list = (await fetchCabinets(communityId)) || []
+    if (communityId && !list.length) {
+      list = (await fetchCabinets()) || []
+      fallbackAll.value = list.length > 0
+    } else {
+      fallbackAll.value = false
+    }
+    cabinets.value = list
     currentId.value = orderDraft.cabinetId ?? cabinets.value.find((c) => !c.full)?.cabinetId
   } catch {
     cabinets.value = []
+    fallbackAll.value = false
   } finally {
     loading.value = false
   }
@@ -76,6 +89,12 @@ onShow(load)
 .empty-sub {
   display: block;
   margin-top: 16rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-aux);
+}
+
+.fallback-tip {
+  padding: 32rpx 0;
   font-size: var(--cg-font-note);
   color: var(--cg-text-aux);
 }
