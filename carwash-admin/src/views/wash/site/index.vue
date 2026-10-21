@@ -35,6 +35,13 @@
         </template>
       </el-table-column>
       <el-table-column label="停业公告" prop="closedNotice" show-overflow-tooltip />
+      <el-table-column label="详情配置" width="100">
+        <template #default="scope">
+          <el-tag :type="scope.row.detailTitle ? 'success' : 'info'">
+            {{ scope.row.detailTitle ? '已配置' : '未配置' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="180" fixed="right">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)"
@@ -76,6 +83,20 @@
         </el-form-item>
         <el-form-item label="停业公告" prop="closedNotice">
           <el-input v-model="form.closedNotice" type="textarea" :rows="2" placeholder="停业时展示给C端" />
+        </el-form-item>
+
+        <el-divider content-position="left">站点详情（小程序服务页 Hero，未配置则回退默认）</el-divider>
+        <el-form-item label="详情标题" prop="detailTitle">
+          <el-input v-model="form.detailTitle" placeholder="如：科学洗车；留空回退站点名" maxlength="64" show-word-limit />
+        </el-form-item>
+        <el-form-item label="详情副标题" prop="detailSubtitle">
+          <el-input v-model="form.detailSubtitle" placeholder="如：中央站集中精洗 · 标准化 SOP" maxlength="128" show-word-limit />
+        </el-form-item>
+        <el-form-item label="详情头图" prop="detailImageUrl">
+          <el-input v-model="form.detailImageUrl" placeholder="头图 URL；留空则小程序渲染渐变占位图" maxlength="255" />
+        </el-form-item>
+        <el-form-item label="详情文案" prop="detailDesc">
+          <el-input v-model="form.detailDesc" type="textarea" :rows="2" placeholder="站点补充说明（选填）" maxlength="512" show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -135,7 +156,11 @@ function reset() {
     depositDeadline: undefined,
     promiseReturnTime: undefined,
     serviceStatus: 'OPEN',
-    closedNotice: undefined
+    closedNotice: undefined,
+    detailTitle: undefined,
+    detailSubtitle: undefined,
+    detailImageUrl: undefined,
+    detailDesc: undefined
   }
   proxy.resetForm('siteRef')
 }
