@@ -1,24 +1,36 @@
 <template>
   <view class="cg-page services">
-    <SiteBar />
-
-    <!-- Hero：站点氛围卡（极淡渐变 + 低饱和洗车插图，替代参考稿的实拍大图） -->
+    <!-- 站点详情 Hero：标题/副标题/头图/文案全部后台可配，未配置走前端回退 -->
     <view class="hero">
-      <view class="hero-glow" />
-      <view class="hero-art">
-        <view class="art-spotlight" />
-        <view class="cg-art-car">
-          <view class="art-cabin" />
-          <view class="art-body" />
-          <view class="art-wheel w-back" />
-          <view class="art-wheel w-front" />
+      <view class="hero-media">
+        <image v-if="site?.detailImageUrl" class="hero-image" :src="site.detailImageUrl" mode="aspectFill" />
+        <template v-else>
+          <view class="hero-glow" />
+          <view class="art-spotlight" />
+          <view class="cg-art-car">
+            <view class="art-cabin" />
+            <view class="art-body" />
+            <view class="art-wheel w-back" />
+            <view class="art-wheel w-front" />
+          </view>
+          <view class="cg-art-drop hero-drop-1" />
+          <view class="cg-art-drop hero-drop-2" />
+        </template>
+        <view v-if="site?.detailImageUrl" class="hero-scrim" />
+        <view v-if="site?.detailImageUrl" class="hero-text is-on-image">
+          <text class="hero-title">{{ heroTitle }}</text>
+          <text class="hero-sub">{{ heroSub }}</text>
         </view>
-        <view class="cg-art-drop hero-drop-1" />
-        <view class="cg-art-drop hero-drop-2" />
       </view>
-      <view class="hero-text">
-        <text class="hero-title">科学洗车</text>
-        <text class="hero-sub">中央站集中精洗 · 标准化 SOP · 全程影像留痕</text>
+      <view v-if="!site?.detailImageUrl" class="hero-text">
+        <text class="hero-title">{{ heroTitle }}</text>
+        <text class="hero-sub">{{ heroSub }}</text>
+      </view>
+      <text v-if="heroDesc" class="hero-desc">{{ heroDesc }}</text>
+      <!-- 停业提示：站点状态由后端下发；雨天等运营提示在首页站点栏展示，此处不重复 -->
+      <view v-if="siteClosed" class="hero-notice">
+        <view class="hero-notice-dot" />
+        <text class="hero-notice-text">{{ site?.closedNotice || '本服务站临时停业' }}</text>
       </view>
     </view>
 
@@ -98,8 +110,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import SiteBar from '@/components/SiteBar.vue'
-import { fetchServiceCategories, type ServiceCategoryVO } from '@/api/home'
+import { fetchServiceCategories, fetchSiteCurrent, type ServiceCategoryVO, type SiteVO } from '@/api/home'
 import { fetchServices as fetchServiceList, type ServiceVO } from '@/api/catalog'
 import { fetchCustomerService } from '@/api/config'
 import { setOrderDraft } from '@/store/orderDraft'
@@ -109,6 +120,15 @@ const services = ref<ServiceVO[]>([])
 const loading = ref(true)
 /** 悬浮客服电话：平台号优先，未配置则隐藏入口（号码一律后台下发，不硬编码） */
 const csPhone = ref('')
+/** 当前站点：Hero 展示站点详情（后台可配），停业状态也由它下发 */
+const site = ref<SiteVO | null>(null)
+
+/** 站点详情标题：后台未配置时回退站点名，再回退默认卖点 */
+const heroTitle = computed(() => site.value?.detailTitle || site.value?.siteName || '夜间代客洗车')
+const heroSub = computed(() => site.value?.detailSubtitle || '中央站集中精洗 · 标准化 SOP · 全程影像留痕')
+const heroDesc = computed(() => site.value?.detailDesc || '')
+/** 停业才在 Hero 提示（CLOSED）；雨天等运营提示不在此重复展示 */
+const siteClosed = computed(() => site.value?.serviceStatus === 'CLOSED')
 
 interface SvcGroup {
   categoryId?: number
@@ -141,9 +161,14 @@ function fen2yuan(fen?: number): string {
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const [cats, list] = await Promise.all([fetchServiceCategories(), fetchServiceList('UNSENSITIVE')])
+    const [cats, list, cur] = await Promise.all([
+      fetchServiceCategories(),
+      fetchServiceList('UNSENSITIVE'),
+      fetchSiteCurrent(),
+    ])
     categories.value = cats || []
     services.value = list || []
+    site.value = cur || null
   } catch {
     services.value = []
   } finally {
@@ -196,7 +221,7 @@ onShow(load)
   padding-bottom: calc(240rpx + env(safe-area-inset-bottom));
 }
 
-/* ---- Hero 氛围卡 ---- */
+/* ---- 站点详情 Hero ---- */
 .hero {
   position: relative;
   overflow: hidden;
@@ -204,6 +229,29 @@ onShow(load)
   background: var(--cg-card);
   border-radius: var(--cg-radius-lg);
   box-shadow: var(--cg-shadow-card);
+}
+
+/* 媒体区：后台配了头图用实拍图，未配则渐变 + 洗车插图占位 */
+.hero-media {
+  position: relative;
+  height: 360rpx;
+  overflow: hidden;
+}
+
+.hero-image {
+  display: block;
+  width: 100%;
+  height: 360rpx;
+}
+
+/* 图片片底部暗 scrim：保证叠加文字可读的功能性渐变 */
+.hero-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 .hero-glow {
@@ -216,15 +264,10 @@ onShow(load)
   pointer-events: none;
 }
 
-.hero-art {
-  position: relative;
-  height: 260rpx;
-}
-
 .art-spotlight {
   position: absolute;
   left: 50%;
-  top: 46%;
+  top: 42%;
   transform: translate(-50%, -50%);
   width: 420rpx;
   height: 420rpx;
@@ -232,24 +275,33 @@ onShow(load)
   background: radial-gradient(circle, rgba(0, 122, 255, 0.12) 0%, rgba(0, 122, 255, 0.05) 45%, rgba(0, 122, 255, 0) 70%);
 }
 
-.hero-art .cg-art-car {
+.hero-media .cg-art-car {
   left: 50%;
   transform: translateX(-50%);
 }
 
 .hero-drop-1 {
   left: 96rpx;
-  top: 56rpx;
+  top: 48rpx;
 }
 
 .hero-drop-2 {
   left: 150rpx;
-  top: 24rpx;
+  top: 16rpx;
 }
 
+/* 文字：无头图时在媒体区下方；有头图时叠加在图上（白字） */
 .hero-text {
   position: relative;
   padding: 0 40rpx 40rpx;
+}
+
+.hero-text.is-on-image {
+  position: absolute;
+  left: 40rpx;
+  right: 40rpx;
+  bottom: 32rpx;
+  padding: 0;
 }
 
 .hero-title {
@@ -259,11 +311,52 @@ onShow(load)
   color: var(--cg-title);
 }
 
+.hero-text.is-on-image .hero-title {
+  color: #ffffff;
+}
+
 .hero-sub {
   display: block;
   margin-top: 16rpx;
   font-size: var(--cg-font-caption);
   color: var(--cg-text-sub);
+}
+
+.hero-text.is-on-image .hero-sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 站点详情补充文案（后台可选配置） */
+.hero-desc {
+  display: block;
+  padding: 32rpx 40rpx 0;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
+  line-height: 1.6;
+}
+
+/* 停业提示 */
+.hero-notice {
+  display: flex;
+  align-items: center;
+  margin: 32rpx 40rpx 40rpx;
+  padding: 16rpx 24rpx;
+  background: rgba(255, 59, 48, 0.08);
+  border-radius: var(--cg-radius-md);
+}
+
+.hero-notice-dot {
+  flex: none;
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 16rpx;
+  border-radius: 50%;
+  background: var(--cg-error);
+}
+
+.hero-notice-text {
+  font-size: var(--cg-font-note);
+  color: var(--cg-error);
 }
 
 /* ---- 分类分区头 ---- */

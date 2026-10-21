@@ -1147,7 +1147,7 @@ export interface paths {
         /**
          * 自助工位列表（带实时状态）
          * @description siteId 传当前站点。status：IDLE 空闲 / SERVING 服务中 / DISABLED 停用。
-         *     Stage 1 无自助订单，启用即 IDLE；排队人数 / 前方车牌 / 服务剩余时间随自助订单（Stage 2）补充。
+         *     排队明细 / 等待估算随自助订单（Stage 2）补充；出于隐私，车牌一律下发脱敏形式（如 京A***12），不下发订单号与完整车牌。
          */
         get: {
             parameters: {
@@ -1265,8 +1265,13 @@ export interface paths {
                          * @description 选填，使用的优惠券；下单即核销并抵减实付
                          */
                         couponUserId?: number;
-                        /** @description 选填，车牌；用于工位排队展示与监控 */
-                        plateNo?: string;
+                        /** @description 必填，车牌；用于工位排队展示与监控，缺号无法现场核身 */
+                        plateNo: string;
+                        /**
+                         * @description 必填，车型；不同车型工位/水量有差异，运营需据此调度
+                         * @enum {string}
+                         */
+                        vehicleType: "SEDAN" | "SUV" | "MPV" | "OTHER";
                     };
                 };
             };
@@ -1497,11 +1502,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 加时（按本单实付/时长折算单价计费，从储值余额扣除后延长服务倒计时；余额不足返回 B3004） */
+        /** 加时（按后台配置的「超时价/超时时长」整档计费，不足一档按一档；从储值余额扣除后延长服务倒计时；余额不足返回 B3004） */
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description 幂等键，客户端生成 UUID，同一键重复提交返回首次结果 */
+                    "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                };
                 path: {
                     orderNo: string;
                 };
@@ -5891,6 +5899,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin-api/wash/coupon/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 批量发放优惠券（同步）
+         * @description 按受众（全量 / 注册时间区间 / 小区并集）给一批会员发券，**同步执行**，
+         *     逐人复用单人发放校验（每人限领 + 库存乐观扣减，不超发）。不走一个大事务，
+         *     单人不成功只记该人结果，不影响他人。返回成功/跳过/失败汇总。
+         *     小区口径：常用停车位置 union 车辆常停小区，按 member_id 去重，不会因交集重复发。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CouponBatchGrantRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CouponBatchGrantVO"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/batch/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 批量发放批次列表（每条批次一行） */
+        get: {
+            parameters: {
+                query?: {
+                    templateId?: number;
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuoYiTableDataInfo"] & {
+                            rows?: components["schemas"]["AdminCouponBatchVO"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/batch/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 批量发放批次详情 + 明细 */
+        get: {
+            parameters: {
+                query?: {
+                    result?: "SUCCESS" | "SKIPPED" | "FAILED";
+                    pageNum?: components["parameters"]["PageNum"];
+                    pageSize?: components["parameters"]["PageSize"];
+                };
+                header?: never;
+                path: {
+                    batchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCouponBatchDetailVO"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin-api/wash/coupon/batch/{batchId}/regrant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 批量发放补发（失败/跳过项重新发放）
+         * @description 对指定会员重新发放（复用单人发放校验），更新其在批次内的结果为最新一次结果，
+         *     不新增明细行；重算批次汇总。
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    batchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CouponBatchRegrantRequest"];
+                };
+            };
+            responses: {
+                /** @description 成功 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CouponBatchGrantVO"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin-api/wash/coupon/record/list": {
         parameters: {
             query?: never;
@@ -7543,6 +7727,14 @@ export interface components {
              */
             serviceStatus?: "OPEN" | "CLOSED" | "RAINY";
             closedNotice?: string;
+            /** @description 站点详情标题（服务页 Hero）；未配置时 C 端回退站点名 */
+            detailTitle?: string;
+            /** @description 站点详情副标题；未配置时 C 端回退默认卖点文案 */
+            detailSubtitle?: string;
+            /** @description 站点详情头图 URL；为空时 C 端渲染渐变+插图占位 */
+            detailImageUrl?: string;
+            /** @description 站点详情补充文案（可选） */
+            detailDesc?: string;
         };
         CommunityVO: {
             /** Format: int64 */
@@ -7649,7 +7841,12 @@ export interface components {
             plateNo?: string;
             brand?: string;
             color?: string;
+            /**
+             * @description 车型；与自助洗车下单共用同一 VehicleType 枚举
+             * @enum {string}
+             */
             vehicleType?: "SEDAN" | "SUV" | "MPV" | "OTHER";
+            /** @description 车型中文名，后端枚举给出，前端只展示不翻译 */
             vehicleTypeLabel?: string;
             photoUrl?: string;
             isNewEnergy?: boolean;
@@ -7671,6 +7868,11 @@ export interface components {
             plateNo: string;
             brand?: string;
             color?: string;
+            /**
+             * @description 车型；选填，自助洗车下单需据此调度
+             * @enum {string}
+             */
+            vehicleType?: "SEDAN" | "SUV" | "MPV" | "OTHER";
             photoFileId?: string;
             isNewEnergy?: boolean;
             isDefault?: boolean;
@@ -8075,6 +8277,105 @@ export interface components {
             /** Format: int64 */
             expireTime?: number;
         };
+        /** @description 批量发放请求。受众三选一：全量 / 小区 / 时间；可叠加小区 + 时间。 */
+        CouponBatchGrantRequest: {
+            /**
+             * Format: int64
+             * @description 券模板ID
+             */
+            templateId?: number;
+            /**
+             * @description 每人发放张数，默认1，可改
+             * @default 1
+             */
+            perCount: number;
+            /** @description 受众筛选。all=true 走全量；否则按 communityId / timeFrom~timeTo 过滤（可叠加） */
+            audience?: {
+                /** @description 全量会员 */
+                all?: boolean;
+                /**
+                 * Format: int64
+                 * @description 按小区（常用停车位置 union 车辆常停小区，去重）
+                 */
+                communityId?: number;
+                /**
+                 * Format: int64
+                 * @description 注册时间起（毫秒）
+                 */
+                timeFrom?: number;
+                /**
+                 * Format: int64
+                 * @description 注册时间止（毫秒）
+                 */
+                timeTo?: number;
+            };
+        };
+        /** @description 批量发放结果汇总 */
+        CouponBatchGrantVO: {
+            /** Format: int64 */
+            batchId?: number;
+            /** @description 受众总数 */
+            totalCount?: number;
+            /** @description 成功 */
+            successCount?: number;
+            /** @description 跳过（已达每人限领） */
+            skippedCount?: number;
+            /** @description 失败（库存不足等） */
+            failedCount?: number;
+        };
+        /** @description 批量发放批次列表行。金额分、时间毫秒时间戳。 */
+        AdminCouponBatchVO: {
+            /** Format: int64 */
+            batchId?: number;
+            /** Format: int64 */
+            couponTemplateId?: number;
+            templateName?: string;
+            perCount?: number;
+            /** @description 操作人 */
+            operator?: string;
+            /** @enum {string} */
+            audienceType?: "ALL" | "COMMUNITY" | "TIME";
+            /** Format: int64 */
+            communityId?: number;
+            communityName?: string;
+            /** Format: int64 */
+            timeFrom?: number;
+            /** Format: int64 */
+            timeTo?: number;
+            totalCount?: number;
+            successCount?: number;
+            skippedCount?: number;
+            failedCount?: number;
+            /** Format: int64 */
+            createTime?: number;
+        };
+        /** @description 批量发放明细行。手机号后端脱敏。 */
+        AdminCouponBatchItemVO: {
+            /** Format: int64 */
+            itemId?: number;
+            /** Format: int64 */
+            memberId?: number;
+            /** @description 脱敏手机号 */
+            memberPhone?: string;
+            /** @enum {string} */
+            result?: "SUCCESS" | "SKIPPED" | "FAILED";
+            reason?: string;
+            /** @description 实际发出张数 */
+            grantedCount?: number;
+            /** Format: int64 */
+            createTime?: number;
+        };
+        /** @description 批量发放批次详情 = 批次头 + 明细分页 */
+        AdminCouponBatchDetailVO: {
+            batch?: components["schemas"]["AdminCouponBatchVO"];
+            rows?: components["schemas"]["AdminCouponBatchItemVO"][];
+            /** @description 明细总数 */
+            total?: number;
+        };
+        /** @description 补发请求。memberIds 为要重发的会员ID（通常取失败/跳过项） */
+        CouponBatchRegrantRequest: {
+            memberIds?: number[];
+        };
         /** @description 售后工单。金额一律单位分，时间一律毫秒时间戳。 */
         AfterSaleVO: {
             afterSaleNo?: string;
@@ -8344,6 +8645,14 @@ export interface components {
             serviceStatus?: string;
             /** @description 停业公告 */
             closedNotice?: string;
+            /** @description 站点详情标题（服务页 Hero），未配置回退站点名 */
+            detailTitle?: string;
+            /** @description 站点详情副标题 */
+            detailSubtitle?: string;
+            /** @description 站点详情头图 URL，为空时 C 端渲染占位 */
+            detailImageUrl?: string;
+            /** @description 站点详情补充文案（可选） */
+            detailDesc?: string;
         };
         /** @description 已开通小区 */
         WashCommunity: {
