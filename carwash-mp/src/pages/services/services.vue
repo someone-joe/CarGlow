@@ -64,12 +64,13 @@
               </text>
             </view>
             <view
+              v-if="!item.soldOut"
               class="cg-btn cg-btn-primary product-btn"
-              :class="{ 'is-disabled': item.soldOut }"
               @click.stop="book(item.serviceId)"
             >
-              {{ item.soldOut ? '明晚可约' : '立即下单' }}
+              立即下单
             </view>
+            <view v-else class="cg-btn cg-btn-secondary product-btn">明晚可约</view>
           </view>
         </view>
       </view>
