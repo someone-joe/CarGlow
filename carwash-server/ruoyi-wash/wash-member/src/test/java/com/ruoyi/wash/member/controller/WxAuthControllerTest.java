@@ -37,7 +37,8 @@ class WxAuthControllerTest {
     void loginSuccess() {
         LoginVO vo = new LoginVO();
         vo.setToken("tok-123");
-        when(authService.login("any-code")).thenReturn(vo);
+        // login 已支持手机号授权，签名为 (code, phoneCode)；本用例不涉及授权，phoneCode 传 null
+        when(authService.login("any-code", null)).thenReturn(vo);
 
         ApiResult<LoginVO> result = controller.login(new WxAuthController.LoginRequest("any-code", null));
 
