@@ -1,36 +1,52 @@
 <template>
   <view class="cg-page mine">
-    <SiteBar />
+    <!-- 身份区：渐变底 + 头像 + 登录/身份入口 + 三项数据 -->
+    <view class="hero">
+      <view class="hero-top">
+        <view class="avatar">
+          <view class="cg-icon-person" />
+        </view>
+        <view class="hero-main">
+          <!-- 未绑手机号：整块即授权入口（微信原生 getPhoneNumber，不自造表单） -->
+          <button
+            v-if="!phoneBound"
+            class="hero-login"
+            open-type="getPhoneNumber"
+            @getphonenumber="onGetPhoneNumber"
+          >
+            <text class="hero-name">登录/注册</text>
+            <text class="hero-arrow">›</text>
+          </button>
+          <view v-else class="hero-name-row">
+            <text class="hero-name">微信用户</text>
+            <text class="hero-arrow">›</text>
+          </view>
+          <text class="hero-sub">{{ phoneBound ? '已绑定手机号' : '欢迎使用 CarGlow' }}</text>
+        </view>
+      </view>
 
-    <!-- 个人资料卡：白底 + 柔和阴影 + 顶部极淡渐变；头像尺寸适中，不做巨大头像 -->
-    <view class="cg-card cg-card-tint profile">
-      <view class="avatar">
-        <view class="cg-icon-person" />
-      </view>
-      <view class="profile-main">
-        <text class="nick">{{ phoneBound ? '已绑定手机号' : '微信用户' }}</text>
-        <text class="sub">夜间代客洗车 · 睡一觉车就干净了</text>
-      </view>
-      <!-- 手机号授权入口：未绑定时才出现。用微信原生 getPhoneNumber，不自己造表单 -->
-      <button
-        v-if="!phoneBound"
-        class="bind-btn"
-        open-type="getPhoneNumber"
-        @getphonenumber="onGetPhoneNumber"
-      >
-        绑定手机号
-      </button>
-    </view>
-
-    <!-- 储值余额 -->
-    <view class="cg-card wallet-bar" @click="go('/pages/wallet/wallet')">
-      <view class="wb-left">
-        <text class="wb-label">储值余额</text>
-        <text class="wb-value">¥{{ yuan(balance) }}</text>
-      </view>
-      <view class="wb-right">
-        <text class="wb-recharge" @click.stop="go('/pages/recharge/recharge')">充值</text>
-        <text class="cg-chevron">›</text>
+      <view class="hero-stats">
+        <view class="stat" @click="go('/pages/coupons/coupons')">
+          <view class="stat-num">
+            <text class="stat-val">{{ couponCount }}</text>
+            <text class="stat-unit">张</text>
+          </view>
+          <text class="stat-label">优惠券</text>
+        </view>
+        <view class="stat" @click="go('/pages/vehicle/vehicle')">
+          <view class="stat-num">
+            <text class="stat-val">{{ vehicleCount }}</text>
+            <text class="stat-unit">辆</text>
+          </view>
+          <text class="stat-label">我的车辆</text>
+        </view>
+        <view class="stat" @click="go('/pages/wallet/wallet')">
+          <view class="stat-num">
+            <text class="stat-val">{{ yuan(balance) }}</text>
+            <text class="stat-unit">元</text>
+          </view>
+          <text class="stat-label">余额</text>
+        </view>
       </view>
     </view>
 
@@ -103,12 +119,15 @@
 <script setup lang="ts">
 import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import SiteBar from '@/components/SiteBar.vue'
 import { fetchWallet } from '@/api/wallet'
+import { fetchMyCoupons } from '@/api/promo'
+import { fetchVehicles } from '@/api/catalog'
 import { ensureLogin, login } from '@/api/auth'
 
 const phoneBound = ref(false)
 const balance = ref(0)
+const couponCount = ref(0)
+const vehicleCount = ref(0)
 
 function yuan(fen: number): string {
   return (fen / 100).toFixed(2)
@@ -118,6 +137,17 @@ onShow(() => {
   fetchWallet()
     .then((w) => {
       balance.value = (w.balance ?? 0) + (w.giftBalance ?? 0)
+    })
+    .catch(() => {})
+  // 顶部数据行：券按「未使用」计，车辆按当前会员车辆数；失败只回落到 0，不打扰用户
+  fetchMyCoupons('UNUSED')
+    .then((list) => {
+      couponCount.value = list?.length ?? 0
+    })
+    .catch(() => {})
+  fetchVehicles()
+    .then((list) => {
+      vehicleCount.value = list?.length ?? 0
     })
     .catch(() => {})
   refreshPhoneBound()
@@ -200,11 +230,16 @@ function about(): void {
   padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
-/* ---- 个人资料卡 ---- */
-.profile {
+/* ---- 身份区：负 margin 撑满屏幕宽，顶部渐变到页面底色 ---- */
+.hero {
+  margin: 0 -40rpx;
+  padding: 40rpx 40rpx 44rpx;
+  background: linear-gradient(180deg, var(--cg-tint) 0%, var(--cg-bg) 100%);
+}
+
+.hero-top {
   display: flex;
   align-items: center;
-  margin-top: 32rpx;
 }
 
 .avatar {
@@ -212,76 +247,91 @@ function about(): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 96rpx;
-  height: 96rpx;
+  width: 112rpx;
+  height: 112rpx;
   border-radius: 50%;
-  background: var(--cg-fill);
+  background: var(--cg-card);
+  box-shadow: var(--cg-shadow-card);
 }
 
-.profile-main {
+.hero-main {
   flex: 1;
-  margin-left: 32rpx;
+  margin-left: 28rpx;
 }
 
-.nick {
-  display: block;
+/* 未绑定时整行是 button：清掉原生外观，做成可点的文本行 */
+.hero-login {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.hero-login::after {
+  border: none;
+}
+
+.hero-name-row {
+  display: flex;
+  align-items: center;
+}
+
+.hero-name {
   font-size: var(--cg-font-body);
   font-weight: 600;
   color: var(--cg-title);
 }
 
-.sub {
+.hero-arrow {
+  margin-left: 8rpx;
+  font-size: var(--cg-font-body);
+  color: var(--cg-text-sub);
+}
+
+.hero-sub {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 10rpx;
   font-size: var(--cg-font-note);
   color: var(--cg-text-sub);
 }
 
-.bind-btn {
-  flex: none;
-  height: 72rpx;
-  margin: 0;
-  padding: 0 32rpx;
-  background: var(--cg-primary);
-  color: #ffffff;
-  font-size: var(--cg-font-note);
-  line-height: 72rpx;
-  border-radius: var(--cg-radius-md);
-}
-
-.bind-btn::after {
-  border: none;
-}
-
-/* ---- 储值余额 ---- */
-.wallet-bar {
+/* ---- 数据行：券 / 车辆 / 余额 ---- */
+.hero-stats {
   display: flex;
+  margin-top: 36rpx;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 32rpx;
 }
 
-.wb-label {
-  display: block;
-  font-size: var(--cg-font-caption);
-  color: var(--cg-text-sub);
+.stat-num {
+  display: flex;
+  align-items: baseline;
 }
 
-.wb-value {
-  display: block;
-  margin-top: 16rpx;
+.stat-val {
   font-size: var(--cg-font-subtitle);
   font-weight: 600;
+  line-height: 1.1;
   color: var(--cg-title);
 }
 
-.wb-right {
-  display: flex;
-  align-items: center;
+.stat-unit {
+  margin-left: 4rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-title);
 }
 
-.wb-recharge {
-  color: var(--cg-primary);
-  font-size: var(--cg-font-caption);
+.stat-label {
+  margin-top: 8rpx;
+  font-size: var(--cg-font-note);
+  color: var(--cg-text-sub);
 }
 </style>
