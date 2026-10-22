@@ -152,6 +152,12 @@
 			}
 		},
 		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "个人资料"
+			}
+		},
+		{
 			"path": "pages/customer-service/customer-service",
 			"style": {
 				"navigationBarTitleText": "客服中心"

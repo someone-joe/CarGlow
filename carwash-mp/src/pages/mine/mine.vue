@@ -2,27 +2,35 @@
   <view class="cg-page mine">
     <!-- 身份区：渐变底 + 头像 + 登录/身份入口 + 三项数据 -->
     <view class="hero">
-      <view class="hero-top">
+      <!--
+        顶部整块即入口：
+        - 未绑手机号：整块是登录入口（微信原生 getPhoneNumber，不自造表单）
+        - 已绑定：整块进「个人资料」页
+      -->
+      <button
+        v-if="!phoneBound"
+        class="hero-top"
+        open-type="getPhoneNumber"
+        @getphonenumber="onGetPhoneNumber"
+      >
         <view class="avatar">
           <view class="cg-icon-person" />
         </view>
         <view class="hero-main">
-          <!-- 未绑手机号：整块即授权入口（微信原生 getPhoneNumber，不自造表单） -->
-          <button
-            v-if="!phoneBound"
-            class="hero-login"
-            open-type="getPhoneNumber"
-            @getphonenumber="onGetPhoneNumber"
-          >
-            <text class="hero-name">登录/注册</text>
-            <text class="hero-arrow">›</text>
-          </button>
-          <view v-else class="hero-name-row">
-            <text class="hero-name">微信用户</text>
-            <text class="hero-arrow">›</text>
-          </view>
-          <text class="hero-sub">{{ phoneBound ? '已绑定手机号' : '欢迎使用 CarGlow' }}</text>
+          <text class="hero-name">登录/注册</text>
+          <text class="hero-sub">欢迎使用 CarGlow</text>
         </view>
+        <text class="hero-arrow">›</text>
+      </button>
+      <view v-else class="hero-top" @click="goProfile">
+        <view class="avatar">
+          <view class="cg-icon-person" />
+        </view>
+        <view class="hero-main">
+          <text class="hero-name">微信用户</text>
+          <text class="hero-sub">已绑定手机号</text>
+        </view>
+        <text class="hero-arrow">›</text>
       </view>
 
       <view class="hero-stats">
@@ -50,16 +58,8 @@
       </view>
     </view>
 
-    <!-- 常用功能：iOS 风格分组列表 -->
+    <!-- 常用功能：iOS 风格分组列表（卡券/车辆/余额入口已在顶部数据行，此处不重复） -->
     <view class="cg-list">
-      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/coupons/coupons')">
-        <text class="cg-list-label">我的卡券</text>
-        <text class="cg-chevron">›</text>
-      </view>
-      <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/vehicle/vehicle')">
-        <text class="cg-list-label">我的车辆</text>
-        <text class="cg-chevron">›</text>
-      </view>
       <view class="cg-list-row cg-tap" hover-class="cg-hover" @click="go('/pages/park-location/park-location')">
         <text class="cg-list-label">常用停车位置</text>
         <text class="cg-chevron">›</text>
@@ -122,7 +122,7 @@ import { ref } from 'vue'
 import { fetchWallet } from '@/api/wallet'
 import { fetchMyCoupons } from '@/api/promo'
 import { fetchVehicles } from '@/api/catalog'
-import { ensureLogin, login } from '@/api/auth'
+import { allowAutoLogin, ensureLogin, login } from '@/api/auth'
 
 const phoneBound = ref(false)
 const balance = ref(0)
@@ -197,6 +197,7 @@ function onGetPhoneNumber(e: { detail?: { code?: string } }): void {
       login(res.code, phoneCode)
         .then((data) => {
           phoneBound.value = data.phoneBound === true
+          if (phoneBound.value) allowAutoLogin() // 显式授权成功，恢复静默登录
           uni.showToast({
             title: data.phoneBound ? '绑定成功' : '绑定未生效，请重试',
             icon: 'none',
@@ -209,6 +210,11 @@ function onGetPhoneNumber(e: { detail?: { code?: string } }): void {
 
 function go(url: string): void {
   uni.navigateTo({ url })
+}
+
+/** 已登录：进个人资料页 */
+function goProfile(): void {
+  uni.navigateTo({ url: '/pages/profile/profile' })
 }
 
 function toast(name: string): void {
@@ -240,6 +246,20 @@ function about(): void {
 .hero-top {
   display: flex;
   align-items: center;
+  width: 100%;
+}
+
+/* 未登录时整块是 button：清掉原生外观，做成通栏可点的身份入口 */
+button.hero-top {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  line-height: normal;
+  text-align: left;
+}
+
+button.hero-top::after {
+  border: none;
 }
 
 .avatar {
@@ -257,26 +277,6 @@ function about(): void {
 .hero-main {
   flex: 1;
   margin-left: 28rpx;
-}
-
-/* 未绑定时整行是 button：清掉原生外观，做成可点的文本行 */
-.hero-login {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  line-height: 1.2;
-  text-align: left;
-}
-
-.hero-login::after {
-  border: none;
-}
-
-.hero-name-row {
-  display: flex;
-  align-items: center;
 }
 
 .hero-name {

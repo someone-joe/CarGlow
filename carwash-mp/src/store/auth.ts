@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { login } from '@/api/auth'
+import { allowAutoLogin, login } from '@/api/auth'
 
 /**
  * C 端手机号授权门控（按需触发）。模块级单例，同 store/orderDraft 套路，不引入 Pinia。
@@ -59,6 +59,8 @@ export function submitPhoneCode(phoneCode: string): void {
         .then((data) => {
           state.phoneBound = data.phoneBound === true
           if (state.phoneBound) {
+            // 显式授权成功：恢复静默登录能力（退出登录时被抑制）
+            allowAutoLogin()
             state.visible = false
             const act = pending
             pending = null
