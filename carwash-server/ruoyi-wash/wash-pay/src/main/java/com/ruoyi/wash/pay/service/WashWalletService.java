@@ -44,6 +44,9 @@ public class WashWalletService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final long RECHARGE_EXPIRE_MS = 30 * 60 * 1000L;
 
+    /** 自定义充值金额下限（分）：产品要求最低 ¥1，与 openapi.yaml amountFen.minimum 一致 */
+    private static final long CUSTOM_MIN_FEN = 100L;
+
     @Autowired
     private WashMemberWalletMapper walletMapper;
     @Autowired
@@ -102,8 +105,11 @@ public class WashWalletService {
             ruleId = rule.getRuleId();
             payAmount = rule.getRechargeFen();
             giftAmount = rule.getGiftFen() == null ? 0L : rule.getGiftFen();
-        } else if (req.getAmountFen() != null && req.getAmountFen() > 0) {
+        } else if (req.getAmountFen() != null && req.getAmountFen() >= CUSTOM_MIN_FEN) {
             payAmount = req.getAmountFen();
+        } else if (req.getAmountFen() != null && req.getAmountFen() > 0) {
+            // 兜底：前端已挡一道，但端点可被直调，服务端必须自己校验
+            throw new ApiException(ErrorCode.A0001, "自定义充值金额最低 ¥1");
         } else {
             throw new ApiException(ErrorCode.A0001, "请选择充值档位或输入金额");
         }
