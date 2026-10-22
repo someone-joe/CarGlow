@@ -1579,7 +1579,7 @@ paths:
       summary: 发起充值
       description: |
         ruleId（选赠送档）与 amountFen（自定义金额）二选一，ruleId 优先；自定义金额不赠送。
-        生成 INIT 充值单；本地由 mock-pay 到账（微信渠道后补）。金额单位为分。
+        自定义金额最低 100 分（¥1）。生成 INIT 充值单；本地由 mock-pay 到账（微信渠道后补）。金额单位为分。
       requestBody:
         required: true
         content:
@@ -1588,7 +1588,11 @@ paths:
               type: object
               properties:
                 ruleId: { type: integer, format: int64 }
-                amountFen: { type: integer, format: int64 }
+                amountFen:
+                  type: integer
+                  format: int64
+                  minimum: 100
+                  description: 自定义充值金额（分），最低 ¥1；传 ruleId 时忽略
       responses:
         '200':
           description: 成功
