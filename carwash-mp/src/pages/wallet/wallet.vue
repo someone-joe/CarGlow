@@ -5,9 +5,12 @@
     <block v-else>
       <!-- 余额卡 -->
       <view class="balance-card">
-        <view class="bc-total">
-          <text class="bc-total-label">账户总余额（元）</text>
-          <text class="bc-total-value">{{ yuan(total) }}</text>
+        <view class="bc-head">
+          <view class="bc-total">
+            <text class="bc-total-label">账户总余额（元）</text>
+            <text class="bc-total-value">{{ yuan(total) }}</text>
+          </view>
+          <view class="bc-recharge" @click="goRecharge">充值</view>
         </view>
         <view class="bc-split">
           <view class="bc-item">
@@ -19,7 +22,6 @@
             <text class="bc-item-value">{{ yuan(wallet.giftBalance) }}</text>
           </view>
         </view>
-        <view class="bc-recharge" @click="goRecharge">充值</view>
       </view>
 
       <!-- 流水 -->
@@ -109,6 +111,17 @@ onShow(() => {
   box-shadow: var(--cg-shadow-card);
 }
 
+/* 余额行：左金额、右充值按钮，按钮与金额块垂直居中 */
+.bc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bc-total {
+  flex: 1;
+}
+
 .bc-total-label {
   display: block;
   font-size: var(--cg-font-caption);
@@ -151,11 +164,12 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 176rpx;
-  height: 104rpx;
+  /* 放到总余额右侧后收一档尺寸，避免压过大号金额 */
+  width: 160rpx;
+  height: 72rpx;
   background: var(--cg-primary);
   border-radius: var(--cg-radius-md);
-  font-size: var(--cg-font-body);
+  font-size: var(--cg-font-caption);
   color: #ffffff;
 }
 
