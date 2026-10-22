@@ -1,0 +1,70 @@
+# 应用栈（mysql + redis + server）。同一份文件，用 -p 项目名 + --env-file 区分 test/prod：
+#   docker compose -p carglow-test --env-file .env.test -f docker-compose.yml up -d
+#   docker compose -p carglow-prod --env-file .env.prod -f docker-compose.yml up -d
+# 项目名隔离 → 容器/网络/卷/数据各自独立（两套库天然分开）；
+# server 仅在 127.0.0.1:${APP_PORT} 暴露（本机/内网），公网由 Nginx 反代进入；mysql/redis 不对外。
+services:
+  mysql:
+    image: mysql:8.0.39
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --max_connections=200
+      - --innodb-buffer-pool-size=${MYSQL_BUFFER_POOL:-512M}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: carwash
+      TZ: Asia/Shanghai
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "${REDIS_MAXMEMORY:-256mb}", "--maxmemory-policy", "noeviction"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  server:
+    image: carglow/server:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod},druid
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TOKEN_SECRET: ${TOKEN_SECRET}
+      WX_APPID: ${WX_APPID:-}
+      WX_SECRET: ${WX_SECRET:-}
+      PAY_PROVIDER: ${PAY_PROVIDER:-mock}
+      PAY_MOCK_ENABLED: ${PAY_MOCK_ENABLED:-true}
+      NOTIFY_MOCK_ENABLED: ${NOTIFY_MOCK_ENABLED:-true}
+      NOTIFY_TPL_ORDER_STATUS: ${NOTIFY_TPL_ORDER_STATUS:-}
+      NOTIFY_TPL_KEY_READY: ${NOTIFY_TPL_KEY_READY:-}
+      NOTIFY_TPL_COUPON_EXPIRE: ${NOTIFY_TPL_COUPON_EXPIRE:-}
+      NOTIFY_TPL_BALANCE_LOW: ${NOTIFY_TPL_BALANCE_LOW:-}
+      NOTIFY_TPL_ACTIVITY: ${NOTIFY_TPL_ACTIVITY:-}
+    depends_on:
+      mysql: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8081}:8080"
+    volumes:
+      - media-data:/app/upload/media
+      - logs:/app/logs
+
+volumes:
+  mysql-data:
+  redis-data:
+  media-data:
+  logs:

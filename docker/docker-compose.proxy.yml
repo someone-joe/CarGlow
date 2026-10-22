@@ -1,0 +1,13 @@
+# 边缘反向代理（host 网络，占用 80/443），按域名把请求分流到本机各应用栈暴露的 127.0.0.1 端口。
+# 用法：docker compose -p carglow-proxy -f docker-compose.proxy.yml up -d
+# 依赖：应用栈已起（prod 在 127.0.0.1:8081、test 在 127.0.0.1:8082）；后台静态由 deploy.sh 放到 ./admin-dist。
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: carglow-proxy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro            # 备案+证书后放 fullchain.pem / privkey.pem
+      - ./admin-dist:/usr/share/nginx/admin:ro # 后台前端静态（RuoYi-Vue3 构建产物）

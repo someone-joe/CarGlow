@@ -1,0 +1,32 @@
+# 测试环境覆盖项（SPRING_PROFILES_ACTIVE=test,druid 时加载）。
+# 用模拟/沙箱配置，独立库，绝不指向生产数据。验收/预演都在这个环境跑。
+spring:
+  datasource:
+    druid:
+      master:
+        url: jdbc:mysql://mysql:3306/carwash?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+        username: root
+        password: ${MYSQL_ROOT_PASSWORD}
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+logging:
+  level:
+    com.ruoyi: debug
+token:
+  secret: ${TOKEN_SECRET}
+ruoyi:
+  profile: /app/upload
+wash:
+  wx:
+    appid: ${WX_APPID:}
+    secret: ${WX_SECRET:}     # 测试留空 = dev-openid 模拟登录，避免脏数据
+  media:
+    store-path: /app/upload/media
+  pay:
+    mock-enabled: true
+    provider: mock             # 测试用模拟支付
+  notify:
+    mock-enabled: true         # 测试只打点，不调微信

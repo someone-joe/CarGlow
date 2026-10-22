@@ -1,0 +1,46 @@
+# 生产环境覆盖项（SPRING_PROFILES_ACTIVE=prod,druid 时加载）。
+# 所有密钥/口令一律用环境变量注入（见 docker/.env.prod），绝不写进仓库。
+spring:
+  datasource:
+    druid:
+      master:
+        # 容器内指向同项目的 mysql 服务名；生产不要 allowPublicKeyRetrieval
+        url: jdbc:mysql://mysql:3306/carwash?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8
+        username: root
+        password: ${MYSQL_ROOT_PASSWORD}
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  devtools:
+    restart:
+      enabled: false          # 生产禁热部署
+logging:
+  level:
+    com.ruoyi: info
+    org.springframework: warn
+springdoc:
+  swagger-ui:
+    enabled: false            # 生产关 swagger
+token:
+  secret: ${TOKEN_SECRET}     # 强随机，勿用默认
+ruoyi:
+  profile: /app/upload        # Linux 上传路径（挂卷）
+wash:
+  wx:
+    appid: ${WX_APPID}
+    secret: ${WX_SECRET}      # 生产必须真实 secret；为空会退化成 dev-openid 串数据
+  media:
+    store-path: /app/upload/media
+  pay:
+    mock-enabled: ${PAY_MOCK_ENABLED:false}
+    provider: ${PAY_PROVIDER:wechat}
+  notify:
+    mock-enabled: ${NOTIFY_MOCK_ENABLED:false}
+    templates:
+      orderStatus: ${NOTIFY_TPL_ORDER_STATUS:}
+      keyReady: ${NOTIFY_TPL_KEY_READY:}
+      couponExpire: ${NOTIFY_TPL_COUPON_EXPIRE:}
+      balanceLow: ${NOTIFY_TPL_BALANCE_LOW:}
+      activity: ${NOTIFY_TPL_ACTIVITY:}
