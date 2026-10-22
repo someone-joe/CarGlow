@@ -60,6 +60,9 @@ const total = ref(0)
 const selectedRuleId = ref<number | null>(null)
 const customAmount = ref('')
 
+/** 自定义充值金额下限（分）：产品要求最低 ¥1，与后端 CUSTOM_MIN_FEN、契约 amountFen.minimum 一致 */
+const CUSTOM_MIN_FEN = 100
+
 function yuan(fen?: number): string {
   return ((fen ?? 0) / 100).toFixed(2)
 }
@@ -96,6 +99,10 @@ async function submit(): Promise<void> {
   const customFen = customAmount.value ? Math.round(Number(customAmount.value) * 100) : 0
   if (!selectedRuleId.value && !(customFen > 0)) {
     uni.showToast({ title: '请选择金额或输入自定义金额', icon: 'none' })
+    return
+  }
+  if (!selectedRuleId.value && customFen < CUSTOM_MIN_FEN) {
+    uni.showToast({ title: '自定义金额最低 ¥1', icon: 'none' })
     return
   }
   submitting.value = true
@@ -222,8 +229,11 @@ onShow(() => {
 .custom-input {
   box-sizing: border-box;
   width: 100%;
+  /* 小程序原生 input 不定高会坍缩，故定高（与页面 104rpx 按钮协调）。
+     上下 padding 留 0：原生 input 自身垂直居中，加了上下 padding 会把文字顶偏上去。 */
+  height: 96rpx;
   margin-top: 16rpx;
-  padding: 24rpx;
+  padding: 0 24rpx;
   background: var(--cg-fill);
   border-radius: var(--cg-radius-md);
   font-size: var(--cg-font-caption);
