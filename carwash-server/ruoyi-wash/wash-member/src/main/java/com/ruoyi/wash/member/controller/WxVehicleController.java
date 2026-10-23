@@ -9,6 +9,7 @@ import com.ruoyi.wash.member.dto.VehicleVO;
 import com.ruoyi.wash.member.service.WashVehicleQueryService;
 import com.ruoyi.wash.member.service.WashVehicleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * C 端车辆。契约：openapi.yaml GET / POST /api/v1/vehicles、PUT /api/v1/vehicles/{vehicleId}。
+ * C 端车辆。契约：openapi.yaml GET / POST /api/v1/vehicles、PUT / DELETE /api/v1/vehicles/{vehicleId}。
  *
  * <p>只返回当前登录会员的车辆（MemberContext 保证），不接收 memberId 入参，防止越权枚举。
  */
@@ -62,6 +63,18 @@ public class WxVehicleController {
                 request == null ? null : request.isNewEnergy(),
                 request == null ? null : request.communityId(),
                 request == null ? null : request.parkingNo());
+        return ApiResult.ok();
+    }
+
+    /**
+     * 删除车辆（前端需二次确认）。契约：openapi.yaml DELETE /api/v1/vehicles/{vehicleId}。
+     *
+     * <p>逻辑删：历史订单仍引用 vehicle_id，物理删会让老订单查不到车牌。
+     * 只删当前登录会员名下的车（MemberContext 保证），不接收 memberId 入参，防越权。
+     */
+    @DeleteMapping("/api/v1/vehicles/{vehicleId}")
+    public ApiResult<Void> delete(@PathVariable Long vehicleId) {
+        vehicleService.delete(MemberContext.require(), vehicleId);
         return ApiResult.ok();
     }
 

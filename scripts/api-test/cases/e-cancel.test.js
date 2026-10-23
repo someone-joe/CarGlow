@@ -7,8 +7,9 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, field } from '../lib/assert.js';
-import { getSession, createOrder, cancelOrder, driveChain, getOrder, cleanupCreated } from '../lib/factory.js';
-import { SIDECAR_ENABLED, sql, redis, capacityKey } from '../lib/sidecar.js';
+import { getSession, createOrder, cancelOrder, driveChain, getOrder, cleanupCreated, receiveAnyCoupon } from '../lib/factory.js';
+import { TEST_MARKER } from '../lib/config.js';
+import { SIDECAR_ENABLED, sql, redis, capacityKey, couponStatus } from '../lib/sidecar.js';
 
 afterEach(() => cleanupCreated());
 
@@ -106,4 +107,17 @@ test('API-E09 紧急取钥匙-车已动拒绝（B1002 → 21002）', async () =>
   bizCode(await api('POST', `/api/v1/orders/${orderNo}/emergency-take-key`, { token: s.token }), 21002, 'E09');
 });
 
-test('API-E10 取消-权益返还（用券订单取消后券回 UNUSED）', { todo: '【产品缺口】规则表 2.3 要求取消副作用含「权益（券/体验名额）返还」，实测取消后券仍为 USED：WashOrderStateService.doCancel 无券返还调用，wash-promo 也无 OrderCanceledEvent 监听、无返还方法。待补齐后转正' }, () => {});
+test('API-E10 取消-权益返还（用券订单取消后券回 UNUSED）', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  // 规则表 2.3：取消副作用含「权益（券/体验名额）返还」。
+  // 2026-10-24 修复：doCancel 调 WashCouponService.returnByOrderNo，按 order_no 反查已核销券并置回 UNUSED。
+  const coupon = await receiveAnyCoupon(3900);
+  if (!coupon) t.skip('没有可领且门槛 ≤3900 的券模板');
+  const { res } = await createOrder({ couponUserId: coupon.couponUserId, remark: 'E10 券返还' });
+  ok(res, 'E10 用券下单');
+  assert.equal(couponStatus(coupon.couponUserId), 'USED', 'E10: 下单后券应已核销为 USED');
+
+  ok(await cancelOrder(res.data.orderNo, `${TEST_MARKER} E10 券返还`), 'E10 取消');
+  assert.equal(couponStatus(coupon.couponUserId), 'UNUSED',
+    `E10: 取消后券应返还为 UNUSED，实际 ${couponStatus(coupon.couponUserId)}`);
+});

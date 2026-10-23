@@ -6,7 +6,7 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
-import { ok, bizCode, truthy, typeIs } from '../lib/assert.js';
+import { ok, bizCode, truthy, typeIs, amountIs } from '../lib/assert.js';
 import { getSession, cleanupCreated } from '../lib/factory.js';
 
 afterEach(() => cleanupCreated());
@@ -114,7 +114,26 @@ test('API-B10 车辆 CRUD 正向（增/改/查；DELETE 见 B10b）', async () =
   assert.equal(list2.data.find((v) => v.vehicleId === vehicleId).color, '黑', 'B10: 修改应生效');
 });
 
-test('API-B10b 车辆-删除（DELETE）', { todo: '契约定义了 DELETE /api/v1/vehicles/{vehicleId}（前端需二次确认），但 WxVehicleController 无 DeleteMapping、Service 无删除方法——实现缺口，待补（实测 500 Request method DELETE is not supported）' }, () => {});
+test('API-B10b 车辆-删除（DELETE）', async () => {
+  const s = await getSession();
+  const plate = `粤D${String(Date.now()).slice(-6)}`;
+  const created = await api('POST', '/api/v1/vehicles', {
+    token: s.token, body: { plateNo: plate, brand: '待删除', color: '白' },
+  });
+  ok(created, 'B10b 新增');
+  const vehicleId = created.data;
+
+  const del = await api('DELETE', `/api/v1/vehicles/${vehicleId}`, { token: s.token });
+  ok(del, 'B10b 删除');
+
+  // 副作用：逻辑删，列表不再出现（不能用物理删——历史订单仍引用 vehicle_id）
+  const list = await api('GET', '/api/v1/vehicles', { token: s.token });
+  ok(list, 'B10b 删除后列表');
+  assert.ok(!(list.data || []).some((v) => v.vehicleId === vehicleId), 'B10b: 删除后不应再出现在列表');
+
+  // 重复删除 / 删不存在的车：与 update 同口径报 A0001，不区分「不存在」与「不是你的」
+  bizCode(await api('DELETE', `/api/v1/vehicles/${vehicleId}`, { token: s.token }), 10001, 'B10b 重复删除');
+});
 
 test('API-B11 车辆-越权修改（A0001 统一口径）', async () => {
   const s = await getSession();
@@ -143,4 +162,13 @@ test('API-B13 常用停车位置 CRUD + 越权', async () => {
   bizCode(await api('DELETE', '/api/v1/park-locations/999999', { token: s.token }), 10001, 'B13 越权删除');
 });
 
-test('API-B14 免登录接口（selfwash/pricing）', { todo: '契约 summary 标「免登录」但 security 字段未声明、实现走会员鉴权（实测 10002）——契约内部不一致，待用户决策后补断言' }, () => {});
+test('API-B14 免登录接口（selfwash/pricing）', async () => {
+  // 契约 summary 标「免登录」（2026-10-24 决策：实现与 openapi 都对齐到免登录，
+  // openapi 已补 security: []，MemberWebConfig 已放行）。价格是纯配置，不含用户数据。
+  const res = await api('GET', '/api/v1/selfwash/pricing');
+  ok(res, 'B14 免登录读取计价');
+  amountIs(res.data.baseAmount, 'B14 baseAmount');
+  typeIs(res.data.baseMinutes, 'number', 'B14 baseMinutes');
+  amountIs(res.data.overtimeAmount, 'B14 overtimeAmount');
+  typeIs(res.data.overtimeMinutes, 'number', 'B14 overtimeMinutes');
+});

@@ -9,6 +9,8 @@ import com.ruoyi.wash.promo.dto.CouponTemplateVO;
 import com.ruoyi.wash.promo.dto.CouponUserVO;
 import com.ruoyi.wash.promo.mapper.WashCouponTemplateMapper;
 import com.ruoyi.wash.promo.mapper.WashCouponUserMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +21,32 @@ import java.util.List;
 @Service
 public class WashCouponService {
 
+    private static final Logger log = LoggerFactory.getLogger(WashCouponService.class);
+
     @Autowired
     private WashCouponTemplateMapper templateMapper;
     @Autowired
     private WashCouponUserMapper userMapper;
+
+    /**
+     * 取消订单返还券：把该单核销的券置回 UNUSED。
+     *
+     * <p>依据：订单状态机规则表 2.3「取消副作用：权益（券/体验名额）返还」。
+     * 返还失败不能阻断取消流程（券是附属权益，主流程是状态与退款），故静默兜底 + 留日志；
+     * 幂等：无券或已返还都直接返回。
+     */
+    public void returnByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return;
+        }
+        WashCouponUser used = userMapper.selectUsedByOrderNo(orderNo);
+        if (used == null) {
+            return;
+        }
+        userMapper.updateUnused(used.getCouponUserId());
+        log.info("[券返还] orderNo={} couponUserId={} memberId={} 已置回 UNUSED",
+                orderNo, used.getCouponUserId(), used.getMemberId());
+    }
 
     /** 领券中心：返回当前可领的模板 + 该会员已领数量 + 剩余库存。 */
     public List<CouponTemplateVO> center(Long memberId, long now) {
@@ -61,13 +85,34 @@ public class WashCouponService {
     }
 
     /** 我的优惠券：按状态过滤（UNUSED/USED/EXPIRED），null 查全部。 */
+    /**
+     * 我的优惠券。
+     *
+     * <p>EXPIRED 是**计算值**而不是库里状态：库里只存 UNUSED / USED，过期的 UNUSED 要展示成 EXPIRED。
+     * 契约（openapi CouponUserVO.status 枚举与 /api/v1/coupons 的 status 过滤）已明确包含 EXPIRED，
+     * 2026-10-24 修复：此前直接返回库里原值，导致过期券仍显示 UNUSED、按 EXPIRED 过滤恒为空。
+     */
     public List<CouponUserVO> myCoupons(Long memberId, String status, long now) {
         List<CouponUserVO> vos = new ArrayList<>();
-        for (WashCouponUser u : userMapper.selectMy(memberId, status)) {
+        // 过滤参数若是 EXPIRED，库里没有这个状态，需先取 UNUSED 再按有效期计算
+        String dbStatus = "EXPIRED".equals(status) ? "UNUSED" : status;
+        for (WashCouponUser u : userMapper.selectMy(memberId, dbStatus)) {
             WashCouponTemplate t = templateMapper.selectById(u.getTemplateId());
-            vos.add(toUserVO(u, t));
+            String effective = effectiveStatus(u, now);
+            if (status != null && !status.equals(effective)) {
+                continue; // 库状态与计算状态不一致时以计算值为准过滤（UNUSED 过滤要排除已过期的）
+            }
+            vos.add(toUserVO(u, t, effective));
         }
         return vos;
+    }
+
+    /** 券的对外状态：UNUSED 且已过有效期 → EXPIRED（库里仍是 UNUSED，不改数据）。 */
+    private String effectiveStatus(WashCouponUser u, long now) {
+        if ("UNUSED".equals(u.getStatus()) && u.getExpireTime() != null && u.getExpireTime() < now) {
+            return "EXPIRED";
+        }
+        return u.getStatus();
     }
 
     /** 给定支付金额，计算当前会员可用的最优券（门槛满足、未过期、减免最大）。 */
@@ -123,10 +168,14 @@ public class WashCouponService {
     }
 
     private CouponUserVO toUserVO(WashCouponUser u, WashCouponTemplate t) {
+        return toUserVO(u, t, u.getStatus());
+    }
+
+    private CouponUserVO toUserVO(WashCouponUser u, WashCouponTemplate t, String status) {
         String name = t == null ? "" : t.getName();
         Long threshold = t == null ? 0L : t.getThresholdAmount();
         Long discount = t == null ? 0L : t.getDiscountAmount();
         return new CouponUserVO(u.getCouponUserId(), u.getTemplateId(), name,
-                threshold, discount, u.getStatus(), u.getExpireTime(), u.getOrderNo());
+                threshold, discount, status, u.getExpireTime(), u.getOrderNo());
     }
 }

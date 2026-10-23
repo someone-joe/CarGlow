@@ -5,6 +5,7 @@ import com.ruoyi.wash.common.api.ApiResult;
 import com.ruoyi.wash.member.domain.WashCsFaq;
 import com.ruoyi.wash.member.dto.CsFaq;
 import com.ruoyi.wash.member.dto.CustomerServiceVO;
+import com.ruoyi.wash.member.dto.FaqVO;
 import com.ruoyi.wash.member.mapper.WashCsFaqMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * C 端通用配置。契约：openapi.yaml GET /api/v1/config/customer-service。
+ * C 端通用配置。契约：openapi.yaml GET /api/v1/config/customer-service、GET /api/v1/faqs。
  *
  * <p>本类属 misc 域，项目暂无 misc 模块，暂挂 wash-member（同为 C 端接口层）；
  * 将来 misc 模块开工时整体挪走，接口路径不变，前端无感。
@@ -68,6 +69,20 @@ public class WxConfigController {
                 .collect(Collectors.toList());
         vo.setFaqs(faqs);
         return ApiResult.ok(vo);
+    }
+
+    /**
+     * 常见问题标签与解答。契约：openapi.yaml GET /api/v1/faqs。
+     *
+     * <p>数据与「客服配置」同源（wash_cs_faq），这里只做字段口径转换（question → label）；
+     * 未维护任何 FAQ 时返回空数组，前端自行决定展示占位。
+     */
+    @GetMapping("/api/v1/faqs")
+    public ApiResult<List<FaqVO>> faqs() {
+        List<FaqVO> list = faqMapper.selectAll().stream()
+                .map(f -> new FaqVO(f.getFaqId(), f.getQuestion(), f.getAnswer(), null))
+                .collect(Collectors.toList());
+        return ApiResult.ok(list);
     }
 
     /** 后台参数优先；未配置（null/空串）回落 yml 值 */

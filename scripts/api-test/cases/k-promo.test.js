@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, typeIs } from '../lib/assert.js';
 import { getSession, receiveAnyCoupon, cleanupCreated } from '../lib/factory.js';
-import { SIDECAR_ENABLED, sql } from '../lib/sidecar.js';
+import { SIDECAR_ENABLED, sql, ensureOtherMember, createVehicleForMember, fillCouponStock, setCouponIssued, expireCoupon, setCouponExpire, clearMyUnusedCoupons, createTestCouponTemplate, setCouponTemplate, deleteTestCouponTemplates } from '../lib/sidecar.js';
 
 afterEach(() => cleanupCreated());
 
@@ -27,31 +27,67 @@ test('API-K01 领券中心（库存与限领口径）', async () => {
 test('API-K02 领券-正向（领取后名下可见）', async (t) => {
   if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
   const s = await getSession();
-  // 找一张没领过的模板（claimed=0 且 remain>0），保证可领
-  const center = (await api('GET', '/api/v1/coupons/center', { token: s.token })).data;
-  const tpl = center.find((t) => t.remain > 0 && t.claimed === 0 && t.thresholdAmount <= 3900);
-  if (!tpl) t.skip('没有未领过的可用模板');
-  const res = await api('POST', `/api/v1/coupons/templates/${tpl.templateId}/receive`, { token: s.token });
-  ok(res, 'K02 领取');
-  // 副作用：名下出现 UNUSED 券
-  const mine = (await api('GET', '/api/v1/coupons', { token: s.token })).data;
-  assert.ok(mine.some((c) => c.templateId === tpl.templateId && c.status === 'UNUSED'),
-    'K02: 领取后名下应有 UNUSED 券');
+  // 夹具：自造模板（seed 模板都已被历史测试领过一轮，perLimit=1 会直接撞 31002 导致用例空跳）
+  const tplId = createTestCouponTemplate({ name: `[AUTOTEST] 可领${Date.now()}`, total: 10, issued: 0, threshold: 0 });
+  try {
+    const res = await api('POST', `/api/v1/coupons/templates/${tplId}/receive`, { token: s.token });
+    ok(res, 'K02 领取');
+    // 副作用：名下出现 UNUSED 券
+    const mine = (await api('GET', '/api/v1/coupons', { token: s.token })).data;
+    assert.ok(mine.some((c) => c.templateId === tplId && c.status === 'UNUSED'),
+      'K02: 领取后名下应有 UNUSED 券');
+  } finally {
+    deleteTestCouponTemplates();
+  }
 });
 
-test('API-K03 领券-已领完/下架（C1001）', { todo: '需要「库存=0 或已下架」的模板；当前 seed 模板均有库存。造下架模板属后台写操作，留待 O 批（后台券管理）配合覆盖' }, () => {});
+test('API-K03 领券-已领完/下架（C1001）', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  // 夹具：自造模板（不污染 seed、不受历史领用影响），issued=total → 库存耗尽
+  const tplId = createTestCouponTemplate({ name: `[AUTOTEST] 已领完${Date.now()}`, total: 10, issued: 10 });
+  try {
+    bizCode(await api('POST', `/api/v1/coupons/templates/${tplId}/receive`, { token: s.token }),
+      31001, 'K03 已领完应 C1001');
+
+    // 另一个分支：有库存但已下架（status=N）——契约错误码同为 C1001
+    const offId = createTestCouponTemplate({ name: `[AUTOTEST] 已下架${Date.now()}`, total: 10, issued: 0 });
+    setCouponTemplate(offId, { status: 'N' });
+    bizCode(await api('POST', `/api/v1/coupons/templates/${offId}/receive`, { token: s.token }),
+      31001, 'K03 已下架应 C1001');
+  } finally {
+    deleteTestCouponTemplates();
+  }
+});
 
 test('API-K04 领券-超限领（C1002）', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
   const s = await getSession();
-  const center = (await api('GET', '/api/v1/coupons/center', { token: s.token })).data;
-  // 找 perLimit=1 且未领过的模板；领一次成功、第二次超限
-  const tpl = center.find((t) => t.perLimit === 1 && t.claimed === 0 && t.remain > 0);
-  if (!tpl) t.skip('没有 perLimit=1 且未领的模板');
-  ok(await api('POST', `/api/v1/coupons/templates/${tpl.templateId}/receive`, { token: s.token }), 'K04 首次领取');
-  bizCode(await api('POST', `/api/v1/coupons/templates/${tpl.templateId}/receive`, { token: s.token }), 31002, 'K04 超限领');
+  // 夹具：自造 perLimit=1 模板，领一次成功、第二次超限（seed 模板已被历史测试领过，无法复用）
+  const tplId = createTestCouponTemplate({ name: `[AUTOTEST] 限领${Date.now()}`, total: 10, issued: 0, perLimit: 1 });
+  try {
+    ok(await api('POST', `/api/v1/coupons/templates/${tplId}/receive`, { token: s.token }), 'K04 首次领取');
+    bizCode(await api('POST', `/api/v1/coupons/templates/${tplId}/receive`, { token: s.token }), 31002, 'K04 超限领');
+  } finally {
+    deleteTestCouponTemplates();
+  }
 });
 
-test('API-K05 我的券-EXPIRED 为计算值', { todo: '需要已过有效期的 UNUSED 券（库里存 UNUSED、展示 EXPIRED）；当前 seed 无过期券，无法构造' }, () => {});
+test('API-K05 我的券-EXPIRED 为计算值', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const coupon = await receiveAnyCoupon(3900);
+  if (!coupon) return t.skip('没有可领且门槛 ≤3900 的券模板');
+  // 夹具：把有效期改到昨天（库里状态仍是 UNUSED，展示应为 EXPIRED），跑完还原
+  const before = expireCoupon(coupon.couponUserId);
+  try {
+    const mine = (await api('GET', '/api/v1/coupons', { token: s.token, query: { status: 'EXPIRED' } })).data || [];
+    assert.ok(mine.some((c) => c.couponUserId === coupon.couponUserId),
+      `K05: 过期的 UNUSED 券应按 EXPIRED 展示，实际列表 ${mine.length} 条`);
+  } finally {
+    setCouponExpire(coupon.couponUserId, before);
+  }
+});
 
 test('API-K06 保险产品列表', async () => {
   const s = await getSession();
@@ -76,7 +112,19 @@ test('API-K07 投保-正向（本人车辆 → 保单 ACTIVE）', async (t) => {
   assert.ok(policy.includes('990'), `K07: 保费应 990 分，实际 ${policy}`);
 });
 
-test('API-K08 投保-他人车辆', { todo: 'dev 单会员，无法构造他人车辆；待真实双账号后补' }, () => {});
+test('API-K08 投保-他人车辆', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  // 夹具：给第二个会员造一辆车（dev 单会员，接口层造不出他人车辆）
+  const vid = createVehicleForMember(ensureOtherMember(), `粤K${String(Date.now()).slice(-5)}`);
+  const prods = (await api('GET', '/api/v1/insurances/products', { token: s.token })).data || [];
+  const first = prods[0];
+  if (!first) t.skip('无保险产品');
+  const productId = first.insuranceProductId ?? first.productId;
+  // 越权防护（2026-10-24 修复）：投保会生成保单并记保费，必须校验车辆归属
+  const res = await api('POST', '/api/v1/insurances', { token: s.token, body: { productId, vehicleId: vid } });
+  bizCode(res, 10001, 'K08 投保他人车辆应拒绝');
+});
 
 test('API-K09 投保-模板不存在（C2001）', async () => {
   const s = await getSession();

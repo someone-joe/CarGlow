@@ -7,11 +7,21 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode } from '../lib/assert.js';
-import { getSession, workerLogin, adminLogin, cleanupCreated } from '../lib/factory.js';
+import { getSession, workerLogin, adminLogin, cleanupCreated, createOrder } from '../lib/factory.js';
+import { SIDECAR_ENABLED, ensureOtherMember, setOrderOwner } from '../lib/sidecar.js';
 
 afterEach(() => cleanupCreated());
 
-test('API-Q01 水平越权-访问他人订单', { todo: 'dev 模式所有登录共用 dev-openid（单会员），无法构造他人订单；待真实微信双账号或预置数据后补' }, () => {});
+test('API-Q01 水平越权-访问他人订单', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const { orderNo } = await createOrder({ remark: 'Q01 水平越权' });
+  // 夹具：sidecar 造第二个会员并把订单归属改过去（详见 lib/sidecar.js ensureOtherMember 注释）
+  setOrderOwner(orderNo, ensureOtherMember());
+  const res = await api('GET', `/api/v1/orders/${orderNo}`, { token: s.token });
+  assert.notEqual(res.code, 0, `Q01: 不应能读他人订单，实际 code=${res.code}`);
+  assert.ok(!res.data, `Q01: 不应返回他人订单数据，实际 ${String(JSON.stringify(res.data ?? '')).slice(0, 120)}`);
+});
 
 test('API-Q02 垂直越权-会员 token 访问后台接口', async () => {
   const s = await getSession();

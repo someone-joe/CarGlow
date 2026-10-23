@@ -66,6 +66,19 @@ public class WashVehicleService {
         }
     }
 
+    /**
+     * 删除车辆（逻辑删）。契约：openapi.yaml DELETE /api/v1/vehicles/{vehicleId}。
+     *
+     * <p>更新 0 行即视为「车辆不存在或不属于当前用户」，与 update 同口径：
+     * 不区分具体原因，避免通过报错差异枚举他人车辆 ID。
+     */
+    public void delete(Long memberId, Long vehicleId) {
+        int rows = vehicleMapper.logicDelete(vehicleId, memberId);
+        if (rows == 0) {
+            throw new ApiException(ErrorCode.A0001, "车辆不存在或不属于当前用户");
+        }
+    }
+
     private String requirePlateNo(String plateNo) {
         if (plateNo == null || plateNo.isBlank()) {
             throw new ApiException(ErrorCode.A0001, "车牌号必填");

@@ -26,6 +26,9 @@ public class MemberWebConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/api/v1/auth/**", "/api/v1/payments/wechat/**",
                         "/api/v1/worker/**", "/api/v1/pick/**", "/api/v1/station/**",
                         // 影像读取由 MediaAuthInterceptor 接管（支持 query token，供 image 组件使用）
-                        "/api/v1/media/**");
+                        "/api/v1/media/**",
+                        // 自助洗车计时计价：纯价格配置，不含任何用户数据，
+                        // 契约 openapi.yaml 明确标注「免登录」（用户在扫码前就要看到价格）
+                        "/api/v1/selfwash/pricing");
     }
 }

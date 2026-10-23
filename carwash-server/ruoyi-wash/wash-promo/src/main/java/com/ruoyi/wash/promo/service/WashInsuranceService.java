@@ -26,6 +26,10 @@ public class WashInsuranceService {
     @Autowired
     private WashInsurancePolicyMapper policyMapper;
 
+    /** 车辆归属校验（跨域走 wash-member 的 Service，不直接注入 Mapper） */
+    @Autowired
+    private com.ruoyi.wash.member.service.WashVehicleQueryService vehicleQuery;
+
     /** 可投保产品列表。 */
     public List<InsuranceProductVO> products() {
         List<InsuranceProductVO> vos = new ArrayList<>();
@@ -44,6 +48,10 @@ public class WashInsuranceService {
         if (vehicleId == null) {
             throw new ApiException(ErrorCode.C2002);
         }
+        // 越权防护（2026-10-24 修复）：投保会给车辆生成保单并记保费，
+        // 不校验归属就能拿别人的 vehicleId 投保（实测曾直接返回成功）。
+        vehicleQuery.requireOwned(memberId, vehicleId);
+
         WashInsuranceProduct p = productMapper.selectById(productId);
         if (p == null || !"Y".equals(p.getStatus())) {
             throw new ApiException(ErrorCode.C2001);

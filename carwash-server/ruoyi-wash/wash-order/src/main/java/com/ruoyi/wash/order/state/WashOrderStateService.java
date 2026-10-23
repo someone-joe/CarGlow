@@ -12,6 +12,7 @@ import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.event.OrderKeyInEvent;
 import com.ruoyi.wash.order.mapper.WashOrderMapper;
+import com.ruoyi.wash.promo.service.WashCouponService;
 import com.ruoyi.wash.promo.service.WashInviteService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -75,6 +76,9 @@ public class WashOrderStateService {
     /** 支付成功：WAIT_PAY → WAIT_KEY。只校验归属，不校验支付方式（真实支付回调走同一入口）。 */
     @Autowired
     private WashInviteService inviteService;
+
+    @Autowired
+    private WashCouponService couponService;
 
     public OrderStatus paySuccess(String orderNo, Long memberId) {
         WashOrder order = requireOwned(orderNo, memberId);
@@ -185,6 +189,14 @@ public class WashOrderStateService {
         releaseCapacity(order);
         // 释放预占的格口（取消时车还没动，格口里没钥匙，直接释放即可）
         slotService.release(order.getOrderNo());
+
+        // 返还本单核销的优惠券（规则表 2.3 取消副作用：权益返还）。
+        // 券是附属权益，返还异常绝不能阻断取消主流程（状态已流转 + 退款待发），故只记日志。
+        try {
+            couponService.returnByOrderNo(order.getOrderNo());
+        } catch (Exception e) {
+            log.error("[券返还失败] orderNo={} 需人工补偿：{}", order.getOrderNo(), e.getMessage());
+        }
 
         // 未支付（WAIT_PAY）取消无需退款；已支付的一律退全款（已确认决策）。
         // 这里只发事件，真正建退款单、调渠道、推进状态机由 wash-pay 负责（避免订单域依赖支付域）。

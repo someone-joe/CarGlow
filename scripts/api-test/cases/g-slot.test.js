@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, field } from '../lib/assert.js';
 import { getSession, createOrder, driveChain, workerLogin, cleanupCreated } from '../lib/factory.js';
-import { SIDECAR_ENABLED, sql } from '../lib/sidecar.js';
+import { SIDECAR_ENABLED, sql, ensureOtherMember, setOrderOwner } from '../lib/sidecar.js';
 
 afterEach(() => cleanupCreated());
 
@@ -42,7 +42,16 @@ test('API-G02 取开箱码-非允许状态拒绝（WASHING）', async () => {
   console.log(`  [G02] 实际 code=${res.code} msg=${res.msg}`);
 });
 
-test('API-G03 取开箱码-越权', { todo: 'dev 单会员（dev-openid），无法构造他人订单；待真实双账号后补' }, () => {});
+test('API-G03 取开箱码-越权', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const { orderNo } = await createOrder({ remark: 'G03 越权取码' });
+  await driveChain(orderNo, 'WAIT_KEY'); // 状态正确（WAIT_KEY 本可取码），只越权在归属
+  setOrderOwner(orderNo, ensureOtherMember());
+  const res = await api('POST', `/api/v1/orders/${orderNo}/open-code`, { token: s.token });
+  assert.notEqual(res.code, 0, `G03: 不应能取他人订单的开箱码，实际 code=${res.code}`);
+  console.log(`  [G03] 实际 code=${res.code} msg=${res.msg}`);
+});
 
 test('API-G04 柜机回调-存钥匙正向（WAIT_KEY → KEY_IN）', async () => {
   const s = await getSession();
@@ -110,4 +119,8 @@ test('API-G09 客户确认取回钥匙（RETURNED → WAIT_REVIEW）', async () 
   field(detail, 'data.status', 'WAIT_REVIEW', 'G09 取回后状态');
 });
 
-test('API-G10 非本人格口开箱', { todo: 'dev 单会员；格口权限规则（车主只能开本人格口）需双会员构造，待真实双账号后补' }, () => {});
+test('API-G10 非本人格口开箱', {
+  todo: '柜机回调 /device-callback/v1/slot/deposit 入参只有 orderNo + code + slotNo（机器→服务端，无会员上下文），'
+    + '归属校验的落点是取码接口而非回调——已由 G03（他人订单取码被拒）覆盖；'
+    + '回调侧「码与格口匹配」由 G04/G05 覆盖。硬造「先取码再改归属」的场景不成立（码本就是本人合法取得，实测回调返回 0 属预期）',
+}, () => {});

@@ -37,6 +37,22 @@ public interface WashCouponUserMapper {
             "where coupon_user_id = #{id} and status = 'UNUSED' and del_flag = '0'")
     int updateUsed(@Param("id") long id, @Param("orderNo") String orderNo, @Param("now") long now);
 
+    /**
+     * 按订单号找回已核销的券（取消返还用）。
+     *
+     * <p>为什么用 order_no 反查而不是在订单表存 coupon_user_id：wash_order 未冗余券字段
+     * （建表时未规划），而核销时已把 order_no 写进 wash_coupon_user，反查即可，不动表结构。
+     * 一张单最多用一张券（order 创建时 applyToOrder 口径），故 limit 1。
+     */
+    @Select("select coupon_user_id, template_id, member_id, status, order_no, obtain_time, used_time, expire_time " +
+            "from wash_coupon_user where order_no = #{orderNo} and status = 'USED' and del_flag = '0' limit 1")
+    WashCouponUser selectUsedByOrderNo(@Param("orderNo") String orderNo);
+
+    /** 返还：仅已核销的券置回 UNUSED 并清空订单号与核销时间（幂等，重复调用更新 0 行）。 */
+    @Update("update wash_coupon_user set status = 'UNUSED', order_no = null, used_time = null, update_time = sysdate() " +
+            "where coupon_user_id = #{id} and status = 'USED' and del_flag = '0'")
+    int updateUnused(@Param("id") long id);
+
     // ---------------- 后台 ----------------
 
     /**

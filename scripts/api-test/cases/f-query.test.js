@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, truthy } from '../lib/assert.js';
 import { getSession, createOrder, cancelOrder, driveChain, getOrder, cleanupCreated } from '../lib/factory.js';
+import { SIDECAR_ENABLED, ensureOtherMember, setOrderOwner } from '../lib/sidecar.js';
 
 afterEach(() => cleanupCreated());
 
@@ -95,7 +96,18 @@ test('API-F05 详情字段完整（站点/机柜/承诺还车/师傅）', async 
   assert.equal(detail.data.payAmount, detail.data.originAmount - detail.data.discountAmount, 'F05: 实付应 = 原价-折扣');
 });
 
-test('API-F06 详情-越权查他人订单', { todo: 'dev 模式所有登录共用 dev-openid（单会员），无法构造「他人订单」；待真实微信双账号或预置数据后补' }, () => {});
+test('API-F06 详情-越权查他人订单', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const { orderNo } = await createOrder({ remark: 'F06 越权' });
+  // 夹具：dev 单会员（任何 code 登录都是 dev-openid），接口层造不出他人订单，
+  // 用 sidecar 造第二个会员并把本单归属改过去（只改 member_id，不动状态）
+  setOrderOwner(orderNo, ensureOtherMember());
+  const res = await api('GET', `/api/v1/orders/${orderNo}`, { token: s.token });
+  assert.notEqual(res.code, 0, `F06: 不应能查他人订单，实际 code=${res.code}`);
+  // 口径：不得泄漏「订单存在」以外的信息，实测返回「订单不存在」
+  console.log(`  [F06] 实际 code=${res.code} msg=${res.msg}`);
+});
 
 test('API-F07 订单按钮（mainAction 按状态返回，前端不推断）', async () => {
   const s = await getSession();

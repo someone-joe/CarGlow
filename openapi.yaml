@@ -758,6 +758,9 @@ paths:
     get:
       tags: [selfwash]
       summary: 自助洗车计时计价参数（免登录）
+      # 免登录：全局 security 是 bearerAuth，不显式置空就会继承成「需要 token」，
+      # 与 summary 的「免登录」自相矛盾。这里声明为空数组 = 该操作不需要鉴权。
+      security: []
       description: |
         自助按计时收费（与无感的「按次/套餐」不同）：
         baseAmount 分 / baseMinutes 分钟 起收，超过后按 overtimeAmount 分 / overtimeMinutes 分钟 计。

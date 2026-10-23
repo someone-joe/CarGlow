@@ -63,4 +63,14 @@ public interface WashVehicleMapper {
             "where vehicle_id = #{vehicleId} and member_id = #{memberId} and del_flag = '0'" +
             "</script>")
     int updateVehicle(WashVehicle vehicle);
+
+    /**
+     * 逻辑删除（契约 DELETE /api/v1/vehicles/{vehicleId}）。
+     *
+     * <p>为什么是逻辑删：历史订单仍引用 vehicle_id（时间轴要展示车牌），物理删会让老订单查不到车。
+     * where 带 member_id，删别人的车会更新 0 行，由 Service 报错。已删的车（del_flag='2'）再删也是 0 行。
+     */
+    @Update("update wash_vehicle set del_flag = '2', update_time = sysdate() " +
+            "where vehicle_id = #{vehicleId} and member_id = #{memberId} and del_flag = '0'")
+    int logicDelete(@Param("vehicleId") Long vehicleId, @Param("memberId") Long memberId);
 }
