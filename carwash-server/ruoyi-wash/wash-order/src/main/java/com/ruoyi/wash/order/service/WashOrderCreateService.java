@@ -125,46 +125,54 @@ public class WashOrderCreateService {
         // 产能：capacity:{siteId}:{date}，未初始化（null）表示当日不限量，不做拦截
         takeCapacity(cabinet.getSiteId(), request.appointDate());
 
-        long now = System.currentTimeMillis();
-        String orderNo = generateOrderNo(now);
-        long payExpireAt = now + payTimeoutMinutes * 60L * 1000;
+        // DECR 之后的任何失败（券校验/格口预占/落库/影像回填）都会让事务回滚，
+        // 但 Redis 不在事务内——不回补就泄漏名额，失败下单累积后真实客户被误拒 A0006。
+        // 2026-10-24 由接口自动化（API-C11 假券场景）抓到，此处修复并留回归。
+        try {
+            long now = System.currentTimeMillis();
+            String orderNo = generateOrderNo(now);
+            long payExpireAt = now + payTimeoutMinutes * 60L * 1000;
 
-        // 下单用券：校验归属/状态/门槛并核销，返回抵扣额；不传 couponUserId 则不使用
-        long payAmount = service.getPriceAmount();
-        long couponDiscount = 0;
-        if (request.couponUserId() != null) {
-            couponDiscount = couponService.applyToOrder(memberId, request.couponUserId(), payAmount, orderNo, now);
-            payAmount = Math.max(0, payAmount - couponDiscount);
+            // 下单用券：校验归属/状态/门槛并核销，返回抵扣额；不传 couponUserId 则不使用
+            long payAmount = service.getPriceAmount();
+            long couponDiscount = 0;
+            if (request.couponUserId() != null) {
+                couponDiscount = couponService.applyToOrder(memberId, request.couponUserId(), payAmount, orderNo, now);
+                payAmount = Math.max(0, payAmount - couponDiscount);
+            }
+
+            // 预占格口（PRD：下单即预占，与支付倒计时同生命周期）；事务回滚会自动释放
+            slotService.reserve(request.cabinetId(), orderNo, memberId);
+
+            WashOrder order = new WashOrder();
+            order.setOrderNo(orderNo);
+            order.setMemberId(memberId);
+            order.setSiteId(cabinet.getSiteId());
+            order.setCommunityId(cabinet.getCommunityId());
+            order.setServiceId(request.serviceId());
+            order.setVehicleId(vehicle.getVehicleId());
+            order.setCabinetId(cabinet.getCabinetId());
+            order.setStatus(OrderStatus.WAIT_PAY.name());
+            order.setServiceName(service.getServiceName());
+            order.setAppointTime(appointTime);
+            order.setPayAmount(payAmount);
+            order.setPayExpireAt(payExpireAt);
+            order.setPlateNo(vehicle.getPlateNo());
+            order.setRemark(request.remark());
+            order.setDelFlag("0");
+            orderMapper.insertWashOrder(order);
+
+            // 停车照挂到订单上：此前只校验数量，影像与订单之间没有关联，事后查不到当时拍了什么
+            mediaService.bindToOrder(request.parkPhotoFileIds(), orderNo);
+
+            // 幂等记录保留 24 小时，覆盖重复提交与网络重试窗口
+            redisCache.setCacheObject(idemKey, orderNo, 24, TimeUnit.HOURS);
+
+            return buildVO(order, payAmount, couponDiscount, payExpireAt);
+        } catch (RuntimeException e) {
+            giveBackCapacity(cabinet.getSiteId(), request.appointDate());
+            throw e;
         }
-
-        // 预占格口（PRD：下单即预占，与支付倒计时同生命周期）；事务回滚会自动释放
-        slotService.reserve(request.cabinetId(), orderNo, memberId);
-
-        WashOrder order = new WashOrder();
-        order.setOrderNo(orderNo);
-        order.setMemberId(memberId);
-        order.setSiteId(cabinet.getSiteId());
-        order.setCommunityId(cabinet.getCommunityId());
-        order.setServiceId(request.serviceId());
-        order.setVehicleId(vehicle.getVehicleId());
-        order.setCabinetId(cabinet.getCabinetId());
-        order.setStatus(OrderStatus.WAIT_PAY.name());
-        order.setServiceName(service.getServiceName());
-        order.setAppointTime(appointTime);
-        order.setPayAmount(payAmount);
-        order.setPayExpireAt(payExpireAt);
-        order.setPlateNo(vehicle.getPlateNo());
-        order.setRemark(request.remark());
-        order.setDelFlag("0");
-        orderMapper.insertWashOrder(order);
-
-        // 停车照挂到订单上：此前只校验数量，影像与订单之间没有关联，事后查不到当时拍了什么
-        mediaService.bindToOrder(request.parkPhotoFileIds(), orderNo);
-
-        // 幂等记录保留 24 小时，覆盖重复提交与网络重试窗口
-        redisCache.setCacheObject(idemKey, orderNo, 24, TimeUnit.HOURS);
-
-        return buildVO(order, payAmount, couponDiscount, payExpireAt);
     }
 
     /**
@@ -187,6 +195,18 @@ public class WashOrderCreateService {
         Long result = stringRedisTemplate.execute(TAKE_CAPACITY_SCRIPT, List.of(key));
         if (result != null && result == 0L) {
             throw new ApiException(ErrorCode.A0006);
+        }
+    }
+
+    /**
+     * 下单失败路径回补产能（与 WashOrderStateService.releaseCapacity 同口径：
+     * key 不存在说明当日未限量，无需处理）。仅当订单最终未建成时调用——
+     * 由 create() 的 try/catch 保证：异常即订单未落库（事务回滚），回补永不会多给。
+     */
+    private void giveBackCapacity(Long siteId, String appointDate) {
+        String key = CAPACITY_PREFIX + siteId + ":" + appointDate;
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
+            stringRedisTemplate.opsForValue().increment(key);
         }
     }
 
