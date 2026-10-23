@@ -12,7 +12,7 @@ import {
   getSession, createOrder, getOrder, mockPay, freeCabinet,
   uploadPhoto, receiveAnyCoupon, cleanupCreated, markFinished,
 } from '../lib/factory.js';
-import { withCapacityZero, SIDECAR_ENABLED, mediaOrderNo, couponStatus, orderStatusInDb } from '../lib/sidecar.js';
+import { withCapacityZero, SIDECAR_ENABLED, mediaOrderNo, couponStatus, orderStatusInDb, redis, capacityKey } from '../lib/sidecar.js';
 import { todayStr } from '../lib/util.js';
 
 // 每条用例后取消其创建的订单（失败也执行）：dev 仅数个空闲格口，不即时清理会 B2003 连坐
@@ -156,10 +156,16 @@ test('API-C10 下单-使用满减券抵扣', async (t) => {
   }
 });
 
-test('API-C11 下单-优惠券不可用拒绝（C1003）', async () => {
+test('API-C11 下单-优惠券不可用拒绝（C1003，含产能泄漏回归）', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1（跳过产能回归断言）');
+  const before = redis('GET', capacityKey());
   const res = await createOrder({ couponUserId: 999999999, remark: 'C11 假券' });
   bizCode(res.res, 31003, 'C11 优惠券不可用');
   assert.equal(res.orderNo, null, 'C11: 拒绝时不应产生订单（不占格口不扣产能）');
+  // 回归（2026-10-24 修复）：takeCapacity 的 DECR 曾发生在券校验之前，失败抛异常无回补 → 名额泄漏。
+  // 修复后失败路径必须原样归还。曾实测：产能 20 → 假券失败 → 19（泄漏）。
+  const after = redis('GET', capacityKey());
+  assert.equal(after, before, `C11: 下单失败不应改变产能，${before} → ${after}（泄漏回归！）`);
 });
 
 test('API-C12 最优券计算', async () => {

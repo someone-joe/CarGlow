@@ -51,11 +51,19 @@ test('API-A06 师傅 token 访问 C 端接口（垂直越权）', async (t) => {
   assert.notEqual(res.code, 0, `A06: 师傅 token 不应能访问 C 端订单接口，实际 code=${res.code} msg=${res.msg}`);
 });
 
-// API-A07 协议富文本：契约（openapi.yaml）定义了 GET /api/v1/auth/agreements，
-// 但后端未实现（实测返回 500 "No static resource"）——契约与实现的 gap。
-// 按协作红线「冲突先提问不改码」，此处挂起待决策（补实现 或 从契约移除），
-// 待修复后把下方 todo 改回正式断言。
-test('API-A07 协议富文本', { todo: '契约已定义但后端未实现（500 No static resource）——待用户决策：补实现或修契约' }, () => {});
+// API-A07 协议富文本：2026-10-24 补齐后端实现（原契约缺口：500 No static resource）。
+// 契约：GET /api/v1/auth/agreements?type=SERVICE|PRIVACY|RECHARGE|INSURANCE，免登录（security: []）。
+test('API-A07 协议富文本（四类型 + 非法 type 拒绝 + 免登录）', async () => {
+  // 全程不带 token：验证免登录（契约 security: []）
+  for (const type of ['SERVICE', 'PRIVACY', 'RECHARGE', 'INSURANCE']) {
+    const res = await api('GET', '/api/v1/auth/agreements', { query: { type } });
+    ok(res, `A07 ${type}`);
+    truthy(res, 'data.title', `A07 ${type} 标题`);
+    typeIs(res.data.content, 'string', `A07 ${type} 正文类型`);
+  }
+  const bad = await api('GET', '/api/v1/auth/agreements', { query: { type: 'FOO' } });
+  bizCode(bad, 10001, 'A07 非法 type');
+});
 
 test('API-A08 客服配置', async () => {
   const s = await getSession();

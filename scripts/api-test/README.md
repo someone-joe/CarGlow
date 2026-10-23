@@ -48,15 +48,16 @@ scripts/api-test/
 7. **逐条清理**：`afterEach` 取消每条用例创建的订单（失败也执行）——dev 仅 2 个空闲格口，不即时清理会 B2003 连坐；
 8. **A06 条件跳过**：师傅越权用例依赖 W001 口令为 123456；口令被改过时自动跳过并打印原因。
 
-## 已知问题（2026-10-24 首跑发现，待用户决策）
+## 已知问题与修复记录
 
-1. **【产品缺陷·产能泄漏】下单失败路径漏扣产能**：`WashOrderCreateService.takeCapacity`（DECR）先于优惠券校验/格口预占执行，
-   后续校验失败（如 C1003 假券、B2003 无格口）直接抛异常，**已 DECR 的名额不回补**。
-   实测：产能 20 → 假券下单失败 → 19（无订单产生）。取消路径的回补正常（20→19→20 已验证）。
-   影响：失败下单累积到一定程度后，当日真实客户会被误拒（A0006）。涉及用例：API-C04/C05/C11 的失败分支。
-   **未擅改**（协作红线：范围外 bug 先提问）。修复方向：把 takeCapacity 移到所有校验之后，或失败路径 try 回补。
-2. **【契约缺口】`GET /api/v1/auth/agreements` 后端未实现**：openapi.yaml（SSOT）已定义，实测返回
-   500 "No static resource"。API-A07 挂起为 todo 待决策（补实现 or 修契约）。
+1. ~~【产品缺陷·产能泄漏】下单失败路径漏扣产能~~ **✅ 已修复（2026-10-24）**：
+   `WashOrderCreateService.takeCapacity`（DECR）曾先于优惠券校验/格口预占执行，失败抛异常后名额不回补
+   （实测：产能 20 → 假券失败 → 19）。修复：DECR 之后的失败路径 try/catch 回补（`giveBackCapacity`）。
+   回归：API-C11 断言失败下单前后产能不变。
+2. ~~【契约缺口】`GET /api/v1/auth/agreements` 后端未实现~~ **✅ 已补齐（2026-10-24）**：
+   按契约实现（`WashAgreementService` + `WxAuthController`，免登录，type 四枚举），
+   文案走 sys_config（`wash.agreement.*`，种子 `sql/wash_20261024_agreement_config.sql`，dev 占位内容上线前须替换）。
+   回归：API-A07 四类型 + 非法 type 拒绝 + 免登录。
 3. mock 渠道下无支付流水表（无 `wash_payment`），D09 入账次数以状态机口径断言；接真实微信渠道后补 trade_no 唯一键断言。
 
 ## 已交付批次与通过标准
