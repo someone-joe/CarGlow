@@ -825,3 +825,30 @@ C 端提交售后（REFUND）
 
 ⚠️ 上线阻断项不变：`wash.wx.appid/secret` 为空时所有用户共用 `dev-openid`，
 **不配置的话线上数据全串**；`wash.pay.provider` 生产必须为 `wechat`。
+
+---
+
+## 十六、小程序自动化测试（2026-10-22）
+
+**结论：走微信开发者工具官方 `wechatide` CLI，不用 uni-automator。**
+
+一次性环境配置（已完成；换设备 / 重装 IDE 后需按此重做）：
+
+1. **服务端口**：`~/Library/Application Support/微信开发者工具/<hash>/WeappLocalData/ls_<hash>.json`
+   的 `security.enableServicePort` 改 `true`（GUI「设置 → 安全 → 服务端口」的落盘点，旁边有 `.bak` 备份）。
+   IDE 启动时会把 `port` 改成自增值（当前 18026），不用管。
+2. **appid**：`carwash-mp/src/manifest.json` 的 `mp-weixin.appid` = 测试号 `wx92e7a7507d5dbed5`
+   （用户 2026-10-22 选定）。**空 appid / touristappid 会被 IDE 在线校验拒绝**
+   （`APPID_ERROR: 不存在此 AppID`）——GUI 能开窗口，但 CLI 与一切自动化一律拒绝，这是最大的坑。
+3. **授权**：首次 `wechatide -c CodeBuddy <tool>` 弹窗，需在 IDE 点同意（auth 任务返回 `pending`，轮询 `polling_task_result` 即可）。
+
+运行冒烟：`bash carwash-mp/test/automator/smoke.sh`（3 个 tab 页关键结构断言 + 截图，
+产物 `test/automator/screenshots/`；前置：IDE 里项目窗口已开，指向 `dist/dev/mp-weixin`）。
+
+**为什么不用 uni-automator**：`@dcloudio/uni-automator`（devDependencies 自带）那条路
+（驱动 `cli auto --project <dist>`）能连上但随后 `Connection closed`（疑似与 wechatide 的 auto 会话互相顶掉），
+且每次运行自动重编译、慢。官方 wechatide 直接驱动已开窗口，快且稳。原 `smoke.mjs` 已删，避免两套实现漂移。
+
+可扩展用例（官方 automator 工具集）：`automation_element_action`（tap/input/读文本）、
+`automation_page_action`（getData/setData/callMethod）、`automation_wx_api`（mock wx API）、
+`automation_navigate`（navigateTo/redirectTo/reLaunch/switchTab）。
