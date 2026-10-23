@@ -24,9 +24,9 @@
 自动化测试/
   README.md                本文件：范围、追溯、环境、通过标准
   接口自动化/
-    API测试用例.md         172 个接口的用例设计（17 个模块，181 条）
+    API测试用例.md         172 个接口的用例设计（17+1 模块，226 条，含 R 段边界值专项）
   UI自动化/
-    UI测试用例.md          C 端 + 师傅端 P0 为主（35 条），后台单列（缺基建）
+    UI测试用例.md          C 端 P0(28)+P1(15)、师傅端 P0(12)+P1(4)、后台 P0(6)，共 65 条
 ```
 
 ## 三、需求 → 用例追溯矩阵
@@ -40,7 +40,8 @@
 | PRD 12 验收标准 | P0 100% / P1 ≥95%、≥20 单全流程穿测（含退款/重洗/紧急取钥匙/离线应急/顺延各 1 次） | README 第六节通过标准 |
 | PRD 6.1.2 页面清单 | C 端 17 个页面与跳转关系 | UI-C 系列 |
 | 小程序需求文档拆解 | 下单四步、钥匙柜交互、照片留证、师傅 SOP、后台模块 | UI-C/W、API-G/H/N/O |
-| 技术方案 3.4 | 三个并发热点：产能不超卖、格口不超卖、支付回调幂等 | API-C/D 边界组 |
+| 技术方案 3.4 | 三个并发热点：产能不超卖、格口不超卖、支付回调幂等 | API-C/D 边界组、API-R 并发组 |
+| PRD 6.7.7 参数字典 / 技术方案 P7 | 全部阈值走配置、禁止硬编码 | API-R 边界值专项（45 条） |
 | 技术方案 1.1 / 商业计划书 | 10.5 万 MVP、2 人 1 站 2 柜、日均 7 单保本、夜间作业 | 测试数据基线（低单量、单站点） |
 
 ## 四、测试环境与数据基线
@@ -88,13 +89,56 @@
 
 ## 七、执行规划（后续单开任务，本文档不含可执行脚本）
 
-> 按项目红线「禁止新增依赖」：执行框架选型需先提方案获批准后再动。预选方案（按推荐序）：
+### 7.1 接口执行框架：选型调研与结论
 
-| 层 | 方案 | 现状 |
-| --- | --- | --- |
-| 接口 | Node 脚本（`node:test` + 内置 `fetch`，零新增依赖）驱动 `localhost:8080` | 仓库已有 Node 生态；`sim-flow.ps1` 是前身（仅 Windows） |
-| 接口 | JMeter / Postman+Newman | 免改仓库依赖，适合非开发执行 |
-| UI | wechatide CLI（官方，已跑通冒烟） | `carwash-mp/test/automator/smoke.sh` 已验证 |
-| UI（后台） | Playwright | **缺基建**（carwash-admin 无测试目录），需先立框架 |
+**业内现状（2026 调研结论）**：接口自动化的选型共识是「随技术栈走」，没有 universally best：
 
-脚本落位遵循「按端归属」：接口脚本进 `carwash-server`（或根 `scripts/` 若跨端编排），UI 脚本进 `carwash-mp/test/`，后台 UI 脚本进 `carwash-admin/`。
+| 框架 | 定位 | 适配栈 | 是否需要新增依赖 |
+| --- | --- | --- | --- |
+| Pytest + Requests | Python 栈第一选择（灵活、Allure 报告） | Python | 是（Python 生态） |
+| REST Assured | Java 栈第一选择（given-when-then，与 JUnit 无缝） | Java | 是（Maven test scope） |
+| Postman + Newman | 协作调试 + 无头运行，中小团队性价比高 | 任意（JS 脚本） | 是（外部工具） |
+| Supertest + node:test | Node 栈标准方案（学习曲线低） | Node | 是（npm devDep） |
+| k6 | 性能/负载（本期不关注） | 任意 | 是 |
+| Karate | BDD/Gherkin，合约测试强 | 任意 | 是 |
+
+**结论：采纳零依赖 `node:test` + 内置 `fetch`（Node 26，均为稳定内置 API）。** 理由：
+
+1. **栈匹配**：本项目脚本生态是 Node（carwash-mp / carwash-admin 均为 npm），师傅/C 端造数脚本、UI 造数都可同语言复用；
+2. **红线合规**：不引入任何第三方依赖（CODEBUDDY 红线 4），Node 26 的 `node:test` 运行器与 `fetch`（undici）已是稳定 API，无需 supertest 的语法糖；
+3. **可控性即准确性**：断言全部显式（`node:assert/strict` + 自建五类断言 helper），没有 DSL 魔法，失败信息精确到字段。
+
+**备选升级路径（需先批准）**：REST Assured 进 `carwash-server` 的 test scope——业内 Java 栈标准，与现有 13 个 JUnit 单测共用 `mvn test` 命令、CI 一体化。若后续团队更看重「测试与后端同仓同命令」，可切换；切换时用例文档（本目录）不变，只换执行层。
+
+### 7.2 稳定性与准确性的工程措施（比框架选型更重要）
+
+接口 E2E 的不稳定大多不来自 HTTP 客户端，而来自数据与隔离。执行框架必须落实：
+
+1. **五类显式断言**：HTTP 状态码 / 业务码（如 21002）/ 关键字段值 / 字段类型与单位（分、毫秒）/ **副作用**（DB 行、Redis key、格口状态）——最后类是接口测试准确性的核心，只断言响应不够；
+2. **响应契约校验**：断言集对齐 `openapi.yaml`（2026 业内趋势：contract testing）。零依赖做法：从 openapi.yaml 提取 schema 结构写轻量校验（必填字段存在性 + 类型），不必引库；
+3. **失败全量打印**：断言失败时输出完整请求/响应（对齐 REST Assured `.log().ifValidationFails()` 最佳实践），通过时保持安静；
+4. **数据工厂 + 用例隔离**：所有造数走接口（禁直接改库）；用例间用车牌/备注前缀隔离；跑后复位格口与产能（README 4.2）；
+5. **重试策略**：写操作（下单/支付/流转）**禁止静默重试**（重试会掩盖幂等缺陷）；读操作可重试 1 次；
+6. **CI 门禁**：P0 通过率 100%、P1 ≥95% 才允许合并（对齐 PRD 12）。
+
+### 7.3 UI 执行：扩 smoke.sh 的 runner 结构（已定）
+
+`carwash-mp/test/automator/smoke.sh` 已是一个最小 runner（CASES 数组 + 断言 + 截图 + 汇总退出码）。执行期按此结构扩：
+
+```
+carwash-mp/test/automator/
+  smoke.sh                 # runner：遍历 cases、汇总 pass/fail、非零退出码
+  lib/common.sh            # 造数/断言/截图/复位的共用函数
+  cases/
+    ui-c01-xxx.sh          # 一用例一文件，文件名 = 本目录用例编号
+    ...
+  screenshots/             # 产物，已 gitignore
+```
+
+- 每用例独立文件、独立退出码，runner 汇总；
+- 造数 helper 调接口（穿测模板），与接口层共用同一套数据工厂；
+- 后台 UI（UI-A 系列）待 Playwright 框架批准后进 `carwash-admin/`，不进小程序 runner。
+
+### 7.4 脚本落位（按端归属）
+
+接口执行脚本：`carwash-server/`（若走 REST Assured 备选）或根 `scripts/api-test/`（Node 方案，跨端编排）；UI 脚本：`carwash-mp/test/`。**均不在本目录放可执行脚本**——本目录只留用例设计与规划。
