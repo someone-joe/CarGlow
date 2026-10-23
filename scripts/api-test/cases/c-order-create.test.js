@@ -48,9 +48,16 @@ test('API-C02 下单-同幂等键重复提交返回同一单', async () => {
 });
 
 test('API-C03 下单-同内容不同幂等键生成新单', async () => {
+  // dev 仅 2 个物理格口：第一单成功后先取消释放，再建第二单，避免 B2003 干扰本用例语义
   const a = await createOrder({ remark: 'C03-a' });
-  const b = await createOrder({ remark: 'C03-a' });
   ok(a.res, 'C03 第一单');
+  const s = await getSession();
+  ok(await api('POST', `/api/v1/orders/${a.orderNo}/cancel`, {
+    token: s.token, body: { reason: '[AUTOTEST] C03 释放格口' },
+  }), 'C03 取消第一单');
+  markFinished(a.orderNo);
+
+  const b = await createOrder({ remark: 'C03-a' });
   ok(b.res, 'C03 第二单');
   assert.notEqual(a.orderNo, b.orderNo, 'C03: 不同幂等键应生成不同订单');
 });
