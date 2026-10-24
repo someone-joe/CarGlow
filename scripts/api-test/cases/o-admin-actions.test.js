@@ -17,7 +17,7 @@ import { api } from '../lib/http.js';
 import { ok, typeIs, truthy } from '../lib/assert.js';
 import {
   getSession, adminLogin, createOrder, driveChain, cleanupCreated, cleanupSelfwash,
-  createSelfwashOrder, selfwashPay, getSelfwashOrder, getOrder,
+  createSelfwashOrder, selfwashPay, getSelfwashOrder,
 } from '../lib/factory.js';
 
 afterEach(async () => { await cleanupCreated(); await cleanupSelfwash(); });
