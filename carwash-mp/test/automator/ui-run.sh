@@ -17,4 +17,6 @@ for f in cases/ui-*.sh; do
   if bash "$f"; then :; else failed=$((failed + 1)); fi
 done
 echo "===== UI RUN: $run 用例文件, $failed 失败 ====="
+# 全局清理：取消本批造数订单，释放格口/产能，避免跨轮累积导致 B2003
+ui_reset || true
 [ "$failed" -eq 0 ]
