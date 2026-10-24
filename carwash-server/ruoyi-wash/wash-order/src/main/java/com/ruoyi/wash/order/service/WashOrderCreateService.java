@@ -45,6 +45,8 @@ public class WashOrderCreateService {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final String IDEM_PREFIX = "order:idem:";
     private static final String CAPACITY_PREFIX = "capacity:";
+    /** 已真实占用产能的订单号集合（按 站点:日期）；取消时据此精确回补，防止超发 */
+    private static final String CONSUMED_PREFIX = "capacity:consumed:";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
@@ -122,15 +124,18 @@ public class WashOrderCreateService {
             throw new ApiException(ErrorCode.A0001, "预约时间必须晚于当前时间");
         }
 
-        // 产能：capacity:{siteId}:{date}，未初始化（null）表示当日不限量，不做拦截
-        takeCapacity(cabinet.getSiteId(), request.appointDate());
+        long now = System.currentTimeMillis();
+        String orderNo = generateOrderNo(now);
+
+        // 产能：capacity:{siteId}:{date}，未初始化（null）表示当日不限量，不做拦截。
+        // 抢占成功（确实 DECR）时把 orderNo 记进 consumed 集合，取消时据此精确回补——
+        // 避免"下单时 key 不存在(不限量)未 DECR、后来 key 被建出又取消"的无中生有 INCR（超发）。
+        takeCapacity(cabinet.getSiteId(), request.appointDate(), orderNo);
 
         // DECR 之后的任何失败（券校验/格口预占/落库/影像回填）都会让事务回滚，
         // 但 Redis 不在事务内——不回补就泄漏名额，失败下单累积后真实客户被误拒 A0006。
         // 2026-10-24 由接口自动化（API-C11 假券场景）抓到，此处修复并留回归。
         try {
-            long now = System.currentTimeMillis();
-            String orderNo = generateOrderNo(now);
             long payExpireAt = now + payTimeoutMinutes * 60L * 1000;
 
             // 下单用券：校验归属/状态/门槛并核销，返回抵扣额；不传 couponUserId 则不使用
@@ -190,11 +195,18 @@ public class WashOrderCreateService {
                     "return 1",
             Long.class);
 
-    private void takeCapacity(Long siteId, String appointDate) {
+    private void takeCapacity(Long siteId, String appointDate, String orderNo) {
         String key = CAPACITY_PREFIX + siteId + ":" + appointDate;
         Long result = stringRedisTemplate.execute(TAKE_CAPACITY_SCRIPT, List.of(key));
         if (result != null && result == 0L) {
             throw new ApiException(ErrorCode.A0006);
+        }
+        // 仅在确实 DECR（key 已存在，result==1）时登记；不限量（result==-1，key 不存在）不记。
+        // 取消回补（WashOrderStateService.releaseCapacity）据此判断，杜绝不限量期建单、限量期取消的超发。
+        if (result != null && result == 1L) {
+            String consumedKey = CONSUMED_PREFIX + siteId + ":" + appointDate;
+            stringRedisTemplate.opsForSet().add(consumedKey, orderNo);
+            stringRedisTemplate.expire(consumedKey, 3, TimeUnit.DAYS);
         }
     }
 

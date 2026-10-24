@@ -8,8 +8,6 @@ import com.ruoyi.wash.common.statemachine.OrderStateMachine;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.common.statemachine.OrderStatusLog;
 import com.ruoyi.wash.order.domain.WashOrder;
-import com.ruoyi.wash.network.domain.WashSite;
-import com.ruoyi.wash.network.service.WashSiteQueryService;
 import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.event.OrderKeyInEvent;
@@ -43,6 +41,8 @@ public class WashOrderStateService {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     /** 与 WashOrderCreateService 保持一致，key 规范见技术方案 5.3 */
     private static final String CAPACITY_PREFIX = "capacity:";
+    /** 已真实占用产能的订单号集合（按 站点:日期）；取消时据此精确回补，防止超发 */
+    private static final String CONSUMED_PREFIX = "capacity:consumed:";
 
     /** 系统取消原因：留痕用，客户能在时间轴里看到是谁、为什么取消 */
     private static final String REASON_PAY_TIMEOUT = "支付超时自动取消";
@@ -61,9 +61,6 @@ public class WashOrderStateService {
 
     @Autowired
     private WashSlotService slotService;
-
-    @Autowired
-    private WashSiteQueryService siteQuery;
 
     @Autowired
     public WashOrderStateService(OrderRedisLock lock, WashOrderStatusAccessor accessor, WashOrderMapper orderMapper) {
@@ -357,35 +354,27 @@ public class WashOrderStateService {
     }
 
     /**
-     * 产能回补：下单时 DECR 过，取消要加回去，且不得超过当日上限 dailyLimit。
+     * 产能回补：下单时确实 DECR 过（orderNo 在 consumed 集合）才加回去。
      *
-     * <p>踩过的坑：历史上"每日产能初始化"任务若在某天的订单之后才 SETNX 建 key，
-     * 这些订单下单时 key 不存在（按"不限量"处理、未 DECR），之后取消/完成却仍无条件 INCR，
-     * 计数一路越过上限（实测 remaining=220 / total=20），A0006 产能拦截随之失效（永不 ≤0）。
-     * 封顶后 remaining 恒 ∈ [0, total]，已超发的 key 会在后续取消中逐单回落自愈。
-     * key 不存在 / 站点不限量（dailyLimit≤0）说明当日未限量，无需处理。
+     * <p>踩过的坑：历史上订单在"每日产能初始化"SETNX 建 key 之前以"不限量"模式建单
+     * （下单时 key 不存在、未 DECR），之后取消/完成却仍无条件 INCR，计数越过上限超发
+     * （实测 remaining=220 / total=20）。改为据 consumed 集合精确回补——只有真正占过名额的订单
+     * 取消时才 INCR；同时不影响测试/运营对产能 key 的直接扩容（扩容后下单照常 DECR + 登记）。
      */
     private void releaseCapacity(WashOrder order) {
-        if (order.getAppointTime() == null || order.getSiteId() == null) {
+        if (order.getAppointTime() == null || order.getSiteId() == null || order.getOrderNo() == null) {
             return;
         }
-        try {
-            WashSite site = siteQuery.require(order.getSiteId());
-            Integer limit = site.getDailyLimit();
-            if (limit == null || limit <= 0) {
-                return;
+        String date = Instant.ofEpochMilli(order.getAppointTime()).atZone(ZONE).toLocalDate().toString();
+        Long siteId = order.getSiteId();
+        String consumedKey = CONSUMED_PREFIX + siteId + ":" + date;
+        // 从 consumed 集合移除本单：移除成功（>0）说明下单时确实 DECR 过，才回补
+        Long removed = stringRedisTemplate.opsForSet().remove(consumedKey, order.getOrderNo());
+        if (removed != null && removed > 0) {
+            String key = CAPACITY_PREFIX + siteId + ":" + date;
+            if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
+                stringRedisTemplate.opsForValue().increment(key);
             }
-            String date = Instant.ofEpochMilli(order.getAppointTime()).atZone(ZONE).toLocalDate().toString();
-            String key = CAPACITY_PREFIX + order.getSiteId() + ":" + date;
-            String value = stringRedisTemplate.opsForValue().get(key);
-            if (value == null || Long.parseLong(value) >= limit) {
-                return;
-            }
-            stringRedisTemplate.opsForValue().increment(key);
-        } catch (Exception e) {
-            // 产能回补是取消的副作用，异常只记日志绝不阻断取消主流程（与优惠券返还同口径）
-            log.warn("[产能回补] 异常（不阻断取消）siteId={} orderNo={} err={}",
-                    order.getSiteId(), order.getOrderNo(), e.toString());
         }
     }
 
