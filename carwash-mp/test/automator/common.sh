@@ -102,6 +102,11 @@ ui_value() {
   $WCLI automation_element_action --project "$CG_MP_PROJECT" --action value --selector "$1" 2>/dev/null \
     | sed -n 's/.*"result": "\(.*\)"[,]*$/\1/p' | head -1
 }
+# 读元素文本（wechatide 的 text 同样返回 result 字段的裸字符串）
+ui_text() {
+  $WCLI automation_element_action --project "$CG_MP_PROJECT" --action text --selector "$1" 2>/dev/null \
+    | sed -n 's/.*"result": "\(.*\)"[,]*$/\1/p' | head -1
+}
 
 # 断言元素不存在：$1=用例名 $2=selector；为 0 则通过（查询失败 -1 视为失败）
 ui_assert_absent() {

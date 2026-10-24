@@ -7,6 +7,7 @@
  *
  * 用法：
  *   node data.mjs coupon                确保名下有一张 UNUSED 券，打印 couponUserId
+ *   node data.mjs coupon-count          打印名下券总条数（用于领券后即时刷新的前后对比）
  *   node data.mjs wallet                打印可用余额（分，balance + giftBalance，与 pay.vue 口径一致）
  *   node data.mjs topup <fen>           精确充值（mock 到账），打印充值单号
  *   node data.mjs order-pay <orderNo>   打印订单应付金额（分）
@@ -42,6 +43,13 @@ async function coupon() {
     process.exit(1);
   }
   console.log(got.couponUserId);
+}
+
+/** 名下券条数：领券前后对比用（curl_count 变化反映「即时刷新」） */
+async function couponCount() {
+  const token = await rawToken();
+  const mine = (await api('GET', '/api/v1/coupons', { token })).data || [];
+  console.log(mine.length);
 }
 
 /** 可用余额（分）：与 pay.vue 的 walletAvailable 同口径（balance + giftBalance） */
@@ -115,6 +123,7 @@ const cmd = process.argv[2] || '';
 const arg = process.argv[3];
 const table = {
   coupon,
+  'coupon-count': couponCount,
   wallet,
   topup,
   'order-pay': orderPay,
