@@ -71,7 +71,7 @@
       </view>
       <scroll-view class="home-packages" scroll-x enhanced show-scrollbar="false">
         <view v-for="item in services" :key="item.serviceId" class="cg-card home-package cg-tap" hover-class="cg-hover" @click="goCreate(item.serviceId as number)">
-          <image v-if="item.coverUrl" class="home-package-cover" :src="item.coverUrl" mode="aspectFill" />
+          <app-image v-if="item.coverUrl" class="home-package-cover" :src="item.coverUrl" mode="aspectFill" />
           <text class="home-package-name">{{ item.name }}</text>
           <view class="home-package-meta">
             <text class="home-package-minutes">约 {{ item.workMinutes }} 分钟</text>

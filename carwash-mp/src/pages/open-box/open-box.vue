@@ -11,7 +11,7 @@
 
       <view class="code-card">
         <text v-if="code.qrcodeUrl" class="qr-tip">请到柜机扫码，或输入下方开箱码</text>
-        <image v-if="code.qrcodeUrl" class="qr" :src="code.qrcodeUrl" mode="aspectFit" />
+        <app-image v-if="code.qrcodeUrl" class="qr" :src="code.qrcodeUrl" mode="aspectFit" />
         <view class="code-box">
           <text class="code-label">开箱码</text>
           <text class="code-value">{{ code.code }}</text>

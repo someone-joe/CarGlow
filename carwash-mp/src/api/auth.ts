@@ -1,6 +1,9 @@
 import type { components } from '@/api/schema'
 import { request, setToken } from '@/utils/request'
 
+// 小程序运行时的全局 wx 对象；mp-weixin 下 ensureLogin 直连它做静默登录。TypeScript 未内置类型，宽松声明。
+declare const wx: any
+
 export type LoginVO = components['schemas']['LoginVO']
 
 /**
@@ -38,35 +41,51 @@ export function allowAutoLogin(): void {
 /** 静默登录：wx.login → 登录接口 → 存 token。并发调用共享同一次登录，避免重复请求 */
 let pending: Promise<string> | null = null
 
-export function ensureLogin(): Promise<string> {
+/** 登录整体超时：wx.login/网络偶发卡住时，置空 pending 让后续调用可重试，避免永久毒化 */
+const LOGIN_TIMEOUT = 10000
+
+export function ensureLogin(force = false): Promise<string> {
   if (autoLoginSuppressed) {
     return Promise.reject(new Error('已退出登录，等待重新授权'))
   }
-  if (pending) {
+  if (pending && !force) {
     return pending
   }
+  if (force) {
+    // 强制重登：丢弃可能已失败的共享 promise，开启一次全新登录
+    pending = null
+  }
   const p = new Promise<string>((resolve, reject) => {
-    uni.login({
-      provider: 'weixin',
-      success: (res) => {
+    const timer = setTimeout(() => {
+      pending = null
+      reject(new Error('登录超时'))
+    }, LOGIN_TIMEOUT)
+    // 直连 wx.login：本应用仅编译到 mp-weixin，uni.login 与其等价；
+    // 但开发者工具自动化运行时 uni.login 回调不触发，会导致续登永久挂起，故用 wx.login。
+    wx.login({
+      success: (res: any) => {
         // res.code 类型上可能为空，缺 code 直接失败，避免静默带上 undefined 换取错误 openid
         if (!res.code) {
+          clearTimeout(timer)
           pending = null
-          reject(new Error('wx.login 未返回 code'))
+          reject(new Error('登录未返回 code'))
           return
         }
         login(res.code)
           .then((data) => {
+            clearTimeout(timer)
             setToken(data.token ?? '')
             pending = null
             resolve(data.token ?? '')
           })
           .catch((err) => {
+            clearTimeout(timer)
             pending = null
             reject(err)
           })
       },
-      fail: (err) => {
+      fail: (err: any) => {
+        clearTimeout(timer)
         pending = null
         reject(err)
       },

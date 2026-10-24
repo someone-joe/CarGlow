@@ -3,7 +3,7 @@
     <!-- 站点详情 Hero：标题/副标题/头图/文案全部后台可配，未配置走前端回退 -->
     <view class="hero">
       <view class="hero-media">
-        <image v-if="site?.detailImageUrl" class="hero-image" :src="site.detailImageUrl" mode="aspectFill" />
+        <app-image v-if="site?.detailImageUrl" class="hero-image" :src="site.detailImageUrl" mode="aspectFill" />
         <template v-else>
           <view class="hero-glow" />
           <view class="art-spotlight" />
@@ -59,7 +59,7 @@
         @click="onCard(item)"
       >
         <view class="svc-media">
-          <image v-if="item.coverUrl" class="svc-cover" :src="item.coverUrl" mode="aspectFill" />
+          <app-image v-if="item.coverUrl" class="svc-cover" :src="item.coverUrl" mode="aspectFill" />
           <view v-else class="svc-cover svc-cover-ph">
             <view class="ph-art">
               <view class="cg-art-car is-sm">

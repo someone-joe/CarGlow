@@ -49,7 +49,7 @@
       <view v-if="photoList(t).length" class="photos">
         <text class="photos-title">用户停车照（找车用）</text>
         <view class="photos-row">
-          <image
+          <app-image
             v-for="(p, i) in photoList(t)"
             :key="p.fileId"
             class="photo"
@@ -66,7 +66,7 @@
           已拍取车照 {{ draftList(t.orderNo).length }}/{{ t.requiredPhotoCount ?? 6 }}（点开看大图，长按删除）
         </text>
         <view class="photos-row">
-          <image
+          <app-image
             v-for="(p, i) in draftList(t.orderNo)"
             :key="p.fileId"
             class="photo"

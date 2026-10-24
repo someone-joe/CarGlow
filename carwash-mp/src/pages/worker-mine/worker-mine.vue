@@ -54,17 +54,17 @@
           </view>
           <view class="upload">
             <text class="label">身份证正面</text>
-            <image v-if="form.idFrontFile" class="up-img" :src="fileUrl(form.idFrontFile)" mode="aspectFill" @click="upload('idFrontFile')" />
+            <app-image v-if="form.idFrontFile" class="up-img" :src="fileUrl(form.idFrontFile)" mode="aspectFill" @click="upload('idFrontFile')" />
             <view v-else class="up-box" @click="upload('idFrontFile')"><text>＋</text></view>
           </view>
           <view class="upload">
             <text class="label">身份证反面</text>
-            <image v-if="form.idBackFile" class="up-img" :src="fileUrl(form.idBackFile)" mode="aspectFill" @click="upload('idBackFile')" />
+            <app-image v-if="form.idBackFile" class="up-img" :src="fileUrl(form.idBackFile)" mode="aspectFill" @click="upload('idBackFile')" />
             <view v-else class="up-box" @click="upload('idBackFile')"><text>＋</text></view>
           </view>
           <view class="upload">
             <text class="label">驾照（选填）</text>
-            <image v-if="form.licenseFile" class="up-img" :src="fileUrl(form.licenseFile)" mode="aspectFill" @click="upload('licenseFile')" />
+            <app-image v-if="form.licenseFile" class="up-img" :src="fileUrl(form.licenseFile)" mode="aspectFill" @click="upload('licenseFile')" />
             <view v-else class="up-box" @click="upload('licenseFile')"><text>＋</text></view>
           </view>
         </view>

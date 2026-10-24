@@ -5,6 +5,7 @@
  * 契约：openapi.yaml 的 Result schema（code = 0 表示成功）。
  */
 import type { components } from '@/api/schema'
+import { ensureLogin } from '@/api/auth'
 
 /**
  * 后端基址：从 carwash-mp/.env 的 VITE_API_BASE 读取。
@@ -139,12 +140,14 @@ function doRequest<T>(options: RequestOptions, retried: boolean, idempotencyKey:
         // 未登录：静默续登后重试一次，页面无感知
         if (body.code === 10002 && !retried) {
           clearToken()
-          import('@/api/auth')
-            .then(({ ensureLogin }) => {
-              ensureLogin()
-                .then(() => doRequest<T>(options, true, idempotencyKey).then(resolve, reject))
-                .catch(reject)
-            })
+          const retry = () => doRequest<T>(options, true, idempotencyKey)
+          ensureLogin()
+            .then(retry)
+            .catch(() =>
+              // 首登可能因并发首登失败而落空（共享 promise 被拒），强制重登一次兜底
+              ensureLogin(true).then(retry)
+            )
+            .then(resolve)
             .catch(reject)
           return
         }

@@ -6,7 +6,7 @@
       <!-- 专属管家（企微二维码由后台配置下发，未配置不显示） -->
       <view v-if="cfg.wecomQrcodeUrl" class="card">
         <text class="card-title">专属管家</text>
-        <image class="qr" :src="cfg.wecomQrcodeUrl" mode="aspectFit" @longpress="saveQr" />
+        <app-image class="qr" :src="cfg.wecomQrcodeUrl" mode="aspectFit" @longpress="saveQr" />
         <text class="qr-tip">长按二维码添加管家企业微信</text>
       </view>
 

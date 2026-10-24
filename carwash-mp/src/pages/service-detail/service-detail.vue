@@ -4,8 +4,8 @@
 
     <block v-else-if="detail">
       <!-- 封面 -->
-      <image v-if="detail.coverUrl" class="cover" :src="detail.coverUrl" mode="aspectFill" />
-      <image v-else class="cover cover-empty" src="/static/logo.png" mode="aspectFit" />
+      <app-image v-if="detail.coverUrl" class="cover" :src="detail.coverUrl" mode="aspectFill" />
+      <app-image v-else class="cover cover-empty" src="/static/logo.png" mode="aspectFit" />
 
       <!-- 头部信息 -->
       <view class="head">
@@ -47,7 +47,7 @@
       <view v-if="detail.sampleImages?.length" class="panel">
         <text class="panel-title">前后对比样图</text>
         <view class="gallery">
-          <image v-for="(img, i) in detail.sampleImages" :key="i" class="sample" :src="img" mode="aspectFill" @click="preview(img)" />
+          <app-image v-for="(img, i) in detail.sampleImages" :key="i" class="sample" :src="img" mode="aspectFill" @click="preview(img)" />
         </view>
       </view>
 

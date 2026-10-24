@@ -96,7 +96,7 @@
         <text class="order-step-title">拍照留言</text>
         <view class="order-photos">
           <view v-for="(p, i) in photos" :key="i" class="order-photo">
-            <image class="order-photo-img" :src="p" mode="aspectFill" />
+            <app-image class="order-photo-img" :src="p" mode="aspectFill" />
             <view class="order-photo-del cg-tap" hover-class="cg-hover" @click="removePhoto(i)">×</view>
           </view>
           <view v-if="photos.length < MAX_PHOTOS" class="order-photo order-photo-add cg-tap" hover-class="cg-hover" @click="choosePhoto">
@@ -409,7 +409,8 @@ function loadOptions(): void {
         serviceId.value = orderDraft.serviceId ?? services.value[0]?.serviceId
       }
       if (vehicleId.value == null) {
-        vehicleId.value = vehicles.value[0]?.vehicleId
+        // 优先预选默认车；后端未回传 isDefault 时回退到列表首辆（与车管页默认标记口径一致）
+        vehicleId.value = (vehicleList.find((v) => v.isDefault) ?? vehicleList[0])?.vehicleId
       }
       if (cabinetId.value == null) {
         const usable = cabinets.value.find((item) => !item.full)

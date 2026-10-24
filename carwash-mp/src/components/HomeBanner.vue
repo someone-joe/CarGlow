@@ -17,7 +17,7 @@
       :class="{ active: i === bannerIndex, 'is-text': !s.imageUrl }"
       :style="slideStyle(i)"
     >
-      <image v-if="s.imageUrl" class="banner-img" :src="s.imageUrl" mode="aspectFill" />
+      <app-image v-if="s.imageUrl" class="banner-img" :src="s.imageUrl" mode="aspectFill" />
       <view v-else class="banner-fallback">
         <view class="banner-fallback-art">
           <view class="cg-art-car">
