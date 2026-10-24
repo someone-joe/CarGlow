@@ -5,7 +5,7 @@
         v-for="t in tabs"
         :key="t.key"
         class="cg-tab"
-        :class="{ 'is-active': activeTab === t.key }"
+        :class="[{ 'is-active': activeTab === t.key }, 'tab-' + t.key]"
         @click="switchTab(t.key)"
       >
         {{ t.label }}

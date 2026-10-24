@@ -2,8 +2,8 @@
   <view class="cg-page coupons">
     <!-- 顶部切换：领券中心 / 我的优惠券（激活码与卡包无后端支撑，按约定不展示） -->
     <view class="cg-tabs">
-      <view class="cg-tab" :class="{ 'is-active': tab === 'center' }" @click="tab = 'center'">领券中心</view>
-      <view class="cg-tab" :class="{ 'is-active': tab === 'mine' }" @click="switchToMine">我的优惠券</view>
+      <view class="cg-tab coupon-tab-center" :class="{ 'is-active': tab === 'center' }" @click="tab = 'center'">领券中心</view>
+      <view class="cg-tab coupon-tab-mine" :class="{ 'is-active': tab === 'mine' }" @click="switchToMine">我的优惠券</view>
     </view>
 
     <view v-if="loading" class="cg-empty">加载中…</view>

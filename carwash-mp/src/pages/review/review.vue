@@ -8,7 +8,7 @@
           v-for="n in 5"
           :key="n"
           class="star"
-          :class="{ 'star-on': n <= rating }"
+          :class="['star-' + n, { 'star-on': n <= rating }]"
           @click="rating = n"
         >★</text>
       </view>

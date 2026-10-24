@@ -19,6 +19,7 @@
           class="slot"
           :class="{
             disabled: item.full || !item.online,
+            usable: !item.full && item.online,
             active: item.cabinetId === currentId
           }"
           @click="pick(item)"

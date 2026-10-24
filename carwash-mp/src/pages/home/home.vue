@@ -90,13 +90,13 @@
 
     <!-- 优惠入口 -->
     <view class="cg-card cg-card-tint home-promo">
-      <view class="home-promo-row cg-tap" hover-class="cg-hover" @click="goRecharge">
+      <view class="home-promo-row home-promo-recharge cg-tap" hover-class="cg-hover" @click="goRecharge">
         <text class="home-promo-label">储值充值</text>
         <text class="home-promo-sub">充多送多 · 支付更优惠</text>
         <text class="cg-chevron">›</text>
       </view>
       <view class="home-promo-divider" />
-      <view class="home-promo-row cg-tap" hover-class="cg-hover" @click="goCoupons">
+      <view class="home-promo-row home-promo-coupons cg-tap" hover-class="cg-hover" @click="goCoupons">
         <text class="home-promo-label">优惠券</text>
         <text class="home-promo-sub">领券下单更省钱</text>
         <text class="cg-chevron">›</text>
