@@ -8,6 +8,8 @@ import com.ruoyi.wash.common.statemachine.OrderStateMachine;
 import com.ruoyi.wash.common.statemachine.OrderStatus;
 import com.ruoyi.wash.common.statemachine.OrderStatusLog;
 import com.ruoyi.wash.order.domain.WashOrder;
+import com.ruoyi.wash.network.domain.WashSite;
+import com.ruoyi.wash.network.service.WashSiteQueryService;
 import com.ruoyi.wash.network.service.WashSlotService;
 import com.ruoyi.wash.order.event.OrderCanceledEvent;
 import com.ruoyi.wash.order.event.OrderKeyInEvent;
@@ -59,6 +61,9 @@ public class WashOrderStateService {
 
     @Autowired
     private WashSlotService slotService;
+
+    @Autowired
+    private WashSiteQueryService siteQuery;
 
     @Autowired
     public WashOrderStateService(OrderRedisLock lock, WashOrderStatusAccessor accessor, WashOrderMapper orderMapper) {
@@ -351,15 +356,36 @@ public class WashOrderStateService {
         return systemFire(orderNo, OrderEvent.AUTO_FINISH, "T+3 超时自动完成");
     }
 
-    /** 产能回补：下单时 DECR 过，取消要加回去；key 不存在说明当日未限量，无需处理。 */
+    /**
+     * 产能回补：下单时 DECR 过，取消要加回去，且不得超过当日上限 dailyLimit。
+     *
+     * <p>踩过的坑：历史上"每日产能初始化"任务若在某天的订单之后才 SETNX 建 key，
+     * 这些订单下单时 key 不存在（按"不限量"处理、未 DECR），之后取消/完成却仍无条件 INCR，
+     * 计数一路越过上限（实测 remaining=220 / total=20），A0006 产能拦截随之失效（永不 ≤0）。
+     * 封顶后 remaining 恒 ∈ [0, total]，已超发的 key 会在后续取消中逐单回落自愈。
+     * key 不存在 / 站点不限量（dailyLimit≤0）说明当日未限量，无需处理。
+     */
     private void releaseCapacity(WashOrder order) {
-        if (order.getAppointTime() == null) {
+        if (order.getAppointTime() == null || order.getSiteId() == null) {
             return;
         }
-        String date = Instant.ofEpochMilli(order.getAppointTime()).atZone(ZONE).toLocalDate().toString();
-        String key = CAPACITY_PREFIX + order.getSiteId() + ":" + date;
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(key))) {
+        try {
+            WashSite site = siteQuery.require(order.getSiteId());
+            Integer limit = site.getDailyLimit();
+            if (limit == null || limit <= 0) {
+                return;
+            }
+            String date = Instant.ofEpochMilli(order.getAppointTime()).atZone(ZONE).toLocalDate().toString();
+            String key = CAPACITY_PREFIX + order.getSiteId() + ":" + date;
+            String value = stringRedisTemplate.opsForValue().get(key);
+            if (value == null || Long.parseLong(value) >= limit) {
+                return;
+            }
             stringRedisTemplate.opsForValue().increment(key);
+        } catch (Exception e) {
+            // 产能回补是取消的副作用，异常只记日志绝不阻断取消主流程（与优惠券返还同口径）
+            log.warn("[产能回补] 异常（不阻断取消）siteId={} orderNo={} err={}",
+                    order.getSiteId(), order.getOrderNo(), e.toString());
         }
     }
 
