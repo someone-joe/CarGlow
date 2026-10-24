@@ -51,3 +51,19 @@ ui_screenshot() {
     && echo "INFO 截图: $_SHOT_DIR/$1.png" \
     || echo "WARN 截图失败 $1"
 }
+
+# 造数 helper（详见 seed.mjs 注释）：把订单建在 dev-openid 会员名下并推进到目标状态，
+# 与 wechatide 模拟器登录的会员是同一个，UI 用例可直接看到。
+#   $1=STATE(WAIT_PAY|WAIT_KEY|KEY_IN|PICKING|TO_STATION|WASHING|QC|WAIT_RETURN|
+#            RETURNING|RETURNED|WAIT_REVIEW|FINISHED|SERVING|CANCELLED|REFUNDED) $2=count(默认1)
+#   返回：空格分隔的 orderNo（stdout），可直接 $(ui_seed ...) 捕获
+ui_seed() {
+  node "$_AUTOMATOR/seed.mjs" "$1" "${2:-1}"
+}
+# 清理本 helper 造的订单（读 .seeded 逐单取消）
+ui_reset() {
+  node "$_AUTOMATOR/cleanup-seed.mjs"
+}
+
+# automator 目录绝对路径（供 seed 脚本定位，不依赖调用方 cwd）
+_AUTOMATOR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

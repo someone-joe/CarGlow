@@ -252,6 +252,9 @@ s6.json
 # 影像存储目录：后端运行时生成（wash.media.store-path 默认 ./upload/media），绝不入库
 upload/
 
+# UI 自动化造数 helper 的订单追踪文件（运行期生成，供 ui_reset 清理）
+carwash-mp/test/automator/.seeded
+
 # IDE
 .idea/
 *.iml
