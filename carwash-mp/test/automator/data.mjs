@@ -119,6 +119,36 @@ async function vehiclesRestore() {
   console.log(n);
 }
 
+/** 造一辆车（UI-C33 多车辆场景用）：打印新建 vehicleId；牌号省略则按时间戳生成 */
+async function vehiclesAdd(plate) {
+  const token = await rawToken();
+  const p = plate || `粤A${String(Date.now()).slice(-6)}`;
+  const r = await api('POST', '/api/v1/vehicles', {
+    token,
+    body: { plateNo: p, brand: 'UI造数', color: '白色', vehicleType: 'SEDAN' },
+  });
+  if (r.code !== 0) {
+    console.error(`建车失败 ${r.code} ${r.msg}`);
+    process.exit(1);
+  }
+  console.log(r.data);
+}
+
+/** 删一辆车（UI-C33 清理用）：打印被删 vehicleId */
+async function vehiclesDel(id) {
+  if (!id) {
+    console.error('vehicles:del 需要 vehicleId');
+    process.exit(2);
+  }
+  const token = await rawToken();
+  const r = await api('DELETE', `/api/v1/vehicles/${id}`, { token });
+  if (r.code !== 0) {
+    console.error(`删车失败 ${r.code} ${r.msg}`);
+    process.exit(1);
+  }
+  console.log(id);
+}
+
 const cmd = process.argv[2] || '';
 const arg = process.argv[3];
 const table = {
@@ -130,6 +160,8 @@ const table = {
   vehicles,
   'vehicles:clear': vehiclesClear,
   'vehicles:restore': vehiclesRestore,
+  'vehicles:add': vehiclesAdd,
+  'vehicles:del': vehiclesDel,
 };
 
 const fn = table[cmd];
