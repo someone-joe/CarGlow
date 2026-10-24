@@ -15,6 +15,7 @@ import com.ruoyi.wash.pay.domain.WashRefundOrder;
 import com.ruoyi.wash.pay.dto.PrepayVO;
 import com.ruoyi.wash.pay.dto.RefundVO;
 import com.ruoyi.wash.pay.mapper.WashRefundOrderMapper;
+import com.ruoyi.wash.pay.provider.MockPaymentProvider;
 import com.ruoyi.wash.pay.provider.PaymentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,6 +167,16 @@ public class WashPayService {
     /** 定时任务调用：重试未成功的退款单 */
     public List<WashRefundOrder> listPending(int maxRetry, int limit) {
         return refundMapper.selectPending(maxRetry, limit);
+    }
+
+    /**
+     * 仅 mock 渠道支持：切换"强制失败"开关，用于接口自动化构造退款失败→重试场景（解锁 P07）。
+     * 非 mock 渠道（wechat）忽略，避免误触真实渠道。
+     */
+    public void setMockForceFail(boolean forceFail) {
+        if (provider instanceof MockPaymentProvider m) {
+            m.setForceFail(forceFail);
+        }
     }
 
     // ------------------------------------------------------------------ 查询

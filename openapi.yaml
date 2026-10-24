@@ -423,11 +423,15 @@ paths:
                 contactPhone: { type: string }
       responses:
         '200':
-          description: 成功
+          description: 成功；data 为新建申请ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Result'
+                allOf:
+                  - $ref: '#/components/schemas/Result'
+                  - type: object
+                    properties:
+                      data: { type: integer, format: int64, description: 申请ID }
 
   /api/v1/banners:
     get:
@@ -4480,6 +4484,139 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RuoYiResult' }
 
+  # ============================ 小区开通申请审核 ============================
+  /admin-api/wash/community-apply/list:
+    get:
+      tags: [admin-community-apply]
+      summary: 小区开通申请列表
+      x-permission: wash:community-apply:list
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 小区名称 / 联系人手机号模糊匹配
+          schema: { type: string }
+        - name: status
+          in: query
+          required: false
+          description: PENDING / APPROVED / REJECTED
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiTableDataInfo'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items: { $ref: '#/components/schemas/CommunityApplyVO' }
+
+  /admin-api/wash/community-apply/{applyId}:
+    get:
+      tags: [admin-community-apply]
+      summary: 申请详情
+      x-permission: wash:community-apply:list
+      parameters:
+        - name: applyId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/CommunityApplyVO' }
+
+  /admin-api/wash/community-apply/{applyId}/approve:
+    post:
+      tags: [admin-community-apply]
+      summary: 审核通过（建小区并直接启用）
+      description: |
+        审核通过即建一条小区记录（enabled=Y / accessAuth=Y），客户立刻可下单。
+        siteId 必填（小区必须归属某个中央站）；communityName 可覆盖申请时的名称。
+      x-permission: wash:community-apply:approve
+      parameters:
+        - name: applyId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityApplyApproveRequest' }
+      responses:
+        '200':
+          description: 成功；data 为新建小区ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { type: integer, format: int64, description: 新建小区ID }
+
+  /admin-api/wash/community-apply/{applyId}/reject:
+    post:
+      tags: [admin-community-apply]
+      summary: 审核拒绝
+      x-permission: wash:community-apply:reject
+      parameters:
+        - name: applyId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityApplyRejectRequest' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuoYiResult' }
+
+  # ============================ 运维：手动触发定时任务 ============================
+  /admin-api/wash/job/trigger:
+    post:
+      tags: [admin-job]
+      summary: 手动触发定时任务（运维 / 接口自动化用）
+      description: |
+        白名单内的 job 才可触发：pay-timeout / capacity-init / refund-retry / order-postpone / order-auto-finish。
+        用于联调与 P 段接口自动化（解锁 P03 / P04 / P07）；生产环境慎用，正常由 @Scheduled 周期驱动。
+      x-permission: wash:job:trigger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JobTriggerRequest' }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/RuoYiResult'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/JobTriggerResult' }
+
 components:
 
   securitySchemes:
@@ -5618,6 +5755,58 @@ components:
         siteId: { type: integer, format: int64, description: 所属站点ID }
         accessAuth: { type: string, description: 地库授权 Y/N，N 时禁止该小区下单 }
         enabled: { type: string, description: 启用状态 Y/N }
+
+    CommunityApplyStatus:
+      type: string
+      description: 申请状态，取值必须与 wash_community_apply.status 及后端枚举一致
+      enum: [PENDING, APPROVED, REJECTED]
+
+    CommunityApplyVO:
+      type: object
+      description: 小区开通申请行（后台审核用）。状态中文名由后端给出，前端不维护映射。
+      properties:
+        applyId: { type: integer, format: int64, description: 申请ID }
+        memberId: { type: integer, format: int64, description: 申请人会员ID }
+        communityName: { type: string }
+        contactPhone: { type: string }
+        status: { $ref: '#/components/schemas/CommunityApplyStatus' }
+        statusLabel: { type: string, description: 中文状态名，后端给出 }
+        rejectReason: { type: string }
+        communityId: { type: integer, format: int64, description: 审核通过生成的小区ID }
+        siteId: { type: integer, format: int64, description: 审核通过时指定的归属站点 }
+        createTime: { type: string }
+
+    CommunityApplyApproveRequest:
+      type: object
+      required: [siteId]
+      description: 审核通过。建一条小区记录并直接启用（enabled=Y / accessAuth=Y），客户立刻可下单。
+      properties:
+        siteId: { type: integer, format: int64, description: 归属站点（必填） }
+        communityName: { type: string, description: 覆盖小区名称（不传用申请时的名称） }
+
+    CommunityApplyRejectRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, description: 拒绝原因 }
+
+    JobTriggerRequest:
+      type: object
+      required: [job]
+      properties:
+        job:
+          type: string
+          enum: [pay-timeout, capacity-init, refund-retry, order-postpone, order-auto-finish]
+          description: 白名单内的 job 名
+        params:
+          type: object
+          description: 可选参数；refund-retry 支持 forceFail=true 使本次渠道调用强制失败（构造重试场景）
+
+    JobTriggerResult:
+      type: object
+      properties:
+        job: { type: string }
+        triggered: { type: boolean }
 
     CategoryOption:
       type: object

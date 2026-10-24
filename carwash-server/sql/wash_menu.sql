@@ -194,3 +194,34 @@ values (2091, '客服配置保存', 2090, 1, '', null, 1, 0, 'F', '0', '0', 'was
 
 -- 角色菜单授权补录（幂等）
 insert ignore into sys_role_menu (role_id, menu_id) values (1, 2090), (1, 2091);
+
+-- ----------------------------
+-- 小区开通申请审核（2026-10-24 新增，community-applies 审核流）
+-- ----------------------------
+delete from sys_menu where menu_id in (2100, 2101, 2102, 2103);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2100, '小区开通申请', 2000, 10, 'community-apply', 'wash/communityApply/index', 1, 0, 'C', '0', '0', 'wash:community-apply:list', 'tree', 'admin', sysdate(), '客户申请开通小区 → 后台审核');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2101, '申请查询', 2100, 1, '', null, 1, 0, 'F', '0', '0', 'wash:community-apply:list', '#', 'admin', sysdate(), '查看申请列表 / 详情');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2102, '申请通过', 2100, 2, '', null, 1, 0, 'F', '0', '0', 'wash:community-apply:approve', '#', 'admin', sysdate(), '审核通过：建小区并直接启用');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2103, '申请拒绝', 2100, 3, '', null, 1, 0, 'F', '0', '0', 'wash:community-apply:reject', '#', 'admin', sysdate(), '审核拒绝（必填原因）');
+
+-- ----------------------------
+-- 运维工具（2026-10-24 新增，手动触发定时任务，解锁 P 段用例）
+-- ----------------------------
+delete from sys_menu where menu_id in (2110, 2111);
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2110, '运维工具', 2000, 11, 'job', 'wash/job/index', 1, 0, 'C', '0', '0', 'wash:job:trigger', 'tools', 'admin', sysdate(), '手动触发定时任务（运维/联调用）');
+
+insert into sys_menu (menu_id, menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+values (2111, '触发定时任务', 2110, 1, '', null, 1, 0, 'F', '0', '0', 'wash:job:trigger', '#', 'admin', sysdate(), '手动触发 pay-timeout / capacity-init / refund-retry / order-postpone / order-auto-finish');
+
+-- 角色菜单授权补录（幂等）
+insert ignore into sys_role_menu (role_id, menu_id) values
+(1, 2100), (1, 2101), (1, 2102), (1, 2103),
+(1, 2110), (1, 2111);

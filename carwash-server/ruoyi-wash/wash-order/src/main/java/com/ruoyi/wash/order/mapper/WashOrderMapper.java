@@ -165,4 +165,28 @@ public interface WashOrderMapper {
             "and pay_expire_at is not null and pay_expire_at < #{now} " +
             "order by create_time asc limit #{limit}")
     List<String> selectExpiredWaitPay(@Param("now") long now, @Param("limit") int limit);
+
+    /**
+     * 顺延任务（P03 / OrderPostponeJob）：WAIT_KEY 且预约日 < 当日 0 点的订单。
+     * 即错过当天存钥匙截止时间，需顺延到次日。
+     */
+    @Select("select order_no from wash_order where status = 'WAIT_KEY' and del_flag = '0' " +
+            "and appoint_time is not null and appoint_time < #{startOfToday} " +
+            "order by appoint_time asc limit #{limit}")
+    List<String> selectWaitKeyOverdue(@Param("startOfToday") long startOfToday, @Param("limit") int limit);
+
+    /**
+     * T+3 自动完成任务（P04 / OrderAutoFinishJob）：WAIT_REVIEW 且进入该状态已超阈值。
+     * update_time 近似"进入待评价"的时刻（状态流转会刷新它），阈值由调用方按 auto-finish-days 算好传入。
+     * 注意 update_time 是 DATETIME 列，阈值是毫秒，需用 from_unixtime(threshold/1000) 换算后再比较。
+     */
+    @Select("select order_no from wash_order where status = 'WAIT_REVIEW' and del_flag = '0' " +
+            "and update_time is not null and update_time <= from_unixtime(#{threshold} / 1000) " +
+            "order by update_time asc limit #{limit}")
+    List<String> selectWaitReviewExpired(@Param("threshold") long threshold, @Param("limit") int limit);
+
+    /** 顺延时把预约时间推后一天（规则表 2.2：状态不变，仅改预约日期） */
+    @Update("update wash_order set appoint_time = #{appointTime}, update_time = sysdate() " +
+            "where order_no = #{orderNo} and del_flag = '0'")
+    int updateAppointTime(@Param("orderNo") String orderNo, @Param("appointTime") long appointTime);
 }

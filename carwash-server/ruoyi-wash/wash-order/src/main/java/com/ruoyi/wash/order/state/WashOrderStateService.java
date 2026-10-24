@@ -323,6 +323,34 @@ public class WashOrderStateService {
         return next;
     }
 
+    /**
+     * 顺延（23:30 未存钥匙，规则表 2.2）：WAIT_KEY 自环事件，状态不变，仅把预约日推后一天并释放预占格口。
+     * 必须走状态机而不是直接改状态：时间轴与后台追溯都依赖流转日志（只增不删）。
+     */
+    public OrderStatus postpone(String orderNo) {
+        OrderStatus next = systemFire(orderNo, OrderEvent.POSTPONE, "错过存钥匙截止时间，顺延次日");
+        WashOrder order = orderMapper.selectByOrderNo(orderNo);
+        if (order != null && order.getAppointTime() != null) {
+            // 预约日推后一天；顺延是自环，反复顺延也只是不断后移，不会跳变
+            orderMapper.updateAppointTime(orderNo, order.getAppointTime() + 24L * 3600 * 1000);
+        }
+        // 释放预占格口（规则表 2.2：释放格口重分配），异常不阻断顺延主流程
+        try {
+            slotService.release(orderNo);
+        } catch (Exception e) {
+            log.error("[顺延释放格口失败] orderNo={} 需人工补偿：{}", orderNo, e.getMessage());
+        }
+        return next;
+    }
+
+    /**
+     * T+3 超时自动完成（规则表 2.1 / 规则 5）：WAIT_REVIEW → FINISHED。
+     * 触发方 JOB（定时任务），复用状态机同一条出口，禁止另写一套。
+     */
+    public OrderStatus autoFinish(String orderNo) {
+        return systemFire(orderNo, OrderEvent.AUTO_FINISH, "T+3 超时自动完成");
+    }
+
     /** 产能回补：下单时 DECR 过，取消要加回去；key 不存在说明当日未限量，无需处理。 */
     private void releaseCapacity(WashOrder order) {
         if (order.getAppointTime() == null) {

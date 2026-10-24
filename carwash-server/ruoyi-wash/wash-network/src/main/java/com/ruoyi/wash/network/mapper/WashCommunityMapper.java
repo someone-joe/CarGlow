@@ -4,6 +4,7 @@ import com.ruoyi.wash.network.domain.WashCommunity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
@@ -39,6 +40,7 @@ public interface WashCommunityMapper {
 
     @Insert("insert into wash_community (community_name, site_id, access_auth, enabled, del_flag, create_time) " +
             "values (#{communityName}, #{siteId}, #{accessAuth}, #{enabled}, '0', now())")
+    @Options(useGeneratedKeys = true, keyProperty = "communityId")
     int insert(WashCommunity community);
 
     @Update("update wash_community set community_name = #{communityName}, site_id = #{siteId}, " +
