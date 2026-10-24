@@ -36,6 +36,7 @@ scripts/api-test/
     d-pay.test.js       D 段 11 条（D10/D11 标记 todo）
     r-amount.test.js    R.1 金额边界 12 条（R10/R13~R15 标记 todo）
     o-admin-ext.test.js 后台扩展 14 条（O15~O28，补齐 admin-api 未覆盖域）
+    o-admin-actions.test.js 后台动作 12 条（OA01~OA12，POST/PUT/DELETE 动作类）
 ```
 
 ## 约定（对齐 README 7.2 稳定性措施）
@@ -85,6 +86,9 @@ scripts/api-test/
     （库里仍是 UNUSED，不改数据），过滤也按计算值走。
 12. **【实现缺口】`POST /api/v1/community-applies` 未实现**（500，且无 `wash_community_apply` 表）。
     需新建表 + 后台审核流，属产品决策（不在本轮 4 个缺口范围）。→ B03 仍挂起。
+13. **【实现缺口·待查】job 手动触发部分失败**：`/admin-api/wash/job/trigger` 触发 `order-auto-finish / refund-retry / order-postpone` 正常（`{triggered:true}`），
+    但 `pay-timeout / capacity-init` 返回 10001「任务执行失败：…runNow」——疑这两个 job 的 `runNow` 在手动/无参场景抛错，待查。O-actions 的 OA09 用可稳定触发的 job 验证 trigger 机制本身。
+14. **【服务端校验】自助洗 `adminForceFinish` 仅接受 SERVING**（"仅服务中的订单可强制结束"）：造夹具需 建单→mock 支付(WAIT_USE)→`/api/v1/selfwash/orders/{no}/activate`(SERVING) 再后台结束；工位被占会进 QUEUING，OA08 据此条件跳过。
 
 ## 已交付批次与通过标准
 
@@ -106,6 +110,7 @@ scripts/api-test/
 | N 师傅端 | 12 | ✅ 9 通过 + N09~N12 挂起（已由 H 批覆盖 / 属 UI 批） |
 | O 后台管理 | 14 | ✅ 12 通过 + O02 挂起（需无权限角色）+ O13 条件跳过（待派池空） |
 | O-ext 后台扩展 | 14 | ✅ 14/14（订单详情/后台取消、券模板 CRUD+上下架、券记录/批次、Banner、钱包赠品/充值、售后/退款/发票、机柜/格口/开箱日志、师傅增删改密、自助洗车、客服配置、会员车辆、越权拦截） |
+| O-actions 后台动作 | 12 | ✅ 12/12（订单推进 advance、售后处理 handle、发票开具/驳回、券发放/批量发放、小区申请审核、退款重试负例、自助洗强制结束、job 触发、工位增改删、实体编辑 PUT、免夹具详情/选项） |
 | P 定时任务 | 7 | ✅ 2 通过 + 5 挂起（需 job 触发/时间旅行能力） |
 | Q 安全与合规 | 8 | ✅ 4 通过（Q01 水平越权用第二会员夹具转正）+ Q04~Q06/Q08 已由其他批覆盖 |
 | R.1 金额边界 | 15 | ✅ 11 通过（R11/R12 合并执行）+ R10/R13~R15 挂起或由 J 段覆盖 |
@@ -113,6 +118,8 @@ scripts/api-test/
 **2026-10-24 四轮连跑结果：195 用例 / 169 通过 / 0 失败 / 3 条件跳过 / 23 挂起（todo），四轮完全一致（可重复）。**
 
 **2026-10-24 O-ext 轮（新增 `o-admin-ext.test.js` + 后端产能精确回补 + 造数/产能日期同源）：209 用例 / 209 通过 / 0 失败（F05 派单为时序偶发，重跑即过）。**
+
+**2026-10-24 O-actions 轮（新增 `o-admin-actions.test.js`，补齐后台动作类）：223 用例 / 205 通过 / 0 失败 / 2 条件跳过 / 16 挂起(todo)。**
 
 > 2026-10-24 第二轮推进：修复 4 个产品缺口（券返还 / 车辆删除 / faqs / pricing 免登录），
 > 顺带修了执行中暴露的 2 个（投保越权、券 EXPIRED 计算），并把 11 条挂起用例转正
