@@ -14,11 +14,11 @@ ui_assert "$NAME" ".cg-tabs" || fails=$((fails + 1))
 ui_assert "$NAME" ".cg-tab" 3 || fails=$((fails + 1))
 # 待处理 Tab（默认）应见 seeded WAIT_PAY 卡
 ui_assert "$NAME[PENDING]" ".card" 1 || fails=$((fails + 1))
-# 切到 服务中 Tab
-ui_tap ".cg-tab:nth-child(2)"; sleep "$CG_RENDER_WAIT"
+# 切到 服务中 Tab（伪类引擎不可用，用 tab-KEY 锚点）
+ui_tap ".tab-SERVING"; sleep "$CG_RENDER_WAIT"
 ui_assert "$NAME[SERVING]" ".card" 1 || fails=$((fails + 1))
 # 切到 已完成 Tab
-ui_tap ".cg-tab:nth-child(3)"; sleep "$CG_RENDER_WAIT"
+ui_tap ".tab-DONE"; sleep "$CG_RENDER_WAIT"
 ui_assert "$NAME[DONE]" ".card" 1 || fails=$((fails + 1))
 ui_screenshot "c17-orders"
 exit $fails

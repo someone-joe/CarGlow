@@ -14,6 +14,10 @@ for f in cases/ui-*.sh; do
   [ -f "$f" ] || continue
   run=$((run + 1))
   echo "===== $f ====="
+  # 每用例前重置导航栈到首页：清空 navigateTo 累积栈 + 稳定 wechatide「当前页」跟踪，
+  # 避免上一用例遗留页面导致 querySelectorAll 命中旧页/返回 -1
+  ui_navigate "/pages/home/home" switchTab
+  sleep "$CG_RENDER_WAIT"
   if bash "$f"; then :; else failed=$((failed + 1)); fi
 done
 echo "===== UI RUN: $run 用例文件, $failed 失败 ====="

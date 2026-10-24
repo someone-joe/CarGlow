@@ -272,3 +272,6 @@ docker/.env.prod
 docker/.env.test
 docker/certs/
 docker/admin-dist/
+
+# UI 自动化截图产物
+carwash-mp/test/screenshots/
