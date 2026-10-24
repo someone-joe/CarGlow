@@ -12,7 +12,13 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, field, amountIs } from '../lib/assert.js';
-import { getSession, createOrder, balancePay, getWallet, topUpExact, getOrder, cleanupCreated, drainWalletBelow } from '../lib/factory.js';
+import { getSession, createOrder, balancePay, getWallet, topUpExact, getOrder, cleanupCreated, drainWalletBelow, adminLogin, driveChain } from '../lib/factory.js';
+import { SIDECAR_ENABLED, sql } from '../lib/sidecar.js';
+
+/** 后台成功判定：若依口径 code=200 */
+function okAdmin(env, label) {
+  assert.equal(env.code, 200, `${label}: 期望 code=200，实际 code=${env.code} msg=${env.msg}`);
+}
 
 // 每条用例后取消其创建的订单（失败也执行）
 afterEach(() => cleanupCreated());
@@ -134,6 +140,21 @@ test('API-R11+R12 余额边界：恰好扣到 0 与差 1 分拒绝', async () =>
 
 // 以下暂不在本批执行（依赖其他模块或无法在当前 dev 数据下构造）：
 test('API-R10 0 元订单', { todo: '需要「满 N 减 N」券模板把订单抵到 0，当前 seed 无此模板；券模块扩充后补' }, () => {});
-test('API-R13 退款金额=实付', { todo: '由 J 段（评价/售后/退款）系统性覆盖' }, () => {});
+test('API-R13 退款金额=实付', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const { orderNo } = await createOrder({ remark: 'R13 退款金额' });
+  await driveChain(orderNo, 'FINISHED');
+  const as = await api('POST', '/api/v1/after-sales', { token: s.token, body: { orderNo, type: 'REFUND', reason: 'R13' } });
+  ok(as, 'R13 建单');
+  const atoken = await adminLogin();
+  okAdmin(await api('PUT', `/admin-api/wash/after-sale/${as.data}/handle`, { token: atoken, body: { accept: true } }), 'R13 后台同意');
+  // 退款金额必须严格等于该单实付（pay_amount，单位分），多退/少退都不允许
+  const refundRow = sql(`select status, amount from wash_order_refund where order_no = '${orderNo}' order by refund_id desc limit 1`).trim();
+  const paid = sql(`select pay_amount from wash_order where order_no = '${orderNo}'`).trim();
+  assert.ok(refundRow.startsWith('SUCCESS'), `R13: 退款单应 SUCCESS，实际 ${refundRow}`);
+  const refundAmount = refundRow.split(/\s+/)[1];
+  assert.equal(Number(refundAmount), Number(paid), `R13: 退款金额应=实付 ${paid} 分，实际 ${refundAmount} 分`);
+});
 test('API-R14 超额退款请求拒绝', { todo: '退款金额由服务端按实付解析，无客户端入口；J 段以副作用断言覆盖' }, () => {});
 test('API-R15 加时不足一档按一档', { todo: 'L 段（自助洗车）覆盖' }, () => {});

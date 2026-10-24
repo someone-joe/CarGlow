@@ -21,7 +21,15 @@ test('API-O01 后台登录', async () => {
   assert.ok(token && token.length > 20, 'O01: 应返回 token');
 });
 
-test('API-O02 无权限访问', { todo: '需要构造无 wash:order:list 权限的角色/用户；涉及角色授权写操作，留待后台权限体系配套用例' }, () => {});
+test('API-O02 无权限访问', async () => {
+  // 会员 token 打后台接口，应在鉴权层被拒（不暴露后台数据）：支持 401/403 或 C 端统一未登录码 10002。
+  const s = await getSession();
+  const res = await api('GET', '/admin-api/wash/order/list', { token: s.token, query: { pageNum: 1, pageSize: 5 } });
+  assert.ok(
+    [401, 403, 10002].includes(res.code),
+    `O02: 会员 token 访问后台应被拒，实际 code=${res.code} msg=${res.msg}`
+  );
+});
 
 test('API-O03 订单列表/筛选', async () => {
   const atoken = await adminLogin();

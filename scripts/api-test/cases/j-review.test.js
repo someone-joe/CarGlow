@@ -140,5 +140,20 @@ test('API-J11 CLAIM 不触发退款', async (t) => {
   assert.equal(refund, '0', `J11: CLAIM 不应触发退款单，实际 ${refund} 条`);
 });
 
-test('API-J09 SUCCESS 退款单重退拒绝', { todo: '依赖后台「退款单人工重试」入口与渠道状态机配合，留待 O 批（后台退款单页）一起覆盖' }, () => {});
+test('API-J09 退款单人工重试入口（SUCCESS 重退拒绝）', async (t) => {
+  if (!SIDECAR_ENABLED) t.skip('CG_SKIP_SIDECAR=1');
+  const s = await getSession();
+  const { orderNo } = await createOrder({ remark: 'J09 人工重试' });
+  await driveChain(orderNo, 'FINISHED');
+  const as = await api('POST', '/api/v1/after-sales', { token: s.token, body: { orderNo, type: 'REFUND', reason: 'J09' } });
+  ok(as, 'J09 建单');
+  const atoken = await adminLogin();
+  okAdmin(await api('PUT', `/admin-api/wash/after-sale/${as.data}/handle`, { token: atoken, body: { accept: true } }), 'J09 后台同意');
+  // mock 渠道退款单应为 SUCCESS（钱已退）
+  const refundNo = sql(`select refund_no from wash_order_refund where order_no = '${orderNo}' order by refund_id desc limit 1`).trim();
+  assert.ok(refundNo, `J09: 应生成退款单，实际无`);
+  // 人工重试入口存在；SUCCESS 单重退必须被拒（防重复打款事故）
+  const retry = await api('POST', `/admin-api/wash/refund/${refundNo}/retry`, { token: atoken });
+  assert.notEqual(retry.code, 200, `J09: SUCCESS 退款单重退应拒，实际 code=${retry.code} msg=${retry.msg}`);
+});
 test('API-J12 部分退款不改状态', { todo: '无部分退款的客户端入口（金额由服务端按实付解析）；规则表口径已由 J07 全额场景间接验证' }, () => {});

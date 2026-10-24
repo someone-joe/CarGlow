@@ -7,7 +7,7 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../lib/http.js';
 import { ok, bizCode, typeIs, truthy } from '../lib/assert.js';
-import { getSession, workerLogin, createOrder, driveChain, cleanupCreated } from '../lib/factory.js';
+import { getSession, workerLogin, createOrder, mockPay, driveChain, cleanupCreated } from '../lib/factory.js';
 
 afterEach(() => cleanupCreated());
 
@@ -74,14 +74,24 @@ test('API-N07 任务池/待派单池', async () => {
   typeIs(pool.data, 'array', 'N07 待派池类型');
 });
 
-test('API-N08 抢单', async (t) => {
+test('API-N08 抢单', async () => {
+  const s = await getSession();
   const wtoken = await workerLogin();
+  // 先把本师傅置离线，使钥匙入柜时自动派单无合格候选 → 订单进待派单池（否则会被自动派给 W001 而不在池里）
+  await api('POST', '/api/v1/worker/work-status', { token: wtoken, body: { workStatus: 'OFFLINE' } });
+  const { orderNo } = await createOrder({ remark: 'N08 抢单' });
+  // 支付 → 取开箱码 → 柜机回调存钥匙（KEY_IN，触发自动派单监听）
+  ok(await mockPay(orderNo), 'N08 支付');
+  const oc = await api('POST', `/api/v1/orders/${orderNo}/open-code`, { token: s.token });
+  ok(oc, 'N08 取开箱码');
+  ok(await api('POST', '/device-callback/v1/slot/deposit', { body: { orderNo, code: oc.data.code } }), 'N08 柜机存钥匙');
+  // 上线，准备抢单
+  await api('POST', '/api/v1/worker/work-status', { token: wtoken, body: { workStatus: 'ONLINE' } });
   const pool = (await api('GET', '/api/v1/pick/pool', { token: wtoken })).data || [];
-  if (!pool.length) t.skip('待派单池为空（钥匙入柜才触发自动派单进池）');
-  const target = pool[0];
-  const claim = await api('POST', `/api/v1/pick/orders/${target.orderNo}/claim`, { token: wtoken });
-  ok(claim, 'N08 抢单');
-  // 重复抢单应被拒
+  const target = pool.find((o) => o.orderNo === orderNo) || pool[0];
+  assert.ok(target, 'N08: 待派单池应有落池订单（钥匙已入柜且未被自动派单）');
+  ok(await api('POST', `/api/v1/pick/orders/${target.orderNo}/claim`, { token: wtoken }), 'N08 抢单');
+  // 重复抢单应被拒（并发安全，失败抛 B1002「手慢了」）
   const again = await api('POST', `/api/v1/pick/orders/${target.orderNo}/claim`, { token: wtoken });
   assert.notEqual(again.code, 0, `N08: 重复抢单应拒，实际 code=${again.code} msg=${again.msg}`);
 });

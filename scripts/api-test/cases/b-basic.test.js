@@ -31,7 +31,15 @@ test('API-B02 小区列表', async () => {
   }
 });
 
-test('API-B03 小区开通申请', { todo: '会真实产生开通申请单（副作用），留待与后台审核流一起覆盖；此处不造脏数据' }, () => {});
+test('API-B03 小区开通申请', async () => {
+  const s = await getSession();
+  const res = await api('POST', '/api/v1/community-applies', {
+    token: s.token,
+    body: { communityName: `自动化测试小区${Date.now()}`, contactPhone: '13800000000' },
+  });
+  ok(res, 'B03 提交申请');
+  assert.ok(typeof res.data === 'number' && res.data > 0, `B03: 应返回申请ID，实际 ${res.data}`);
+});
 
 test('API-B04 首页 Banner', async () => {
   const s = await getSession();
